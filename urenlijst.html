@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Dashboard</title>
+
+<style>
+body { font-family: Arial; display:flex; margin:0;}
+.sidebar { width:200px; background:#0f172a; color:white; height:100vh; padding:20px;}
+.sidebar a { display:block; color:white; margin:10px 0; text-decoration:none;}
+.main { flex:1; padding:40px;}
+table { width:100%; border-collapse:collapse;}
+th, td { padding:10px; border-bottom:1px solid #ccc;}
+</style>
+</head>
+
+<body>
+
+<div class="sidebar">
+  <h2>Time2Pay</h2>
+  <a href="index.html">⏱ Timer</a>
+  <a href="urenlijst.html">📊 Dashboard</a>
+  <a href="factuur.html">💰 Factuur</a>
+</div>
+
+<div class="main">
+
+<h2>Urenlijst</h2>
+
+<table>
+<thead>
+<tr>
+<th>Datum</th>
+<th>Klant</th>
+<th>Uren</th>
+<th>Bedrag</th>
+</tr>
+</thead>
+
+<tbody id="lijst"></tbody>
+</table>
+
+</div>
+
+<script>
+
+let data = JSON.parse(localStorage.getItem("uren")) || "";
+
+let html = "";
+
+data.forEach(d=>{
+  html += `<tr>
+    <td>${d.datum}</td>
+    <td>${d.klant}</td>
+    <td>${d.uren}</td>
+    <td>€${d.bedrag}</td>
+  </tr>`;
+});
+
+document.getElementById("lijst").innerHTML = html;
+
+</script>
+
+</body>
+</html>

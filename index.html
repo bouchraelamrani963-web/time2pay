@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Time2Pay - Timer</title>
+
+<style>
+body { font-family: Arial; margin:0; display:flex; }
+.sidebar { width:200px; background:#0f172a; color:white; height:100vh; padding:20px; }
+.sidebar a { display:block; color:white; margin:10px 0; text-decoration:none; }
+.main { flex:1; padding:40px; background:#f1f5f9; }
+
+.card {
+  background:white;
+  padding:30px;
+  border-radius:10px;
+  width:400px;
+  margin:auto;
+  text-align:center;
+}
+
+button {
+  padding:10px 20px;
+  margin:10px;
+  border:none;
+  background:blue;
+  color:white;
+  border-radius:6px;
+  cursor:pointer;
+}
+
+input, select {
+  padding:8px;
+  margin:5px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="sidebar">
+  <h2>Time2Pay</h2>
+  <a href="index.html">⏱ Timer</a>
+  <a href="urenlijst.html">📊 Dashboard</a>
+  <a href="factuur.html">💰 Factuur</a>
+</div>
+
+<div class="main">
+
+<div class="card">
+<h2>Timer</h2>
+
+<h1 id="timer">00:00:00</h1>
+
+<label>Nieuwe klant:</label><br>
+<input type="text" id="klantInput" placeholder="Klant naam">
+<button onclick="voegKlantToe()">+ Opslaan</button>
+
+<br><br>
+
+<label>Klant kiezen:</label><br>
+<select id="klant" onchange="selectKlant()"></select>
+
+<br><br>
+
+<label>Tarief (€ per uur):</label><br>
+<input type="number" id="tarief" value="75">
+
+<br><br>
+
+<label>ORT toeslag:</label><br>
+<select id="ort">
+  <option value="0">Geen</option>
+  <option value="25">25%</option>
+  <option value="50">50%</option>
+  <option value="100">100%</option>
+</select>
+
+<br><br>
+
+<button onclick="startTimer()">Start</button>
+<button onclick="stopTimer()">Stop & Opslaan</button>
+
+</div>
+</div>
+
+<script>
+
+let seconds = 0;
+let interval;
+
+// TIMER
+function startTimer(){
+  interval = setInterval(()=>{
+    seconds++;
+    let h = String(Math.floor(seconds/3600)).padStart(2,'0');
+    let m = String(Math.floor((seconds%3600)/60)).padStart(2,'0');
+    let s = String(seconds%60).padStart(2,'0');
+    document.getElementById("timer").innerText = h+":"+m+":"+s;
+  },1000);
+}
+
+// STOP + OPSLAAN
+function stopTimer(){
+  clearInterval(interval);
+
+  let klant = document.getElementById("klant").value;
+  let uren = seconds / 3600;
+  let tarief = parseFloat(document.getElementById("tarief").value);
+  let ort = parseFloat(document.getElementById("ort").value);
+
+  let totaalTarief = tarief + (tarief * (ort/100));
+  let bedrag = uren * totaalTarief;
+
+  let datum = new Date().toLocaleDateString();
+
+  let data = JSON.parse(localStorage.getItem("uren")) || [];
+
+  data.push({
+    datum,
+    klant,
+    uren: uren.toFixed(2),
+    bedrag: bedrag.toFixed(2),
+    tarief,
+    ort
+  });
+
+  localStorage.setItem("uren", JSON.stringify(data));
+
+  alert("Opgeslagen!");
+
+  seconds = 0;
+  document.getElementById("timer").innerText = "00:00:00";
+}
+
+// KLANT TOEVOEGEN
+function voegKlantToe(){
+  let naam = document.getElementById("klantInput").value;
+  let tarief = document.getElementById("tarief").value;
+
+  if(!naam) return;
+
+  let klanten = JSON.parse(localStorage.getItem("klanten")) || [];
+
+  klanten.push({naam, tarief});
+
+  localStorage.setItem("klanten", JSON.stringify(klanten));
+
+  document.getElementById("klantInput").value = "";
+
+  laadKlanten();
+}
+
+// KLANTEN LADEN
+function laadKlanten(){
+  let klanten = JSON.parse(localStorage.getItem("klanten")) || [];
+
+  let select = document.getElementById("klant");
+  select.innerHTML = "";
+
+  klanten.forEach(k=>{
+    let opt = document.createElement("option");
+    opt.value = k.naam;
+    opt.text = k.naam;
+    opt.setAttribute("data-tarief", k.tarief);
+    select.appendChild(opt);
+  });
+}
+
+// SELECT → TARIEF
+function selectKlant(){
+  let select = document.getElementById("klant");
+  let opt = select.options[select.selectedIndex];
+  let tarief = opt.getAttribute("data-tarief");
+
+  document.getElementById("tarief").value = tarief;
+}
+
+window.onload = laadKlanten;
+
+</script>
+
+</body>
+</html>
