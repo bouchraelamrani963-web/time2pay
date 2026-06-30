@@ -5,6 +5,35 @@ import { useRouter } from "next/navigation";
 import { Plus, X } from "lucide-react";
 import toast from "react-hot-toast";
 
+type ClientErrorPayload = {
+  error?: unknown;
+  message?: unknown;
+};
+
+function toErrorText(value: unknown): string | null {
+  if (typeof value === "string" && value.trim()) return value;
+  if (Array.isArray(value) && value.length > 0) return "Controleer de ingevulde klantgegevens.";
+  return null;
+}
+
+function getClientCreateError(status: number, payload: ClientErrorPayload): string {
+  const message = toErrorText(payload.message) ?? toErrorText(payload.error);
+  if (message) return message;
+  if (status === 401) return "Je sessie is verlopen. Log opnieuw in.";
+  if (status === 422) return "Controleer de ingevulde klantgegevens.";
+  return "Klant aanmaken mislukt. Probeer het opnieuw.";
+}
+
+async function readErrorPayload(response: Response): Promise<ClientErrorPayload> {
+  try {
+    const parsed: unknown = await response.json();
+    if (parsed && typeof parsed === "object") return parsed as ClientErrorPayload;
+  } catch {
+    return {};
+  }
+  return {};
+}
+
 export default function NewClientModal() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -31,13 +60,23 @@ export default function NewClientModal() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
       });
-      if (!res.ok) throw new Error();
+
+      if (!res.ok) {
+        const payload = await readErrorPayload(res);
+        console.error("Klant aanmaken mislukt", {
+          status: res.status,
+          error: payload.error,
+          message: payload.message,
+        });
+        throw new Error(getClientCreateError(res.status, payload));
+      }
+
       toast.success("Klant aangemaakt");
       setOpen(false);
       setForm({ name: "", email: "", phone: "", address: "", vatNumber: "" });
       router.refresh();
-    } catch {
-      toast.error("Aanmaken mislukt");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Klant aanmaken mislukt. Probeer het opnieuw.");
     } finally {
       setSaving(false);
     }

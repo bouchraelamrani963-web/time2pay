@@ -1,10 +1,12 @@
 import { prisma } from "@/lib/prisma";
+import { requireUser } from "@/lib/auth";
 import Link from "next/link";
-import { Plus } from "lucide-react";
 import NewClientModal from "@/components/NewClientModal";
 
 export default async function ClientsPage() {
+  const user = await requireUser();
   const clients = await prisma.client.findMany({
+    where: { userId: user.uid },
     orderBy: { name: "asc" },
     include: { _count: { select: { invoices: true } } },
   });

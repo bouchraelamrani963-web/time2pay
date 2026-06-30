@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { requireUser } from "@/lib/auth";
 import Link from "next/link";
 import { ChevronLeft, UserPlus } from "lucide-react";
 import InvoiceBuilder from "@/components/InvoiceBuilder";
@@ -9,7 +10,11 @@ export default async function NewInvoicePage({
 }: {
   searchParams: { clientId?: string };
 }) {
-  const rawClients = await prisma.client.findMany({ orderBy: { name: "asc" } });
+  const user = await requireUser();
+  const rawClients = await prisma.client.findMany({
+    where: { userId: user.uid },
+    orderBy: { name: "asc" },
+  });
 
   const clients: Client[] = rawClients.map((c) => ({
     ...c,

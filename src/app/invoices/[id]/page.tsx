@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { requireUser } from "@/lib/auth";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
@@ -6,8 +7,9 @@ import InvoiceView from "@/components/InvoiceView";
 import type { Invoice } from "@/types/invoice";
 
 export default async function InvoiceDetailPage({ params }: { params: { id: string } }) {
-  const raw = await prisma.invoice.findUnique({
-    where: { id: params.id },
+  const user = await requireUser();
+  const raw = await prisma.invoice.findFirst({
+    where: { id: params.id, userId: user.uid },
     include: { client: true, items: { orderBy: { sortOrder: "asc" } } },
   });
 

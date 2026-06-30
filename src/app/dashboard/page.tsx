@@ -1,7 +1,8 @@
 import { prisma } from "@/lib/prisma";
+import { requireUser } from "@/lib/auth";
 import Link from "next/link";
-import { FileText, Users, TrendingUp, Clock } from "lucide-react";
-import { STATUS_LABELS, STATUS_COLORS } from "@/types/invoice";
+import { Clock, FileText, TrendingUp, Users } from "lucide-react";
+import { STATUS_COLORS, STATUS_LABELS } from "@/types/invoice";
 import type { InvoiceStatus } from "@/types/invoice";
 
 function formatEuro(amount: number) {
@@ -9,16 +10,19 @@ function formatEuro(amount: number) {
 }
 
 export default async function DashboardPage() {
-  const [invoices, clients] = await Promise.all([
+  const user = await requireUser();
+
+  const [invoices, clients, allInvoices] = await Promise.all([
     prisma.invoice.findMany({
+      where: { userId: user.uid },
       include: { client: true },
       orderBy: { createdAt: "desc" },
       take: 5,
     }),
-    prisma.client.count(),
+    prisma.client.count({ where: { userId: user.uid } }),
+    prisma.invoice.findMany({ where: { userId: user.uid } }),
   ]);
 
-  const allInvoices = await prisma.invoice.findMany();
   const totalRevenue = allInvoices.filter((i) => i.status === "PAID").reduce((s, i) => s + i.total, 0);
   const outstanding = allInvoices.filter((i) => ["SENT", "OVERDUE"].includes(i.status)).reduce((s, i) => s + i.total, 0);
   const draftCount = allInvoices.filter((i) => i.status === "DRAFT").length;

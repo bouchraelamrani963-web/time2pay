@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { requireUser } from "@/lib/auth";
 import Link from "next/link";
 import { Plus } from "lucide-react";
 import { STATUS_LABELS, STATUS_COLORS } from "@/types/invoice";
@@ -15,12 +16,18 @@ function formatDate(d: Date | string) {
 export default async function InvoicesPage({
   searchParams,
 }: {
-  searchParams: { status?: string };
+  searchParams: { status?: string; clientId?: string };
 }) {
+  const user = await requireUser();
   const status = searchParams.status as InvoiceStatus | undefined;
+  const clientId = searchParams.clientId;
 
   const invoices = await prisma.invoice.findMany({
-    where: status ? { status } : undefined,
+    where: {
+      userId: user.uid,
+      ...(status ? { status } : {}),
+      ...(clientId ? { clientId } : {}),
+    },
     include: { client: true },
     orderBy: { createdAt: "desc" },
   });

@@ -3,28 +3,27 @@ import type { NextRequest } from "next/server";
 
 /**
  * Routing rules:
- *   "/"           → public (marketing landing page, no auth)
- *   "/login"      → public
- *   "/register"   → public
- *   "/api/auth/*" → public (Firebase session exchange endpoints)
+ *   "/"           -> public (marketing landing page, no auth)
+ *   "/login"      -> public
+ *   "/register"   -> public
+ *   "/api/auth/*" -> public (Firebase session exchange endpoints)
+ *   "/api/*"      -> handled by route-level auth and returns JSON 401
  *
- *   "/dashboard"  → protected (requires session cookie)
- *   everything else → protected
+ *   "/dashboard"  -> protected (requires session cookie)
+ *   app pages      -> protected
  */
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Explicit public allowlist
   if (
     pathname === "/" ||
     pathname === "/login" ||
     pathname === "/register" ||
-    pathname.startsWith("/api/auth")
+    pathname.startsWith("/api/")
   ) {
     return NextResponse.next();
   }
 
-  // All other routes (incl. /dashboard, /invoices, /clients) require auth
   const session = request.cookies.get("__time2pay_session");
   if (!session) {
     const loginUrl = new URL("/login", request.url);
