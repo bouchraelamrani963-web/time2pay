@@ -5,22 +5,71 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AlertCircle, ArrowRight, Lock, Mail, User } from "lucide-react";
 import toast from "react-hot-toast";
-import { createUserWithEmailAndPassword, updateProfile, type AuthError } from "firebase/auth";
+import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
 import { getFirebaseAuth } from "@/lib/firebase-client";
 
-function mapFirebaseError(code?: string): string {
+function errorCode(error: unknown): string | undefined {
+  if (typeof error === "object" && error !== null && "code" in error) {
+    const code = (error as { code?: unknown }).code;
+    return typeof code === "string" ? code : undefined;
+  }
+  return undefined;
+}
+
+function errorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  if (typeof error === "object" && error !== null && "message" in error) {
+    const message = (error as { message?: unknown }).message;
+    if (typeof message === "string") return message;
+  }
+  return "Onbekende fout";
+}
+
+function formatUnknownError(error: unknown): string {
+  const code = errorCode(error) ?? "geen-code";
+  return `Onbekende fout (${code}): ${errorMessage(error)}`;
+}
+
+function mapFirebaseError(error: unknown): string {
+  const code = errorCode(error);
   switch (code) {
     case "auth/email-already-in-use":
-      return "Dit e-mailadres is al in gebruik.";
-    case "auth/invalid-email":
-      return "Ongeldig e-mailadres.";
+      return `Dit e-mailadres is al in gebruik. (${code})`;
     case "auth/weak-password":
-      return "Wachtwoord is te zwak. Gebruik minimaal 8 tekens.";
+      return `Wachtwoord is te zwak. Gebruik minimaal 8 tekens. (${code})`;
+    case "auth/invalid-email":
+      return `Ongeldig e-mailadres. (${code})`;
+    case "auth/operation-not-allowed":
+      return `E-mail/wachtwoord registratie is niet ingeschakeld in Firebase. (${code})`;
+    case "auth/unauthorized-domain":
+      return `Dit domein is niet toegestaan in Firebase Authentication. (${code})`;
+    case "auth/api-key-not-valid":
+      return `De Firebase API key is ongeldig of ontbreekt. (${code})`;
     case "auth/network-request-failed":
-      return "Geen netwerkverbinding.";
+      return `Geen netwerkverbinding met Firebase. (${code})`;
+    case "time2pay/missing-firebase-client-env":
+      return `${errorMessage(error)} (${code})`;
     default:
-      return "Aanmaken mislukt. Probeer het opnieuw.";
+      return formatUnknownError(error);
   }
+}
+
+async function startSession(idToken: string) {
+  const response = await fetch("/api/auth/session", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ idToken }),
+  });
+
+  if (response.ok) return;
+
+  const responseBody = await response.text().catch(() => "");
+  console.error("[register session failed]", {
+    status: response.status,
+    body: responseBody,
+  });
+
+  throw new Error(`session_failed:${response.status}:${responseBody || "geen response body"}`);
 }
 
 export default function RegisterPage() {
@@ -55,22 +104,19 @@ export default function RegisterPage() {
       }
 
       const idToken = await credential.user.getIdToken(true);
-      const response = await fetch("/api/auth/session", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ idToken }),
-      });
-
-      if (!response.ok) {
-        throw new Error("session_failed");
+      try {
+        await startSession(idToken);
+      } catch (sessionError) {
+        setError(`Account aangemaakt, maar sessie kon niet worden gestart. ${errorMessage(sessionError)}`);
+        setSubmitting(false);
+        return;
       }
 
       toast.success("Account aangemaakt. Welkom.");
       router.push("/dashboard");
       router.refresh();
     } catch (err) {
-      const code = (err as AuthError | undefined)?.code;
-      setError(mapFirebaseError(code));
+      setError(mapFirebaseError(err));
       setSubmitting(false);
     }
   }

@@ -5,26 +5,75 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AlertCircle, ArrowRight, Lock, Mail } from "lucide-react";
 import toast from "react-hot-toast";
-import { signInWithEmailAndPassword, type AuthError } from "firebase/auth";
+import { signInWithEmailAndPassword } from "firebase/auth";
 import { getFirebaseAuth } from "@/lib/firebase-client";
 
-function mapFirebaseError(code?: string): string {
+function errorCode(error: unknown): string | undefined {
+  if (typeof error === "object" && error !== null && "code" in error) {
+    const code = (error as { code?: unknown }).code;
+    return typeof code === "string" ? code : undefined;
+  }
+  return undefined;
+}
+
+function errorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  if (typeof error === "object" && error !== null && "message" in error) {
+    const message = (error as { message?: unknown }).message;
+    if (typeof message === "string") return message;
+  }
+  return "Onbekende fout";
+}
+
+function formatUnknownError(error: unknown): string {
+  const code = errorCode(error) ?? "geen-code";
+  return `Onbekende fout (${code}): ${errorMessage(error)}`;
+}
+
+function mapFirebaseError(error: unknown): string {
+  const code = errorCode(error);
   switch (code) {
     case "auth/invalid-email":
-      return "Ongeldig e-mailadres.";
+      return `Ongeldig e-mailadres. (${code})`;
     case "auth/user-disabled":
-      return "Dit account is uitgeschakeld.";
+      return `Dit account is uitgeschakeld. (${code})`;
     case "auth/user-not-found":
+      return `Er bestaat geen account met dit e-mailadres. (${code})`;
     case "auth/wrong-password":
+      return `Het wachtwoord is onjuist. (${code})`;
     case "auth/invalid-credential":
-      return "E-mailadres of wachtwoord is onjuist.";
+      return `E-mailadres of wachtwoord is onjuist. (${code})`;
     case "auth/too-many-requests":
-      return "Te veel pogingen. Probeer het later opnieuw.";
+      return `Te veel pogingen. Probeer het later opnieuw. (${code})`;
+    case "auth/unauthorized-domain":
+      return `Dit domein is niet toegestaan in Firebase Authentication. (${code})`;
+    case "auth/api-key-not-valid":
+      return `De Firebase API key is ongeldig of ontbreekt. (${code})`;
     case "auth/network-request-failed":
-      return "Geen netwerkverbinding.";
+      return `Geen netwerkverbinding met Firebase. (${code})`;
+    case "time2pay/missing-firebase-client-env":
+      return `${errorMessage(error)} (${code})`;
     default:
-      return "Inloggen mislukt. Probeer het opnieuw.";
+      return formatUnknownError(error);
   }
+}
+
+async function startSession(idToken: string) {
+  const response = await fetch("/api/auth/session", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ idToken }),
+  });
+
+  if (response.ok) return;
+
+  const responseBody = await response.text().catch(() => "");
+  console.error("[login session failed]", {
+    status: response.status,
+    body: responseBody,
+  });
+
+  throw new Error(`session_failed:${response.status}:${responseBody || "geen response body"}`);
 }
 
 export default function LoginPage() {
@@ -55,22 +104,19 @@ export default function LoginPage() {
       const credential = await signInWithEmailAndPassword(auth, email.trim(), password);
       const idToken = await credential.user.getIdToken();
 
-      const response = await fetch("/api/auth/session", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ idToken }),
-      });
-
-      if (!response.ok) {
-        throw new Error("session_failed");
+      try {
+        await startSession(idToken);
+      } catch (sessionError) {
+        setError(`Login gelukt, maar sessie kon niet worden gestart. ${errorMessage(sessionError)}`);
+        setSubmitting(false);
+        return;
       }
 
       toast.success("Welkom terug.");
       router.push(nextPath);
       router.refresh();
     } catch (err) {
-      const code = (err as AuthError | undefined)?.code;
-      setError(mapFirebaseError(code));
+      setError(mapFirebaseError(err));
       setSubmitting(false);
     }
   }
