@@ -125,7 +125,7 @@ export default function LoginPage() {
     <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center px-4 py-12">
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
-          <Link href="/" className="mb-6 inline-flex items-center gap-1">
+          <Link href="/" className="mb-6 inline-flex items-center gap-0">
             <span className="text-3xl font-black tracking-tight text-blue-600">Time</span>
             <span className="text-3xl font-black tracking-tight text-gray-900">2Pay</span>
           </Link>

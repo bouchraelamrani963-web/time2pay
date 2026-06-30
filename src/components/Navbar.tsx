@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { FileText, LayoutDashboard, Plus, Users } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
+import { FileText, LayoutDashboard, LogOut, Plus, Users } from "lucide-react";
 
 const appLinks = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, exact: true },
@@ -18,13 +18,20 @@ interface Props {
 
 export default function Navbar(_props: Props = {}) {
   const pathname = usePathname();
+  const router = useRouter();
   const isPublicRoute = publicPaths.includes(pathname);
+
+  async function handleLogout() {
+    await fetch("/api/auth/session", { method: "DELETE" });
+    router.push("/login");
+    router.refresh();
+  }
 
   if (isPublicRoute) {
     return (
       <nav className="sticky top-0 z-40 border-b border-gray-100 bg-white/70 backdrop-blur-xl shadow-sm">
         <div className="mx-auto flex w-full max-w-[1200px] items-center justify-between gap-6 px-6 py-4 sm:px-8">
-          <Link href="/" className="flex items-center gap-1 group">
+          <Link href="/" className="flex items-center gap-0 group">
             <span className="text-xl font-black tracking-tight text-blue-600 group-hover:text-blue-700 transition-colors">
               Time
             </span>
@@ -48,7 +55,7 @@ export default function Navbar(_props: Props = {}) {
   return (
     <nav className="sticky top-0 z-40 border-b border-gray-100 bg-white/70 backdrop-blur-xl shadow-sm">
       <div className="mx-auto flex w-full max-w-[1200px] items-center justify-between gap-6 px-6 py-4 sm:px-8">
-        <Link href="/dashboard" className="flex items-center gap-1 group">
+        <Link href="/dashboard" className="flex items-center gap-0 group">
           <span className="text-xl font-black tracking-tight text-blue-600 group-hover:text-blue-700 transition-colors">
             Time
           </span>
@@ -75,10 +82,20 @@ export default function Navbar(_props: Props = {}) {
           })}
         </div>
 
-        <Link href="/invoices/new" className="btn-primary">
-          <Plus size={16} />
-          <span className="hidden sm:inline">Nieuwe factuur</span>
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link href="/invoices/new" className="btn-primary">
+            <Plus size={16} />
+            <span className="hidden sm:inline">Nieuwe factuur</span>
+          </Link>
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3.5 py-2 text-sm font-semibold text-gray-600 shadow-sm transition-colors hover:bg-gray-50 hover:text-gray-900"
+          >
+            <LogOut size={15} />
+            <span className="hidden sm:inline">Uitloggen</span>
+          </button>
+        </div>
       </div>
     </nav>
   );

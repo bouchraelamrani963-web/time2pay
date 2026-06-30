@@ -265,7 +265,7 @@ export default function LandingPage() {
 
       <footer className="border-t border-gray-200 bg-white py-10">
         <div className="mx-auto flex max-w-[1200px] flex-col gap-5 px-6 text-sm text-gray-500 sm:flex-row sm:items-center sm:justify-between sm:px-8">
-          <Link href="/" className="flex items-center gap-1">
+          <Link href="/" className="flex items-center gap-0">
             <span className="text-lg font-black text-blue-600">Time</span>
             <span className="text-lg font-black text-gray-950">2Pay</span>
           </Link>
@@ -273,7 +273,7 @@ export default function LandingPage() {
             <a href="#features" className="hover:text-gray-900">Functies</a>
             <a href="#pricing" className="hover:text-gray-900">Prijzen</a>
             <Link href="/login" className="hover:text-gray-900">Inloggen</Link>
-            <span className="text-gray-400">© {new Date().getFullYear()} Time2Pay</span>
+            <span className="text-gray-400">Copyright {new Date().getFullYear()} Time2Pay</span>
           </div>
         </div>
       </footer>
