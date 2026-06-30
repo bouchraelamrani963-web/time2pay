@@ -2,23 +2,35 @@ import "server-only";
 import { cert, getApps, initializeApp, type App } from "firebase-admin/app";
 import { getAuth, type Auth } from "firebase-admin/auth";
 
-const requiredAdminEnv = [
-  "FIREBASE_PROJECT_ID",
-  "FIREBASE_CLIENT_EMAIL",
-  "FIREBASE_PRIVATE_KEY",
-] as const;
+const requiredBaseAdminEnv = ["FIREBASE_PROJECT_ID", "FIREBASE_CLIENT_EMAIL"] as const;
 
 let adminApp: App | undefined;
 let adminAuth: Auth | undefined;
 
 export function getMissingFirebaseAdminEnv(): string[] {
-  const values: Record<(typeof requiredAdminEnv)[number], string | undefined> = {
-    FIREBASE_PROJECT_ID: process.env.FIREBASE_PROJECT_ID,
-    FIREBASE_CLIENT_EMAIL: process.env.FIREBASE_CLIENT_EMAIL,
-    FIREBASE_PRIVATE_KEY: process.env.FIREBASE_PRIVATE_KEY,
-  };
+  const missing: string[] = requiredBaseAdminEnv.filter((key) => !process.env[key]);
 
-  return requiredAdminEnv.filter((key) => !values[key]);
+  if (!process.env.FIREBASE_PRIVATE_KEY_BASE64 && !process.env.FIREBASE_PRIVATE_KEY) {
+    missing.push("FIREBASE_PRIVATE_KEY_BASE64 or FIREBASE_PRIVATE_KEY");
+  }
+
+  return missing;
+}
+
+function getFirebasePrivateKey(): string {
+  const base64Key = process.env.FIREBASE_PRIVATE_KEY_BASE64;
+  if (base64Key) {
+    return Buffer.from(base64Key, "base64").toString("utf8").trim();
+  }
+
+  const privateKey = process.env.FIREBASE_PRIVATE_KEY;
+  if (privateKey) {
+    return privateKey.replace(/\\n/g, "\n").trim();
+  }
+
+  const error = new Error("Firebase Admin-configuratie ontbreekt: FIREBASE_PRIVATE_KEY_BASE64 or FIREBASE_PRIVATE_KEY");
+  Object.assign(error, { code: "time2pay/missing-firebase-admin-private-key" });
+  throw error;
 }
 
 function getAdminApp(): App {
@@ -38,7 +50,7 @@ function getAdminApp(): App {
 
   const projectId = process.env.FIREBASE_PROJECT_ID as string;
   const clientEmail = process.env.FIREBASE_CLIENT_EMAIL as string;
-  const privateKey = (process.env.FIREBASE_PRIVATE_KEY as string).replace(/\\n/g, "\n");
+  const privateKey = getFirebasePrivateKey();
 
   adminApp = initializeApp({
     credential: cert({ projectId, clientEmail, privateKey }),

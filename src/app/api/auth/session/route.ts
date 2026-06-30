@@ -21,7 +21,7 @@ function firebaseAdminEnvError() {
   return NextResponse.json(
     {
       error: "firebase_admin_env_missing",
-      message: `Firebase Admin-configuratie ontbreekt: ${missing.join(", ")}`,
+      message: `Firebase Admin-configuratie ontbreekt: ${missing.join(", ")}. Gebruik bij voorkeur FIREBASE_PRIVATE_KEY_BASE64; FIREBASE_PRIVATE_KEY blijft als fallback ondersteund.`,
       missing,
     },
     { status: 500 }
