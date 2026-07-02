@@ -12,7 +12,7 @@ datasource db {
 
 model Client {
   id        String    @id @default(cuid())
-  userId    String?
+  userId    String
   name      String
   email     String?
   phone     String?
@@ -27,24 +27,27 @@ model Client {
 }
 
 model Invoice {
-  id        String        @id @default(cuid())
-  userId    String?
-  number    String        @unique
-  clientId  String
-  client    Client        @relation(fields: [clientId], references: [id])
-  status    InvoiceStatus @default(DRAFT)
-  issueDate DateTime      @default(now())
-  dueDate   DateTime
-  notes     String?
-  vatRate   Float         @default(21)
-  subtotal  Float         @default(0)
-  vatAmount Float         @default(0)
-  total     Float         @default(0)
-  items     InvoiceItem[]
-  createdAt DateTime      @default(now())
-  updatedAt DateTime      @updatedAt
+  id             String        @id @default(cuid())
+  userId         String
+  number         String        @unique
+  clientId       String
+  client         Client        @relation(fields: [clientId], references: [id])
+  status         InvoiceStatus @default(DRAFT)
+  issueDate      DateTime      @default(now())
+  dueDate        DateTime
+  paidAt         DateTime?
+  reminderSentAt DateTime?
+  notes          String?
+  vatRate        Float         @default(21)
+  subtotal       Float         @default(0)
+  vatAmount      Float         @default(0)
+  total          Float         @default(0)
+  items          InvoiceItem[]
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
 
   @@index([userId])
+  @@index([status, dueDate])
   @@map("invoices")
 }
 

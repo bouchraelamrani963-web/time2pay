@@ -15,11 +15,13 @@ export default async function InvoiceDetailPage({ params }: { params: { id: stri
 
   if (!raw) notFound();
 
-  const invoice: Invoice = {
+  const invoice = {
     ...raw,
     status: raw.status as Invoice["status"],
     issueDate: raw.issueDate.toISOString(),
     dueDate: raw.dueDate.toISOString(),
+    paidAt: raw.paidAt ? raw.paidAt.toISOString() : null,
+    reminderSentAt: raw.reminderSentAt ? raw.reminderSentAt.toISOString() : null,
     createdAt: raw.createdAt.toISOString(),
     updatedAt: raw.updatedAt.toISOString(),
     client: {
@@ -31,7 +33,7 @@ export default async function InvoiceDetailPage({ params }: { params: { id: stri
       ...item,
       type: item.type as Invoice["items"][0]["type"],
     })),
-  };
+  } as Invoice;
 
   return (
     <div className="space-y-6">
