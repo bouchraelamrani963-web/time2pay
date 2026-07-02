@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import InvoiceView from "@/components/InvoiceView";
+import SendInvoiceButton from "@/components/SendInvoiceButton";
 import type { Invoice } from "@/types/invoice";
 
 export default async function InvoiceDetailPage({ params }: { params: { id: string } }) {
@@ -37,9 +38,12 @@ export default async function InvoiceDetailPage({ params }: { params: { id: stri
 
   return (
     <div className="space-y-6">
-      <Link href="/invoices" className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-900">
-        <ChevronLeft size={16} /> Terug naar facturen
-      </Link>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <Link href="/invoices" className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-900">
+          <ChevronLeft size={16} /> Terug naar facturen
+        </Link>
+        <SendInvoiceButton invoiceId={invoice.id} clientEmail={invoice.client.email} />
+      </div>
       <InvoiceView invoice={invoice} />
     </div>
   );
