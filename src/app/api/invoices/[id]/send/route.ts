@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireUserOrUnauthorized } from "@/lib/auth";
 import { EmailConfigurationError, getInvoiceEmailConfig } from "@/lib/email";
+import { buildInvoicePdf, getInvoicePdfFilename } from "@/lib/invoice-pdf";
 
 export const runtime = "nodejs";
 
@@ -48,6 +49,7 @@ function buildInvoiceHtml(params: {
   dueDate: Date;
   total: number;
   senderName: string;
+  notes: string | null;
   items: {
     type: string;
     description: string;
@@ -119,6 +121,13 @@ function buildInvoiceHtml(params: {
             <div style="margin-top: 24px; text-align: right; font-size: 20px; font-weight: 700;">
               Totaalbedrag: ${escapeHtml(currencyFormatter.format(params.total))}
             </div>
+            ${params.notes?.trim()
+              ? `
+              <div style="margin-top: 24px; padding: 16px; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 12px;">
+                <div style="margin-bottom: 8px; font-size: 13px; font-weight: 700; color: #374151;">Notities / betaalinformatie</div>
+                <div style="white-space: pre-line; color: #374151; font-size: 14px; line-height: 1.6;">${escapeHtml(params.notes)}</div>
+              </div>`
+              : ""}
           </div>
         </div>
       </div>
@@ -131,7 +140,9 @@ function buildInvoiceText(params: {
   issueDate: Date;
   dueDate: Date;
   total: number;
+  notes: string | null;
 }) {
+  const notes = params.notes?.trim();
   return [
     `Beste ${params.clientName},`,
     "",
@@ -141,6 +152,7 @@ function buildInvoiceText(params: {
     `Factuurdatum: ${dateFormatter.format(params.issueDate)}`,
     `Vervaldatum: ${dateFormatter.format(params.dueDate)}`,
     `Totaalbedrag: ${currencyFormatter.format(params.total)}`,
+    ...(notes ? ["", "Notities / betaalinformatie", notes] : []),
     "",
     "Met vriendelijke groet,",
     "Time2Pay",
@@ -197,8 +209,12 @@ export async function POST(
       dueDate: invoice.dueDate,
       total: invoice.total,
       senderName,
+      notes: invoice.notes,
       items: invoice.items,
     };
+
+    const pdfContent = buildInvoicePdf(invoice, senderName);
+    const pdfFilename = getInvoicePdfFilename(invoice.number);
 
     const { error } = await resend.emails.send({
       from,
@@ -206,6 +222,13 @@ export async function POST(
       subject: `Factuur ${invoice.number} van Time2Pay`,
       html: buildInvoiceHtml(emailParams),
       text: buildInvoiceText(emailParams),
+      attachments: [
+        {
+          filename: pdfFilename,
+          content: pdfContent,
+          contentType: "application/pdf",
+        },
+      ],
     });
 
     if (error) {
