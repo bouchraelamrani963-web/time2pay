@@ -5,6 +5,8 @@ import { EmailConfigurationError, getInvoiceEmailConfig } from "@/lib/email";
 
 export const runtime = "nodejs";
 
+const activeInvoiceSends = new Set<string>();
+
 const currencyFormatter = new Intl.NumberFormat("nl-NL", {
   style: "currency",
   currency: "EUR",
@@ -152,6 +154,19 @@ export async function POST(
   const user = await requireUserOrUnauthorized();
   if (user instanceof Response) return user;
 
+  const sendKey = `${user.uid}:${params.id}`;
+  if (activeInvoiceSends.has(sendKey)) {
+    return NextResponse.json(
+      {
+        error: "Factuur wordt al verstuurd",
+        message: "Wacht tot de huidige verzendactie klaar is.",
+      },
+      { status: 409 }
+    );
+  }
+
+  activeInvoiceSends.add(sendKey);
+
   try {
     const invoice = await prisma.invoice.findFirst({
       where: { id: params.id, userId: user.uid },
@@ -207,7 +222,17 @@ export async function POST(
       );
     }
 
-    return NextResponse.json({ success: true, sentTo: recipientEmail });
+    const updatedInvoice = await prisma.invoice.update({
+      where: { id: invoice.id },
+      data: { status: "SENT" },
+      select: { id: true, status: true, updatedAt: true },
+    });
+
+    return NextResponse.json({
+      success: true,
+      sentTo: recipientEmail,
+      invoice: updatedInvoice,
+    });
   } catch (error) {
     const name = error instanceof Error ? error.name : "UnknownError";
     const message = error instanceof Error ? error.message : "Onbekende fout";
@@ -230,5 +255,7 @@ export async function POST(
       },
       { status: 500 }
     );
+  } finally {
+    activeInvoiceSends.delete(sendKey);
   }
 }

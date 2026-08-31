@@ -1,12 +1,15 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Send } from "lucide-react";
 import toast from "react-hot-toast";
+import type { InvoiceStatus } from "@/types/invoice";
 
 type SendInvoiceButtonProps = {
   invoiceId: string;
   clientEmail?: string | null;
+  status: InvoiceStatus;
 };
 
 type SendInvoiceResponse = {
@@ -23,8 +26,10 @@ async function readResponse(response: Response): Promise<SendInvoiceResponse> {
   }
 }
 
-export default function SendInvoiceButton({ invoiceId, clientEmail }: SendInvoiceButtonProps) {
+export default function SendInvoiceButton({ invoiceId, clientEmail, status }: SendInvoiceButtonProps) {
+  const router = useRouter();
   const [isSending, setIsSending] = useState(false);
+  const buttonLabel = status === "DRAFT" ? "Factuur versturen" : "Opnieuw versturen";
 
   async function sendInvoice() {
     if (isSending) return;
@@ -45,6 +50,7 @@ export default function SendInvoiceButton({ invoiceId, clientEmail }: SendInvoic
       toast.success(
         sentTo ? `Factuur is verstuurd naar ${sentTo}` : "Factuur is verstuurd."
       );
+      router.refresh();
     } catch (error) {
       const message = error instanceof Error ? error.message : "Factuur versturen mislukt.";
       toast.error(message);
@@ -61,7 +67,7 @@ export default function SendInvoiceButton({ invoiceId, clientEmail }: SendInvoic
       disabled={isSending}
     >
       <Send size={16} />
-      {isSending ? "Versturen..." : "Factuur versturen"}
+      {isSending ? "Versturen..." : buttonLabel}
     </button>
   );
 }
