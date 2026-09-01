@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Save, Send } from "lucide-react";
+import { Plus, Save } from "lucide-react";
 import toast from "react-hot-toast";
 import InvoiceItemRow, { type DraftItem } from "./InvoiceItemRow";
 import { calcInvoiceTotals, defaultUnit } from "@/lib/calculations";
@@ -12,6 +12,15 @@ interface Props {
   clients: Client[];
   initialClientId?: string;
 }
+
+type ApiErrorResponse = {
+  error?: unknown;
+  message?: string;
+};
+
+type CreatedInvoiceResponse = {
+  id: string;
+};
 
 function formatEuro(n: number) {
   return new Intl.NumberFormat("nl-NL", { style: "currency", currency: "EUR" }).format(n);
@@ -26,6 +35,20 @@ function emptyItem(): DraftItem {
     unitPrice: 0,
     unit: "uur",
   };
+}
+
+function isCreatedInvoiceResponse(value: unknown): value is CreatedInvoiceResponse {
+  if (typeof value !== "object" || value === null) return false;
+  const invoice = value as Partial<Record<"id", unknown>>;
+  return typeof invoice.id === "string" && invoice.id.length > 0;
+}
+
+async function readApiError(response: Response, fallback: string) {
+  const body = await response.json().catch(() => null) as ApiErrorResponse | null;
+
+  if (body?.message) return body.message;
+  if (typeof body?.error === "string") return body.error;
+  return fallback;
 }
 
 export default function InvoiceBuilder({ clients, initialClientId }: Props) {
@@ -65,7 +88,7 @@ export default function InvoiceBuilder({ clients, initialClientId }: Props) {
     vatRate
   );
 
-  async function submit(status: "DRAFT" | "SENT") {
+  async function submit() {
     if (!clientId) return toast.error("Selecteer een klant");
     if (items.some((i) => !i.description)) return toast.error("Vul alle omschrijvingen in");
 
@@ -90,22 +113,20 @@ export default function InvoiceBuilder({ clients, initialClientId }: Props) {
         }),
       });
 
-      if (!res.ok) throw new Error("Opslaan mislukt");
-      const invoice = await res.json();
-
-      if (status === "SENT") {
-        await fetch(`/api/invoices/${invoice.id}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ status: "SENT" }),
-        });
+      if (!res.ok) {
+        throw new Error(await readApiError(res, "Opslaan mislukt"));
       }
 
-      toast.success(status === "SENT" ? "Factuur aangemaakt en verzonden!" : "Concept opgeslagen");
-      router.push(`/invoices/${invoice.id}`);
+      const createdInvoice = await res.json() as unknown;
+      if (!isCreatedInvoiceResponse(createdInvoice)) {
+        throw new Error("Factuur is opgeslagen, maar het factuur-id ontbreekt.");
+      }
+
+      toast.success("Factuur aangemaakt als concept");
+      router.push(`/invoices/${createdInvoice.id}`);
       router.refresh();
-    } catch {
-      toast.error("Er ging iets mis. Probeer opnieuw.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Er ging iets mis. Probeer opnieuw.");
     } finally {
       setSaving(false);
     }
@@ -210,19 +231,11 @@ export default function InvoiceBuilder({ clients, initialClientId }: Props) {
       <div className="flex items-center justify-end gap-3 border-t border-gray-200 pt-4">
         <button
           type="button"
-          className="btn-secondary"
-          disabled={saving}
-          onClick={() => submit("DRAFT")}
-        >
-          <Save size={15} /> Opslaan als concept
-        </button>
-        <button
-          type="button"
           className="btn-primary"
           disabled={saving}
-          onClick={() => submit("SENT")}
+          onClick={() => submit()}
         >
-          <Send size={15} /> Aanmaken &amp; verzenden
+          <Save size={15} /> {saving ? "Aanmaken..." : "Factuur aanmaken"}
         </button>
       </div>
     </div>
