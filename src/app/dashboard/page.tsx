@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import Link from "next/link";
-import { Clock, FileText, TrendingUp, Users } from "lucide-react";
+import { Clock, FileText, ReceiptText, TrendingUp, Users } from "lucide-react";
 import { STATUS_COLORS, STATUS_LABELS } from "@/types/invoice";
 import type { InvoiceStatus } from "@/types/invoice";
 
@@ -23,12 +23,15 @@ export default async function DashboardPage() {
     prisma.invoice.findMany({ where: { userId: user.uid } }),
   ]);
 
-  const totalRevenue = allInvoices.filter((i) => i.status === "PAID").reduce((s, i) => s + i.total, 0);
+  const paidInvoices = allInvoices.filter((i) => i.status === "PAID");
+  const totalRevenue = paidInvoices.reduce((s, i) => s + i.subtotal, 0);
+  const vatReceived = paidInvoices.reduce((s, i) => s + i.vatAmount, 0);
   const outstanding = allInvoices.filter((i) => ["SENT", "OVERDUE"].includes(i.status)).reduce((s, i) => s + i.total, 0);
   const draftCount = allInvoices.filter((i) => i.status === "DRAFT").length;
 
   const stats = [
     { label: "Totale omzet", value: formatEuro(totalRevenue), icon: TrendingUp, color: "text-green-600" },
+    { label: "BTW ontvangen", value: formatEuro(vatReceived), icon: ReceiptText, color: "text-emerald-600" },
     { label: "Openstaand", value: formatEuro(outstanding), icon: Clock, color: "text-orange-500" },
     { label: "Facturen", value: allInvoices.length, icon: FileText, color: "text-blue-600" },
     { label: "Klanten", value: clients, icon: Users, color: "text-purple-600" },
@@ -41,7 +44,7 @@ export default async function DashboardPage() {
         <p className="text-sm text-gray-500">Overzicht van je facturatie</p>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
         {stats.map(({ label, value, icon: Icon, color }) => (
           <div key={label} className="card p-5">
             <div className={`mb-2 ${color}`}>
