@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { FileText, LayoutDashboard, LogOut, Plus, Users } from "lucide-react";
+import { FileText, LayoutDashboard, LogOut, Plus, Settings, Users } from "lucide-react";
 
 const appLinks = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, exact: true },
   { href: "/invoices", label: "Facturen", icon: FileText },
   { href: "/clients", label: "Klanten", icon: Users },
+  { href: "/settings", label: "Instellingen", icon: Settings },
 ];
 
 const publicPaths = ["/", "/login", "/register"];

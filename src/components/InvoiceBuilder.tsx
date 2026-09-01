@@ -198,10 +198,10 @@ export default function InvoiceBuilder({ clients, initialClientId }: Props) {
       </div>
 
       <div>
-        <label className="label">Notities / betalingsinstructies</label>
+        <label className="label">Notities</label>
         <textarea
           className="input h-20 resize-none"
-          placeholder="Bijv. IBAN, betalingstermijn, dank voor uw opdracht..."
+          placeholder="Aanvullende tekst voor deze factuur..."
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
         />

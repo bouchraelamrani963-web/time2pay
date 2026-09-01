@@ -14,6 +14,19 @@ export type PdfInvoiceClient = {
   vatNumber: string | null;
 };
 
+export type PdfCompanySettings = {
+  companyName: string;
+  contactName: string;
+  street: string;
+  postalCode: string;
+  city: string;
+  kvkNumber: string;
+  vatId: string;
+  iban: string;
+  email: string;
+  phone: string | null;
+};
+
 export type PdfInvoice = {
   number: string;
   issueDate: Date;
@@ -124,6 +137,10 @@ function wrapText(value: string, maxWidth: number, size: number) {
   return lines;
 }
 
+function compactLines(lines: Array<string | null | undefined>) {
+  return lines.map((line) => line?.trim()).filter((line): line is string => Boolean(line));
+}
+
 function drawText(
   page: PdfPage,
   text: string,
@@ -183,12 +200,40 @@ function drawSectionTitle(page: PdfPage, title: string, x: number, y: number) {
   drawText(page, title, x, y, { size: 9, font: "F2", color: LIGHT_TEXT });
 }
 
-function drawWrappedBlock(page: PdfPage, text: string, x: number, y: number, maxWidth: number, size = 10, lineHeight = 14) {
+function drawWrappedBlock(
+  page: PdfPage,
+  text: string,
+  x: number,
+  y: number,
+  maxWidth: number,
+  options: { size?: number; lineHeight?: number; font?: FontName; color?: string } = {}
+) {
+  const size = options.size ?? 10;
+  const lineHeight = options.lineHeight ?? 14;
   const lines = wrapText(text, maxWidth, size);
   lines.forEach((line, index) => {
-    if (line) drawText(page, line, x, y - index * lineHeight, { size, color: MUTED });
+    if (line) {
+      drawText(page, line, x, y - index * lineHeight, {
+        size,
+        color: options.color ?? MUTED,
+        font: options.font,
+      });
+    }
   });
   return lines.length * lineHeight;
+}
+
+function drawLineBlock(page: PdfPage, lines: string[], x: number, y: number, maxWidth: number) {
+  let usedHeight = 0;
+  lines.forEach((line, index) => {
+    usedHeight += drawWrappedBlock(page, line, x, y - usedHeight, maxWidth, {
+      size: index === 0 ? 11 : 10,
+      lineHeight: 14,
+      font: index === 0 ? "F2" : "F1",
+      color: index === 0 ? DARK : MUTED,
+    });
+  });
+  return usedHeight;
 }
 
 function tableHeader(page: PdfPage, y: number) {
@@ -205,7 +250,56 @@ function tableHeader(page: PdfPage, y: number) {
   drawText(page, "Totaal", 547, y - 10, { size: 9, font: "F2", color: MUTED, align: "right" });
 }
 
-function renderInvoicePdf(invoice: PdfInvoice, senderName: string) {
+function getSenderLines(senderName: string, companySettings?: PdfCompanySettings | null) {
+  if (!companySettings) return compactLines([senderName, "Time2Pay"]);
+
+  return compactLines([
+    companySettings.companyName,
+    companySettings.contactName,
+    companySettings.street,
+    `${companySettings.postalCode} ${companySettings.city}`,
+    `KvK: ${companySettings.kvkNumber}`,
+    `Btw-id: ${companySettings.vatId}`,
+    companySettings.email,
+    companySettings.phone,
+  ]);
+}
+
+function getClientLines(invoice: PdfInvoice) {
+  return compactLines([
+    invoice.client.name,
+    invoice.client.address,
+    invoice.client.email,
+    invoice.client.vatNumber ? `BTW: ${invoice.client.vatNumber}` : null,
+  ]);
+}
+
+function renderInfoSections(page: PdfPage, invoice: PdfInvoice, senderName: string, companySettings?: PdfCompanySettings | null) {
+  let y = PAGE_HEIGHT - 185;
+  const sectionGap = 245;
+  drawSectionTitle(page, "AFZENDER", MARGIN, y);
+  drawSectionTitle(page, "KLANT", MARGIN + sectionGap, y);
+  y -= 20;
+
+  const senderHeight = drawLineBlock(page, getSenderLines(senderName, companySettings), MARGIN, y, 205);
+  const clientHeight = drawLineBlock(page, getClientLines(invoice), MARGIN + sectionGap, y, 250);
+
+  return y - Math.max(senderHeight, clientHeight, 28) - 28;
+}
+
+function drawNoteBox(page: PdfPage, title: string, body: string, x: number, y: number, width: number) {
+  const lines = wrapText(body, width - 32, 10);
+  const height = 42 + lines.length * 14;
+  fillRect(page, x, y - height + 18, width, height, SOFT_BG);
+  strokeRect(page, x, y - height + 18, width, height, BORDER);
+  drawText(page, title, x + 16, y, { size: 11, font: "F2" });
+  lines.forEach((line, index) => {
+    if (line) drawText(page, line, x + 16, y - 22 - index * 14, { size: 10, color: MUTED });
+  });
+  return height;
+}
+
+function renderInvoicePdf(invoice: PdfInvoice, senderName: string, companySettings?: PdfCompanySettings | null) {
   const pages: PdfPage[] = [];
   let page = newPage(pages);
   let pageNumber = 1;
@@ -236,32 +330,7 @@ function renderInvoicePdf(invoice: PdfInvoice, senderName: string) {
     align: "right",
   });
 
-  y = PAGE_HEIGHT - 185;
-  const sectionGap = 245;
-  drawSectionTitle(page, "AFZENDER", MARGIN, y);
-  drawSectionTitle(page, "KLANT", MARGIN + sectionGap, y);
-  y -= 20;
-
-  drawText(page, senderName, MARGIN, y, { size: 11, font: "F2" });
-  drawText(page, invoice.client.name, MARGIN + sectionGap, y, { size: 11, font: "F2" });
-  y -= 17;
-
-  drawText(page, "Time2Pay", MARGIN, y, { size: 10, color: MUTED });
-  let senderHeight = 15;
-  let clientHeight = 0;
-  if (invoice.client.address?.trim()) {
-    clientHeight += drawWrappedBlock(page, invoice.client.address, MARGIN + sectionGap, y, 250, 10, 14);
-  }
-  if (invoice.client.email) {
-    drawText(page, invoice.client.email, MARGIN + sectionGap, y - clientHeight, { size: 10, color: MUTED });
-    clientHeight += 14;
-  }
-  if (invoice.client.vatNumber) {
-    drawText(page, `BTW: ${invoice.client.vatNumber}`, MARGIN + sectionGap, y - clientHeight, { size: 10, color: MUTED });
-    clientHeight += 14;
-  }
-
-  y -= Math.max(senderHeight, clientHeight, 28) + 28;
+  y = renderInfoSections(page, invoice, senderName, companySettings);
   drawLine(page, MARGIN, y, PAGE_WIDTH - MARGIN, y);
   y -= 28;
 
@@ -290,7 +359,9 @@ function renderInvoicePdf(invoice: PdfInvoice, senderName: string) {
     y -= 6;
   }
 
-  ensureSpace(112 + (invoice.notes?.trim() ? 90 : 0));
+  const notes = invoice.notes?.trim();
+  const hasPaymentInfo = Boolean(companySettings?.iban?.trim());
+  ensureSpace(112 + (hasPaymentInfo ? 74 : 0) + (notes ? 74 : 0));
   y -= 14;
 
   const totalsX = 332;
@@ -307,19 +378,16 @@ function renderInvoicePdf(invoice: PdfInvoice, senderName: string) {
   drawText(page, "Totaal te betalen", totalsLabelX, y, { size: 12, font: "F2" });
   drawText(page, formatEuro(invoice.total), totalsValueX, y, { size: 12, font: "F2", align: "right" });
 
-  const notes = invoice.notes?.trim();
-  if (notes) {
+  if (hasPaymentInfo) {
     y -= 38;
-    const noteLines = wrapText(notes, PAGE_WIDTH - MARGIN * 2 - 32, 10);
-    const noteHeight = 42 + noteLines.length * 14;
-    ensureSpace(noteHeight);
+    ensureSpace(70);
+    const body = compactLines([`IBAN ${companySettings?.iban}`, companySettings?.companyName]).join("\n");
+    y -= drawNoteBox(page, "Betaalinformatie", body, MARGIN, y, PAGE_WIDTH - MARGIN * 2) + 16;
+  }
 
-    fillRect(page, MARGIN, y - noteHeight + 18, PAGE_WIDTH - MARGIN * 2, noteHeight, SOFT_BG);
-    strokeRect(page, MARGIN, y - noteHeight + 18, PAGE_WIDTH - MARGIN * 2, noteHeight, BORDER);
-    drawText(page, "Notities / betaalinformatie", MARGIN + 16, y, { size: 11, font: "F2" });
-    noteLines.forEach((line, index) => {
-      if (line) drawText(page, line, MARGIN + 16, y - 22 - index * 14, { size: 10, color: MUTED });
-    });
+  if (notes) {
+    ensureSpace(80);
+    drawNoteBox(page, "Notities", notes, MARGIN, y, PAGE_WIDTH - MARGIN * 2);
   }
 
   return pages;
@@ -353,8 +421,8 @@ export function getInvoicePdfFilename(invoiceNumber: string) {
   return `Factuur-${safeNumber}.pdf`;
 }
 
-export function buildInvoicePdf(invoice: PdfInvoice, senderName: string) {
-  const pages = renderInvoicePdf(invoice, senderName);
+export function buildInvoicePdf(invoice: PdfInvoice, senderName: string, companySettings?: PdfCompanySettings | null) {
+  const pages = renderInvoicePdf(invoice, senderName, companySettings);
   const objects: string[] = [
     "<< /Type /Catalog /Pages 2 0 R >>",
     "",

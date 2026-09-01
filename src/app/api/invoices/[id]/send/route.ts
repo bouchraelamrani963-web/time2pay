@@ -201,7 +201,10 @@ export async function POST(
     }
 
     const { resend, from } = getInvoiceEmailConfig();
-    const senderName = user.name || user.email || "Time2Pay";
+    const companySettings = await prisma.companySettings.findUnique({
+      where: { userId: user.uid },
+    });
+    const senderName = companySettings?.companyName || user.name || user.email || "Time2Pay";
     const emailParams = {
       clientName: invoice.client.name,
       invoiceNumber: invoice.number,
@@ -213,7 +216,7 @@ export async function POST(
       items: invoice.items,
     };
 
-    const pdfContent = buildInvoicePdf(invoice, senderName);
+    const pdfContent = buildInvoicePdf(invoice, senderName, companySettings);
     const pdfFilename = getInvoicePdfFilename(invoice.number);
 
     const { error } = await resend.emails.send({

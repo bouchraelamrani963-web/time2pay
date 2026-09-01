@@ -26,6 +26,25 @@ model Client {
   @@map("clients")
 }
 
+model CompanySettings {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  companyName String
+  contactName String
+  street      String
+  postalCode  String
+  city        String
+  kvkNumber   String
+  vatId       String
+  iban        String
+  email       String
+  phone       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("company_settings")
+}
+
 model Invoice {
   id             String        @id @default(cuid())
   userId         String

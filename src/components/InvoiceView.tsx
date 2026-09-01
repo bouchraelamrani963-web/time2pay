@@ -2,10 +2,20 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Printer, Trash2, CheckCircle, Send, RotateCcw } from "lucide-react";
+import {
+  Printer,
+  Trash2,
+  CheckCircle,
+  Send,
+  RotateCcw,
+  BellRing,
+  AlertTriangle,
+  Calendar,
+} from "lucide-react";
 import toast from "react-hot-toast";
 import { STATUS_LABELS, STATUS_COLORS, ITEM_TYPE_LABELS } from "@/types/invoice";
 import type { Invoice, InvoiceStatus } from "@/types/invoice";
+import { effectiveStatus, daysOverdue, paymentDays } from "@/lib/invoice-status";
 
 interface Props {
   invoice: Invoice;
@@ -30,6 +40,12 @@ export default function InvoiceView({ invoice }: Props) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
 
+  const effStatus = effectiveStatus(invoice);
+  const overdueDays = daysOverdue(invoice);
+  const payDays = paymentDays(invoice);
+  const isOverdue = effStatus === "OVERDUE";
+  const canRemind = (effStatus === "SENT" || effStatus === "OVERDUE");
+
   async function updateStatus(status: InvoiceStatus) {
     setBusy(true);
     try {
@@ -43,6 +59,20 @@ export default function InvoiceView({ invoice }: Props) {
       router.refresh();
     } catch {
       toast.error("Bijwerken mislukt");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function sendReminder() {
+    setBusy(true);
+    try {
+      const res = await fetch(`/api/invoices/${invoice.id}/remind`, { method: "POST" });
+      if (!res.ok) throw new Error();
+      toast.success("Herinnering verstuurd");
+      router.refresh();
+    } catch {
+      toast.error("Herinnering versturen mislukt");
     } finally {
       setBusy(false);
     }
@@ -63,18 +93,38 @@ export default function InvoiceView({ invoice }: Props) {
     }
   }
 
-  const transition = STATUS_TRANSITIONS[invoice.status];
+  const transition = STATUS_TRANSITIONS[effStatus];
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
           <h1 className="text-2xl font-bold font-mono text-gray-900">{invoice.number}</h1>
-          <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${STATUS_COLORS[invoice.status]}`}>
-            {STATUS_LABELS[invoice.status]}
+          <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${STATUS_COLORS[effStatus]}`}>
+            {STATUS_LABELS[effStatus]}
           </span>
+          {isOverdue && overdueDays > 0 && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-red-100 text-red-700 px-2.5 py-1 text-xs font-semibold">
+              <AlertTriangle size={12} /> {overdueDays} dag{overdueDays !== 1 ? "en" : ""} te laat
+            </span>
+          )}
+          {invoice.reminderSentAt && effStatus !== "PAID" && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 text-amber-800 px-2.5 py-1 text-xs font-semibold">
+              <BellRing size={12} /> Herinnering gestuurd
+            </span>
+          )}
+          {invoice.status === "PAID" && payDays !== null && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-green-100 text-green-800 px-2.5 py-1 text-xs font-semibold">
+              <CheckCircle size={12} /> Betaald in {payDays} dag{payDays !== 1 ? "en" : ""}
+            </span>
+          )}
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap no-print">
+          {canRemind && (
+            <button className="btn-secondary" disabled={busy} onClick={sendReminder}>
+              <BellRing size={15} /> {invoice.reminderSentAt ? "Opnieuw versturen" : "Stuur herinnering"}
+            </button>
+          )}
           {transition && (
             <button className="btn-secondary" disabled={busy} onClick={() => updateStatus(transition.next)}>
               {transition.icon} {transition.label}
@@ -89,15 +139,39 @@ export default function InvoiceView({ invoice }: Props) {
         </div>
       </div>
 
-      <div className="card p-6 space-y-6 print:shadow-none print:border-none" id="invoice-print">
+      {isOverdue && (
+        <div className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 no-print">
+          <AlertTriangle size={18} className="mt-0.5 shrink-0" />
+          <div>
+            <p className="font-semibold">Deze factuur is {overdueDays} dag{overdueDays !== 1 ? "en" : ""} te laat.</p>
+            {invoice.reminderSentAt ? (
+              <p className="text-xs mt-0.5">
+                Laatste herinnering: {formatDate(invoice.reminderSentAt)}. Overweeg telefonisch contact op te nemen.
+              </p>
+            ) : (
+              <p className="text-xs mt-0.5">Stuur een vriendelijke herinnering om de betaling te versnellen.</p>
+            )}
+          </div>
+        </div>
+      )}
+
+      <div className={`card p-6 space-y-6 print:shadow-none print:border-none ${isOverdue ? "ring-1 ring-red-200" : ""}`} id="invoice-print">
         <div className="flex justify-between items-start">
           <div>
             <p className="text-2xl font-black text-blue-600">Time<span className="text-gray-900">2Pay</span></p>
           </div>
-          <div className="text-right text-sm text-gray-600">
+          <div className="text-right text-sm text-gray-600 space-y-0.5">
             <p className="text-lg font-bold font-mono text-gray-900">{invoice.number}</p>
             <p>Factuurdatum: {formatDate(invoice.issueDate)}</p>
-            <p>Vervaldatum: <span className={invoice.status === "OVERDUE" ? "text-red-600 font-semibold" : ""}>{formatDate(invoice.dueDate)}</span></p>
+            <p>
+              Vervaldatum:{" "}
+              <span className={isOverdue ? "text-red-600 font-semibold" : ""}>{formatDate(invoice.dueDate)}</span>
+            </p>
+            {invoice.paidAt && (
+              <p className="text-green-700 font-semibold flex items-center justify-end gap-1">
+                <Calendar size={12} /> Betaald op {formatDate(invoice.paidAt)}
+              </p>
+            )}
           </div>
         </div>
 
