@@ -30,7 +30,7 @@ export default async function DashboardPage() {
   const draftCount = allInvoices.filter((i) => i.status === "DRAFT").length;
 
   const stats = [
-    { label: "Totale omzet", value: formatEuro(totalRevenue), icon: TrendingUp, color: "text-green-600" },
+    { label: "Omzet exclusief btw", value: formatEuro(totalRevenue), icon: TrendingUp, color: "text-green-600" },
     { label: "BTW ontvangen", value: formatEuro(vatReceived), icon: ReceiptText, color: "text-emerald-600" },
     { label: "Openstaand", value: formatEuro(outstanding), icon: Clock, color: "text-orange-500" },
     { label: "Facturen", value: allInvoices.length, icon: FileText, color: "text-blue-600" },
