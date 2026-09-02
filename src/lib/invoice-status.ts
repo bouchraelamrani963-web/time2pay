@@ -10,14 +10,34 @@ export interface StatusableInvoice {
   reminderSentAt?: string | Date | null;
 }
 
+function startOfLocalDay(value: string | Date): number {
+  const date = new Date(value);
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+}
+
+function startOfToday(): number {
+  const now = new Date();
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+}
+
 /**
- * Returns the *effective* status. A SENT invoice past its due date is
- * presented as OVERDUE even if the DB still says SENT.
+ * Returns the *effective* UI status without rewriting the stored DB status.
  */
 export function effectiveStatus(inv: StatusableInvoice): InvoiceStatus {
-  if (inv.status === "SENT" && new Date(inv.dueDate).getTime() < Date.now()) {
+  if (inv.status === "PAID" || inv.status === "DRAFT" || inv.status === "CANCELLED") {
+    return inv.status;
+  }
+
+  if (
+    startOfLocalDay(inv.dueDate) < startOfToday()
+  ) {
     return "OVERDUE";
   }
+
+  if (inv.status === "OVERDUE") {
+    return "SENT";
+  }
+
   return inv.status;
 }
 
@@ -25,9 +45,8 @@ export function effectiveStatus(inv: StatusableInvoice): InvoiceStatus {
  * Whole days past due (0 if not overdue / paid in time).
  */
 export function daysOverdue(inv: StatusableInvoice): number {
-  if (inv.status === "PAID" || inv.status === "CANCELLED" || inv.status === "DRAFT") return 0;
-  const diff = Date.now() - new Date(inv.dueDate).getTime();
-  return diff > 0 ? Math.floor(diff / DAY_MS) : 0;
+  if (effectiveStatus(inv) !== "OVERDUE") return 0;
+  return Math.floor((startOfToday() - startOfLocalDay(inv.dueDate)) / DAY_MS);
 }
 
 /**

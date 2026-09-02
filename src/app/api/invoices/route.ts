@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireUserOrUnauthorized } from "@/lib/auth";
 import { calcInvoiceTotals, generateInvoiceNumber } from "@/lib/calculations";
+import { effectiveStatus } from "@/lib/invoice-status";
+import type { InvoiceStatus } from "@/types/invoice";
 import { z } from "zod";
 
 export const runtime = "nodejs";
@@ -35,13 +37,21 @@ export async function GET(req: NextRequest) {
     const invoices = await prisma.invoice.findMany({
       where: {
         userId: user.uid,
-        ...(status ? { status: status as never } : {}),
         ...(clientId ? { clientId } : {}),
       },
       include: { client: true, items: { orderBy: { sortOrder: "asc" } } },
       orderBy: { createdAt: "desc" },
     });
-    return NextResponse.json(invoices);
+
+    const filteredInvoices = status
+      ? invoices.filter((invoice) => effectiveStatus({
+          status: invoice.status as InvoiceStatus,
+          dueDate: invoice.dueDate,
+          issueDate: invoice.issueDate,
+        }) === status)
+      : invoices;
+
+    return NextResponse.json(filteredInvoices);
   } catch {
     return NextResponse.json({ error: "Facturen ophalen mislukt" }, { status: 500 });
   }

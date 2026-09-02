@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ChevronLeft, Edit3, FileText, Plus } from "lucide-react";
 import { STATUS_COLORS, STATUS_LABELS } from "@/types/invoice";
 import type { InvoiceStatus } from "@/types/invoice";
+import { effectiveStatus } from "@/lib/invoice-status";
 
 function formatEuro(amount: number) {
   return new Intl.NumberFormat("nl-NL", { style: "currency", currency: "EUR" }).format(amount);
@@ -148,7 +149,11 @@ export default async function ClientDetailPage({ params }: { params: { id: strin
             </thead>
             <tbody>
               {client.invoices.map((invoice) => {
-                const status = invoice.status as InvoiceStatus;
+                const status = effectiveStatus({
+                  status: invoice.status as InvoiceStatus,
+                  dueDate: invoice.dueDate,
+                  issueDate: invoice.issueDate,
+                });
 
                 return (
                   <tr key={invoice.id} className="border-b border-gray-50 hover:bg-gray-50">

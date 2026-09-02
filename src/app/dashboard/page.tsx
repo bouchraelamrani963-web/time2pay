@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Clock, FileText, ReceiptText, TrendingUp, Users } from "lucide-react";
 import { STATUS_COLORS, STATUS_LABELS } from "@/types/invoice";
 import type { InvoiceStatus } from "@/types/invoice";
+import { effectiveStatus } from "@/lib/invoice-status";
 
 function formatEuro(amount: number) {
   return new Intl.NumberFormat("nl-NL", { style: "currency", currency: "EUR" }).format(amount);
@@ -26,7 +27,16 @@ export default async function DashboardPage() {
   const paidInvoices = allInvoices.filter((i) => i.status === "PAID");
   const totalRevenue = paidInvoices.reduce((s, i) => s + i.subtotal, 0);
   const vatReceived = paidInvoices.reduce((s, i) => s + i.vatAmount, 0);
-  const outstanding = allInvoices.filter((i) => ["SENT", "OVERDUE"].includes(i.status)).reduce((s, i) => s + i.total, 0);
+  const outstanding = allInvoices
+    .filter((i) => {
+      const status = effectiveStatus({
+        status: i.status as InvoiceStatus,
+        dueDate: i.dueDate,
+        issueDate: i.issueDate,
+      });
+      return status === "SENT" || status === "OVERDUE";
+    })
+    .reduce((s, i) => s + i.total, 0);
   const draftCount = allInvoices.filter((i) => i.status === "DRAFT").length;
 
   const stats = [
@@ -84,22 +94,30 @@ export default async function DashboardPage() {
               </tr>
             </thead>
             <tbody>
-              {invoices.map((inv) => (
-                <tr key={inv.id} className="border-b border-gray-50 hover:bg-gray-50">
-                  <td className="px-6 py-3">
-                    <Link href={`/invoices/${inv.id}`} className="font-mono font-semibold text-blue-600 hover:underline">
-                      {inv.number}
-                    </Link>
-                  </td>
-                  <td className="px-6 py-3 text-gray-700">{inv.client.name}</td>
-                  <td className="px-6 py-3">
-                    <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ${STATUS_COLORS[inv.status as InvoiceStatus]}`}>
-                      {STATUS_LABELS[inv.status as InvoiceStatus]}
-                    </span>
-                  </td>
-                  <td className="px-6 py-3 text-right font-semibold">{formatEuro(inv.total)}</td>
-                </tr>
-              ))}
+              {invoices.map((inv) => {
+                const displayStatus = effectiveStatus({
+                  status: inv.status as InvoiceStatus,
+                  dueDate: inv.dueDate,
+                  issueDate: inv.issueDate,
+                });
+
+                return (
+                  <tr key={inv.id} className="border-b border-gray-50 hover:bg-gray-50">
+                    <td className="px-6 py-3">
+                      <Link href={`/invoices/${inv.id}`} className="font-mono font-semibold text-blue-600 hover:underline">
+                        {inv.number}
+                      </Link>
+                    </td>
+                    <td className="px-6 py-3 text-gray-700">{inv.client.name}</td>
+                    <td className="px-6 py-3">
+                      <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ${STATUS_COLORS[displayStatus]}`}>
+                        {STATUS_LABELS[displayStatus]}
+                      </span>
+                    </td>
+                    <td className="px-6 py-3 text-right font-semibold">{formatEuro(inv.total)}</td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         )}

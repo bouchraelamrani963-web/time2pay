@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Plus } from "lucide-react";
 import { STATUS_LABELS, STATUS_COLORS } from "@/types/invoice";
 import type { InvoiceStatus } from "@/types/invoice";
+import { effectiveStatus } from "@/lib/invoice-status";
 
 function formatEuro(n: number) {
   return new Intl.NumberFormat("nl-NL", { style: "currency", currency: "EUR" }).format(n);
@@ -19,27 +20,34 @@ export default async function InvoicesPage({
   searchParams: { status?: string; clientId?: string };
 }) {
   const user = await requireUser();
-  const status = searchParams.status as InvoiceStatus | undefined;
+  const statuses: (InvoiceStatus | "all")[] = ["all", "DRAFT", "SENT", "PAID", "OVERDUE"];
+  const requestedStatus = searchParams.status as InvoiceStatus | undefined;
+  const status = requestedStatus && statuses.includes(requestedStatus) ? requestedStatus : undefined;
   const clientId = searchParams.clientId;
 
   const invoices = await prisma.invoice.findMany({
     where: {
       userId: user.uid,
-      ...(status ? { status } : {}),
       ...(clientId ? { clientId } : {}),
     },
     include: { client: true },
     orderBy: { createdAt: "desc" },
   });
 
-  const statuses: (InvoiceStatus | "all")[] = ["all", "DRAFT", "SENT", "PAID", "OVERDUE"];
+  const filteredInvoices = status
+    ? invoices.filter((invoice) => effectiveStatus({
+        status: invoice.status as InvoiceStatus,
+        dueDate: invoice.dueDate,
+        issueDate: invoice.issueDate,
+      }) === status)
+    : invoices;
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Facturen</h1>
-          <p className="text-sm text-gray-500">{invoices.length} factuur{invoices.length !== 1 ? "en" : ""}</p>
+          <p className="text-sm text-gray-500">{filteredInvoices.length} factuur{filteredInvoices.length !== 1 ? "en" : ""}</p>
         </div>
         <Link href="/invoices/new" className="btn-primary">
           <Plus size={16} /> Nieuwe factuur
@@ -63,7 +71,7 @@ export default async function InvoicesPage({
       </div>
 
       <div className="card overflow-hidden">
-        {invoices.length === 0 ? (
+        {filteredInvoices.length === 0 ? (
           <div className="py-16 text-center text-sm text-gray-500">
             Geen facturen gevonden.{" "}
             <Link href="/invoices/new" className="text-blue-600 underline">Maak er een aan</Link>
@@ -81,24 +89,32 @@ export default async function InvoicesPage({
               </tr>
             </thead>
             <tbody>
-              {invoices.map((inv) => (
-                <tr key={inv.id} className="border-b border-gray-50 hover:bg-gray-50">
-                  <td className="px-6 py-3">
-                    <Link href={`/invoices/${inv.id}`} className="font-mono font-semibold text-blue-600 hover:underline">
-                      {inv.number}
-                    </Link>
-                  </td>
-                  <td className="px-6 py-3 text-gray-700">{inv.client.name}</td>
-                  <td className="px-6 py-3 text-gray-500">{formatDate(inv.issueDate)}</td>
-                  <td className="px-6 py-3 text-gray-500">{formatDate(inv.dueDate)}</td>
-                  <td className="px-6 py-3">
-                    <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ${STATUS_COLORS[inv.status as InvoiceStatus]}`}>
-                      {STATUS_LABELS[inv.status as InvoiceStatus]}
-                    </span>
-                  </td>
-                  <td className="px-6 py-3 text-right font-semibold">{formatEuro(inv.total)}</td>
-                </tr>
-              ))}
+              {filteredInvoices.map((inv) => {
+                const displayStatus = effectiveStatus({
+                  status: inv.status as InvoiceStatus,
+                  dueDate: inv.dueDate,
+                  issueDate: inv.issueDate,
+                });
+
+                return (
+                  <tr key={inv.id} className="border-b border-gray-50 hover:bg-gray-50">
+                    <td className="px-6 py-3">
+                      <Link href={`/invoices/${inv.id}`} className="font-mono font-semibold text-blue-600 hover:underline">
+                        {inv.number}
+                      </Link>
+                    </td>
+                    <td className="px-6 py-3 text-gray-700">{inv.client.name}</td>
+                    <td className="px-6 py-3 text-gray-500">{formatDate(inv.issueDate)}</td>
+                    <td className="px-6 py-3 text-gray-500">{formatDate(inv.dueDate)}</td>
+                    <td className="px-6 py-3">
+                      <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ${STATUS_COLORS[displayStatus]}`}>
+                        {STATUS_LABELS[displayStatus]}
+                      </span>
+                    </td>
+                    <td className="px-6 py-3 text-right font-semibold">{formatEuro(inv.total)}</td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         )}
