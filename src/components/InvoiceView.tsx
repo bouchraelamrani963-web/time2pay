@@ -29,6 +29,10 @@ function formatDate(d: string) {
   return new Date(d).toLocaleDateString("nl-NL", { day: "2-digit", month: "long", year: "numeric" });
 }
 
+function formatReminderCount(count: number) {
+  return `${count}e herinnering verstuurd`;
+}
+
 type ApiResponse = {
   error?: unknown;
   message?: string;
@@ -61,6 +65,7 @@ export default function InvoiceView({ invoice }: Props) {
   const payDays = paymentDays(invoice);
   const isOverdue = effStatus === "OVERDUE";
   const canRemind = (effStatus === "SENT" || effStatus === "OVERDUE");
+  const reminderCount = Math.max(0, invoice.reminderCount ?? 0);
 
   async function updateStatus(status: InvoiceStatus) {
     setBusy(true);
@@ -127,9 +132,9 @@ export default function InvoiceView({ invoice }: Props) {
               <AlertTriangle size={12} /> {overdueDays} dag{overdueDays !== 1 ? "en" : ""} te laat
             </span>
           )}
-          {invoice.reminderSentAt && effStatus !== "PAID" && (
+          {reminderCount > 0 && effStatus !== "PAID" && (
             <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 text-amber-800 px-2.5 py-1 text-xs font-semibold">
-              <BellRing size={12} /> Herinnering gestuurd
+              <BellRing size={12} /> {formatReminderCount(reminderCount)}
             </span>
           )}
           {invoice.status === "PAID" && payDays !== null && (

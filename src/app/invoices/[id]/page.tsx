@@ -23,6 +23,7 @@ export default async function InvoiceDetailPage({ params }: { params: { id: stri
     dueDate: raw.dueDate.toISOString(),
     paidAt: raw.paidAt ? raw.paidAt.toISOString() : null,
     reminderSentAt: raw.reminderSentAt ? raw.reminderSentAt.toISOString() : null,
+    reminderCount: raw.reminderCount,
     createdAt: raw.createdAt.toISOString(),
     updatedAt: raw.updatedAt.toISOString(),
     client: {

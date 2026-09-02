@@ -34,6 +34,7 @@ export interface Invoice {
   dueDate: string;
   paidAt?: string | null;
   reminderSentAt?: string | null;
+  reminderCount: number;
   notes?: string | null;
   vatRate: number;
   subtotal: number;

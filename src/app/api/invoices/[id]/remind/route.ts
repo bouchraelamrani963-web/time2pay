@@ -203,7 +203,10 @@ export async function POST(_request: Request, { params }: { params: { id: string
 
     const updateResult = await prisma.invoice.updateMany({
       where: { id: invoice.id, userId: user.uid },
-      data: { reminderSentAt: new Date() },
+      data: {
+        reminderSentAt: new Date(),
+        reminderCount: { increment: 1 },
+      },
     });
 
     if (updateResult.count === 0) {
@@ -218,7 +221,7 @@ export async function POST(_request: Request, { params }: { params: { id: string
 
     const updatedInvoice = await prisma.invoice.findFirst({
       where: { id: invoice.id, userId: user.uid },
-      select: { id: true, status: true, reminderSentAt: true, updatedAt: true },
+      select: { id: true, status: true, reminderSentAt: true, reminderCount: true, updatedAt: true },
     });
 
     if (!updatedInvoice) {

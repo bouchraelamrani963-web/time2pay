@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import Link from "next/link";
-import { Plus } from "lucide-react";
+import { BellRing, Plus } from "lucide-react";
 import { STATUS_LABELS, STATUS_COLORS } from "@/types/invoice";
 import type { InvoiceStatus } from "@/types/invoice";
 import { effectiveStatus } from "@/lib/invoice-status";
@@ -12,6 +12,10 @@ function formatEuro(n: number) {
 
 function formatDate(d: Date | string) {
   return new Date(d).toLocaleDateString("nl-NL", { day: "2-digit", month: "short", year: "numeric" });
+}
+
+function formatReminderCount(count: number) {
+  return `${count} herinnering${count === 1 ? "" : "en"}`;
 }
 
 export default async function InvoicesPage({
@@ -95,6 +99,7 @@ export default async function InvoicesPage({
                   dueDate: inv.dueDate,
                   issueDate: inv.issueDate,
                 });
+                const reminderCount = Math.max(0, inv.reminderCount ?? 0);
 
                 return (
                   <tr key={inv.id} className="border-b border-gray-50 hover:bg-gray-50">
@@ -107,9 +112,16 @@ export default async function InvoicesPage({
                     <td className="px-6 py-3 text-gray-500">{formatDate(inv.issueDate)}</td>
                     <td className="px-6 py-3 text-gray-500">{formatDate(inv.dueDate)}</td>
                     <td className="px-6 py-3">
-                      <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ${STATUS_COLORS[displayStatus]}`}>
-                        {STATUS_LABELS[displayStatus]}
-                      </span>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ${STATUS_COLORS[displayStatus]}`}>
+                          {STATUS_LABELS[displayStatus]}
+                        </span>
+                        {reminderCount > 0 && (
+                          <span className="inline-flex items-center gap-1 text-xs font-semibold text-amber-700">
+                            <BellRing size={12} /> {formatReminderCount(reminderCount)}
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-6 py-3 text-right font-semibold">{formatEuro(inv.total)}</td>
                   </tr>
