@@ -29,6 +29,22 @@ function formatDate(d: string) {
   return new Date(d).toLocaleDateString("nl-NL", { day: "2-digit", month: "long", year: "numeric" });
 }
 
+type ApiResponse = {
+  error?: unknown;
+  message?: string;
+  sentTo?: string;
+};
+
+async function readApiResponse(response: Response) {
+  return await response.json().catch(() => null) as ApiResponse | null;
+}
+
+function getApiErrorMessage(body: ApiResponse | null, fallback: string) {
+  if (body?.message) return body.message;
+  if (typeof body?.error === "string") return body.error;
+  return fallback;
+}
+
 const STATUS_TRANSITIONS: Partial<Record<InvoiceStatus, { label: string; next: InvoiceStatus; icon: React.ReactNode }>> = {
   DRAFT: { label: "Markeer als verzonden", next: "SENT", icon: <Send size={15} /> },
   SENT: { label: "Markeer als betaald", next: "PAID", icon: <CheckCircle size={15} /> },
@@ -68,11 +84,14 @@ export default function InvoiceView({ invoice }: Props) {
     setBusy(true);
     try {
       const res = await fetch(`/api/invoices/${invoice.id}/remind`, { method: "POST" });
-      if (!res.ok) throw new Error();
-      toast.success("Herinnering verstuurd");
+      const body = await readApiResponse(res);
+      if (!res.ok) {
+        throw new Error(getApiErrorMessage(body, "Herinnering versturen mislukt"));
+      }
+      toast.success(`Betalingsherinnering verstuurd${body?.sentTo ? ` naar ${body.sentTo}` : ""}`);
       router.refresh();
-    } catch {
-      toast.error("Herinnering versturen mislukt");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Herinnering versturen mislukt");
     } finally {
       setBusy(false);
     }
