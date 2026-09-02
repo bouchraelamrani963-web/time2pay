@@ -201,11 +201,35 @@ export async function POST(_request: Request, { params }: { params: { id: string
       );
     }
 
-    const updatedInvoice = await prisma.invoice.update({
-      where: { id: invoice.id },
+    const updateResult = await prisma.invoice.updateMany({
+      where: { id: invoice.id, userId: user.uid },
       data: { reminderSentAt: new Date() },
+    });
+
+    if (updateResult.count === 0) {
+      return NextResponse.json(
+        {
+          error: "Factuur niet gevonden",
+          message: "De factuur kon niet worden bijgewerkt.",
+        },
+        { status: 404 }
+      );
+    }
+
+    const updatedInvoice = await prisma.invoice.findFirst({
+      where: { id: invoice.id, userId: user.uid },
       select: { id: true, status: true, reminderSentAt: true, updatedAt: true },
     });
+
+    if (!updatedInvoice) {
+      return NextResponse.json(
+        {
+          error: "Factuur niet gevonden",
+          message: "De factuur kon niet worden geladen na het versturen van de herinnering.",
+        },
+        { status: 404 }
+      );
+    }
 
     return NextResponse.json({
       success: true,

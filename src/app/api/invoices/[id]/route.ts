@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireUserOrUnauthorized } from "@/lib/auth";
 import { calcInvoiceTotals } from "@/lib/calculations";
@@ -64,7 +65,7 @@ export async function PATCH(
     const body = await req.json();
     const data = UpdateInvoiceSchema.parse(body);
 
-    const updateData: Record<string, unknown> = {};
+    const updateData: Prisma.InvoiceUncheckedUpdateManyInput = {};
     if (data.clientId) {
       const ownedClient = await prisma.client.findFirst({
         where: { id: data.clientId, userId: user.uid },
@@ -85,34 +86,52 @@ export async function PATCH(
       updateData.vatAmount = vatAmount;
       updateData.total = total;
 
-      await prisma.invoiceItem.deleteMany({ where: { invoiceId: params.id } });
-      await prisma.invoiceItem.createMany({
-        data: data.items.map((item) => {
-          const lineTotal =
-            item.type === "FIXED"
-              ? item.unitPrice
-              : Math.round(item.quantity * item.unitPrice * 100) / 100;
-          return {
-            invoiceId: params.id,
-            type: item.type,
-            description: item.description,
-            quantity: item.quantity,
-            unitPrice: item.unitPrice,
-            unit: item.unit || null,
-            lineTotal,
-            sortOrder: item.sortOrder,
-          };
-        }),
-      });
     } else if (data.vatRate !== undefined) {
       updateData.vatRate = data.vatRate;
     }
 
-    const invoice = await prisma.invoice.update({
-      where: { id: params.id },
-      data: updateData,
-      include: { client: true, items: { orderBy: { sortOrder: "asc" } } },
+    const invoice = await prisma.$transaction(async (tx) => {
+      const updateResult = await tx.invoice.updateMany({
+        where: { id: params.id, userId: user.uid },
+        data: updateData,
+      });
+
+      if (updateResult.count === 0) return null;
+
+      if (data.items !== undefined) {
+        await tx.invoiceItem.deleteMany({
+          where: {
+            invoiceId: params.id,
+            invoice: { is: { userId: user.uid } },
+          },
+        });
+        await tx.invoiceItem.createMany({
+          data: data.items.map((item) => {
+            const lineTotal =
+              item.type === "FIXED"
+                ? item.unitPrice
+                : Math.round(item.quantity * item.unitPrice * 100) / 100;
+            return {
+              invoiceId: params.id,
+              type: item.type,
+              description: item.description,
+              quantity: item.quantity,
+              unitPrice: item.unitPrice,
+              unit: item.unit || null,
+              lineTotal,
+              sortOrder: item.sortOrder,
+            };
+          }),
+        });
+      }
+
+      return tx.invoice.findFirst({
+        where: { id: params.id, userId: user.uid },
+        include: { client: true, items: { orderBy: { sortOrder: "asc" } } },
+      });
     });
+
+    if (!invoice) return NextResponse.json({ error: "Niet gevonden" }, { status: 404 });
 
     return NextResponse.json(invoice);
   } catch (err) {
@@ -134,7 +153,14 @@ export async function DELETE(
     const ownedInvoice = await findOwnedInvoice(params.id, user.uid);
     if (!ownedInvoice) return NextResponse.json({ error: "Niet gevonden" }, { status: 404 });
 
-    await prisma.invoice.delete({ where: { id: params.id } });
+    const deleteResult = await prisma.invoice.deleteMany({
+      where: { id: params.id, userId: user.uid },
+    });
+
+    if (deleteResult.count === 0) {
+      return NextResponse.json({ error: "Niet gevonden" }, { status: 404 });
+    }
+
     return new NextResponse(null, { status: 204 });
   } catch {
     return NextResponse.json({ error: "Verwijderen mislukt" }, { status: 500 });
