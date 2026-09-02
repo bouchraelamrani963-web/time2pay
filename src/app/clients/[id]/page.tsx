@@ -6,6 +6,7 @@ import { ChevronLeft, Edit3, FileText, Plus } from "lucide-react";
 import { STATUS_COLORS, STATUS_LABELS } from "@/types/invoice";
 import type { InvoiceStatus } from "@/types/invoice";
 import { effectiveStatus } from "@/lib/invoice-status";
+import DeleteClientButton from "@/components/DeleteClientButton";
 
 function formatEuro(amount: number) {
   return new Intl.NumberFormat("nl-NL", { style: "currency", currency: "EUR" }).format(amount);
@@ -72,6 +73,7 @@ export default async function ClientDetailPage({ params }: { params: { id: strin
           <Link href={`/invoices/new?clientId=${client.id}`} className="btn-primary">
             <Plus size={15} /> Nieuwe factuur voor deze klant
           </Link>
+          <DeleteClientButton clientId={client.id} clientName={client.name} />
         </div>
       </div>
 
