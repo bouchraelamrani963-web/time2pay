@@ -42,3 +42,50 @@ for (const [route, method] of [
     assert.equal((await response.json()).code, 'SUBSCRIPTION_REQUIRED');
   });
 }
+
+test('checkout retries stay stable, but a new plan or canceled subscription gets a new payment attempt', async () => {
+  let previousSubscriptionId = 'sub_canceled_starter';
+  const attempts = [];
+  const plans = {
+    starter: { priceId: 'price_starter', cents: 900 },
+    pro: { priceId: 'price_pro', cents: 1900 },
+  };
+  const stripe = {
+    accounts: { retrieveCurrent: async () => ({ id: 'sandbox' }) },
+    prices: { retrieve: async id => ({ id, active: true, livemode: false, currency: 'eur',
+      unit_amount: Object.values(plans).find(p => p.priceId === id).cents,
+      tax_behavior: 'inclusive', recurring: { interval: 'month', interval_count: 1 } }) },
+    tax: { registrations: { list: async () => ({ data: [{ country: 'NL', livemode: false }] }) } },
+    subscriptions: { list: async () => ({ data: [{ id: previousSubscriptionId, status: 'canceled' }] }) },
+    checkout: { sessions: {
+      list: async () => ({ data: [] }),
+      create: async (body, options) => { attempts.push(options.idempotencyKey); return { url: 'https://checkout.test/session' }; },
+    } },
+  };
+  const stubs = {
+    '@/lib/auth': { requireUserOrUnauthorized: async () => ({ uid: 'test-user' }) },
+    '@/lib/billing': { getStripe: () => stripe, hasPaidSubscription: async () => false, SANDBOX_ACCOUNT: 'sandbox' },
+    '@/lib/billing-plans': { BILLING_PLANS: plans, isBillingPlan: key => Object.hasOwn(plans, key) },
+    '@/lib/prisma': { prisma: { billingAccount: { createMany: async () => {},
+      findUniqueOrThrow: async () => ({ customerId: 'cus_test' }) } } },
+  };
+  const source = fs.readFileSync(path.join(__dirname, '..', 'src/app/api/billing/checkout/route.ts'), 'utf8');
+  const output = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
+  const module = { exports: {} };
+  vm.runInNewContext(output, { module, exports: module.exports, Response, Request, URL, console,
+    require: name => Object.hasOwn(stubs, name) ? stubs[name] : require(name) });
+  async function checkout(plan) {
+    const response = await module.exports.POST(new Request('https://test.example/api/billing/checkout', {
+      method: 'POST', headers: { origin: 'https://test.example', 'content-type': 'application/json' }, body: JSON.stringify({ plan }),
+    }));
+    assert.equal(response.status, 200);
+  }
+  await checkout('starter');
+  await checkout('starter');
+  await checkout('pro');
+  previousSubscriptionId = 'sub_canceled_pro';
+  await checkout('pro');
+  assert.equal(attempts[0], attempts[1], 'retries must reuse the same payment attempt');
+  assert.notEqual(attempts[1], attempts[2], 'another plan must not reuse the old checkout');
+  assert.notEqual(attempts[2], attempts[3], 'resubscribing must not reuse a completed checkout');
+});
