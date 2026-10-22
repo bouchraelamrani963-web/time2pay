@@ -113,7 +113,8 @@ in deze wijziging en moeten apart worden geverifieerd vóór een commerciële st
   geen mailadres en Preview heeft geen mailcredentials.
 - Nog niet uitgevoerd: Pro/Business-checkout, gelijktijdige databaseverzoeken,
   ingetrokken toegang na mislukte verlenging of einde opzegging.
-- Kleine UI-beperking: na betaling staat bij alle prijspakketten 'Abonnement
-  actief'; feitelijk is alleen Starter afgesloten. Planwissels zijn geblokkeerd.
-  Dit vóór commerciële ingebruikname verduidelijken.
+- Prijskaartknoppen na betaling verduidelijkt naar 'Je hebt al een abonnement',
+  zodat ze niet suggereren dat alle drie pakketten zijn afgesloten.
+  Deze tekstwijziging volgt via de automatische Preview-build; de functionele
+  test hierboven is uitgevoerd vóór deze uitsluitend tekstuele wijziging.
 
