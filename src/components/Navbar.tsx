@@ -41,8 +41,8 @@ export default function Navbar(_props: Props = {}) {
             <a href="/#pricing" className="hover:text-[#4a3042]">Prijzen</a>
             <Link href="/login" className="hover:text-[#4a3042]">Inloggen</Link>
           </div>
-          <Link href="/register" className="inline-flex min-h-10 items-center justify-center rounded-md bg-[#543749] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#3e2937] sm:px-5">
-            Begin gratis
+          <Link href="/#pricing" className="inline-flex min-h-10 items-center justify-center rounded-md bg-[#543749] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#3e2937] sm:px-5">
+            Bekijk prijzen
           </Link>
         </div>
       </nav>

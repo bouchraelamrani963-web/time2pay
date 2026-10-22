@@ -126,9 +126,9 @@ export default function RegisterPage() {
       <div className="w-full max-w-[460px]">
         <div className="mb-9 text-center">
           <Link href="/" className="mb-8 inline-flex items-center text-2xl font-bold tracking-[-0.05em] text-[#543749]">Time2Pay<span className="text-[#b3846d]">.</span></Link>
-          <h1 className="text-3xl font-semibold tracking-[-0.03em] text-[#33243b]">Gratis starten</h1>
+          <h1 className="text-3xl font-semibold tracking-[-0.03em] text-[#33243b]">Account aanmaken</h1>
           <p className="mt-2 text-sm text-[#776c74]">
-            Maak je account aan en start met professioneel factureren.
+            Maak je account aan om Time2Pay te ontdekken.
           </p>
         </div>
 

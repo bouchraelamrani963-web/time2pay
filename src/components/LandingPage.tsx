@@ -55,15 +55,15 @@ const features = [
 const pricingPlans = [
   {
     name: "Starter",
-    price: "€ 0",
+    price: "€ 9",
     description: "Voor wie eenvoudig wil beginnen.",
-    details: ["Tot 5 facturen per maand", "Basis klantbeheer", "PDF downloaden", "Dashboard overzicht"],
-    href: "/register",
-    action: "Gratis beginnen",
+    details: ["Tot 15 facturen per maand", "Basis klantbeheer", "PDF downloaden", "Dashboard overzicht"],
+    href: "/register?plan=starter",
+    action: "Kies Starter",
   },
   {
     name: "Pro",
-    price: "€ 9",
+    price: "€ 19",
     description: "Voor zelfstandigen met een volle agenda.",
     details: ["Onbeperkt facturen", "Onbeperkt klanten", "Betalingsherinneringen", "Omzet- en betaalinzichten"],
     href: "/register?plan=pro",
@@ -71,11 +71,11 @@ const pricingPlans = [
   },
   {
     name: "Business",
-    price: "Op maat",
+    price: "€ 39",
     description: "Voor kleine teams en groeiende bedrijven.",
     details: ["Meerdere gebruikers", "Uitgebreide rapportage", "Prioriteit support", "Hulp bij inrichting"],
     href: "/register?plan=business",
-    action: "Meer informatie",
+    action: "Kies Business",
   },
 ];
 
@@ -99,10 +99,10 @@ export default function LandingPage() {
               </p>
               <div className="mt-10 flex flex-wrap items-center gap-6">
                 <Link
-                  href="/register"
+                  href="#pricing"
                   className="inline-flex min-h-12 items-center justify-center gap-3 rounded-md bg-[#543749] px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#3e2937] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#543749]"
                 >
-                  Begin gratis <ArrowRight size={17} aria-hidden />
+                  Bekijk abonnementen <ArrowRight size={17} aria-hidden />
                 </Link>
                 <a
                   href="#how-it-works"
@@ -113,7 +113,7 @@ export default function LandingPage() {
               </div>
               <div className="mt-12 flex flex-wrap gap-x-7 gap-y-3 border-t border-[#e9deda] pt-6 text-xs text-[#736c70]">
                 <span>Gemaakt voor Nederlandse ondernemers</span>
-                <span>Geen creditcard nodig</span>
+                <span>Een account aanmaken kan zonder betaalgegevens</span>
               </div>
             </div>
 
@@ -248,7 +248,7 @@ export default function LandingPage() {
                   <p className="mt-2 min-h-[46px] text-sm leading-6 text-[#766a73]">{plan.description}</p>
                   <div className="mt-7 flex items-end gap-2 border-b border-[#e9deda] pb-7">
                     <span className="text-4xl font-semibold tracking-[-0.04em]">{plan.price}</span>
-                    {plan.price !== "Op maat" && <span className="pb-1 text-xs text-[#87777d]">per maand</span>}
+                    <span className="pb-1 text-xs text-[#87777d]">per maand</span>
                   </div>
                   <ul className="mt-7 flex-1 space-y-4 text-sm text-[#62545d]">
                     {plan.details.map((detail) => (
@@ -269,6 +269,7 @@ export default function LandingPage() {
                 </div>
               ))}
             </div>
+            <p className="mt-5 text-xs leading-6 text-[#87777d]">De abonnementen zijn in voorbereiding. Betalingen en pakketlimieten zijn nog niet geactiveerd.</p>
           </div>
         </section>
 
@@ -281,8 +282,8 @@ export default function LandingPage() {
               </h2>
               <p className="mt-4 text-sm leading-7 text-[#ecded7]">Maak een account aan en ontdek Time2Pay.</p>
             </div>
-            <Link href="/register" className="inline-flex min-h-12 shrink-0 items-center justify-center gap-3 rounded-md bg-[#fffaf6] px-7 py-3 text-sm font-semibold text-[#4a3042] transition-colors hover:bg-white">
-              Gratis beginnen <ArrowRight size={17} aria-hidden />
+            <Link href="#pricing" className="inline-flex min-h-12 shrink-0 items-center justify-center gap-3 rounded-md bg-[#fffaf6] px-7 py-3 text-sm font-semibold text-[#4a3042] transition-colors hover:bg-white">
+              Bekijk abonnementen <ArrowRight size={17} aria-hidden />
             </Link>
           </div>
         </section>
