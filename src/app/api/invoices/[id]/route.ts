@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { hasPaidSubscription, paymentRequired } from "@/lib/billing";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireUserOrUnauthorized } from "@/lib/auth";
@@ -64,6 +65,7 @@ export async function PATCH(
 
     const body = await req.json();
     const data = UpdateInvoiceSchema.parse(body);
+    if (data.status && data.status !== "DRAFT" && !await hasPaidSubscription(user.uid)) return paymentRequired();
 
     const updateData: Prisma.InvoiceUncheckedUpdateManyInput = {};
     if (data.clientId) {

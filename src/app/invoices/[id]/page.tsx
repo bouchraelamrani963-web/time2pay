@@ -1,3 +1,4 @@
+import { hasPaidSubscription } from "@/lib/billing";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { notFound } from "next/navigation";
@@ -9,6 +10,7 @@ import type { Invoice } from "@/types/invoice";
 
 export default async function InvoiceDetailPage({ params }: { params: { id: string } }) {
   const user = await requireUser();
+  const canExport = await hasPaidSubscription(user.uid);
   const raw = await prisma.invoice.findFirst({
     where: { id: params.id, userId: user.uid },
     include: { client: true, items: { orderBy: { sortOrder: "asc" } } },
@@ -43,9 +45,9 @@ export default async function InvoiceDetailPage({ params }: { params: { id: stri
         <Link href="/invoices" className="inline-flex items-center gap-1 text-sm text-[#726671] hover:text-[#33243b]">
           <ChevronLeft size={16} /> Terug naar facturen
         </Link>
-        <SendInvoiceButton invoiceId={invoice.id} clientEmail={invoice.client.email} status={invoice.status} />
+        <SendInvoiceButton canExport={canExport} invoiceId={invoice.id} clientEmail={invoice.client.email} status={invoice.status} />
       </div>
-      <InvoiceView invoice={invoice} />
+      <InvoiceView invoice={invoice} canExport={canExport} />
     </div>
   );
 }

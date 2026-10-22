@@ -26,6 +26,17 @@ model Client {
   @@map("clients")
 }
 
+model BillingAccount {
+  userId          String   @id
+  customerId      String?  @unique
+  subscriptionId  String?  @unique
+  freeInvoiceUsed Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@map("billing_accounts")
+}
+
 model CompanySettings {
   id          String   @id @default(cuid())
   userId      String   @unique

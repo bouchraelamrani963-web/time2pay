@@ -113,6 +113,10 @@ export default function InvoiceBuilder({ clients, initialClientId }: Props) {
         }),
       });
 
+      if (res.status === 402) {
+        router.push("/billing");
+        return;
+      }
       if (!res.ok) {
         throw new Error(await readApiError(res, "Opslaan mislukt"));
       }

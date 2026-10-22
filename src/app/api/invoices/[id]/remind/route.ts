@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { hasPaidSubscription, paymentRequired } from "@/lib/billing";
 import { prisma } from "@/lib/prisma";
 import { requireUserOrUnauthorized } from "@/lib/auth";
 import { EmailConfigurationError, getInvoiceEmailConfig } from "@/lib/email";
@@ -111,6 +112,7 @@ function buildReminderText(params: {
 export async function POST(_request: Request, { params }: { params: { id: string } }) {
   const user = await requireUserOrUnauthorized();
   if (user instanceof Response) return user;
+  if (!await hasPaidSubscription(user.uid)) return paymentRequired();
 
   const sendKey = `${user.uid}:${params.id}`;
   if (activeInvoiceReminders.has(sendKey)) {

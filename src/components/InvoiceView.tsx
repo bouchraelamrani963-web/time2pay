@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Printer,
+  Download,
   Trash2,
   CheckCircle,
   Send,
@@ -19,6 +20,7 @@ import { effectiveStatus, daysOverdue, paymentDays } from "@/lib/invoice-status"
 
 interface Props {
   invoice: Invoice;
+  canExport: boolean;
 }
 
 function formatEuro(n: number) {
@@ -56,7 +58,7 @@ const STATUS_TRANSITIONS: Partial<Record<InvoiceStatus, { label: string; next: I
   PAID: { label: "Terugzetten naar concept", next: "DRAFT", icon: <RotateCcw size={15} /> },
 };
 
-export default function InvoiceView({ invoice }: Props) {
+export default function InvoiceView({ invoice, canExport }: Props) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
 
@@ -67,6 +69,26 @@ export default function InvoiceView({ invoice }: Props) {
   const canRemind = (effStatus === "SENT" || effStatus === "OVERDUE");
   const reminderCount = Math.max(0, invoice.reminderCount ?? 0);
 
+  async function exportInvoice(print: boolean) {
+    if (!canExport) return router.push("/billing");
+    setBusy(true);
+    try {
+      const response = await fetch(`/api/invoices/${invoice.id}/pdf`, { cache: "no-store" });
+      if (response.status === 402) return router.push("/billing");
+      if (!response.ok) throw new Error("PDF openen mislukt");
+      const blob = await response.blob();
+      if (print) { window.print(); return; }
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `factuur-${invoice.number.replace(/[^a-zA-Z0-9_-]/g, "_")}.pdf`;
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "PDF openen mislukt");
+    } finally { setBusy(false); }
+  }
+
   async function updateStatus(status: InvoiceStatus) {
     setBusy(true);
     try {
@@ -75,6 +97,7 @@ export default function InvoiceView({ invoice }: Props) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status }),
       });
+      if (res.status === 402) return router.push("/billing");
       if (!res.ok) throw new Error();
       toast.success("Status bijgewerkt");
       router.refresh();
@@ -90,6 +113,7 @@ export default function InvoiceView({ invoice }: Props) {
     try {
       const res = await fetch(`/api/invoices/${invoice.id}/remind`, { method: "POST" });
       const body = await readApiResponse(res);
+      if (res.status === 402) return router.push("/billing");
       if (!res.ok) {
         throw new Error(getApiErrorMessage(body, "Herinnering versturen mislukt"));
       }
@@ -120,7 +144,7 @@ export default function InvoiceView({ invoice }: Props) {
   const transition = STATUS_TRANSITIONS[effStatus];
 
   return (
-    <div className="space-y-6">
+    <div className={`space-y-6 ${!canExport ? "invoice-preview-locked" : ""}`}>
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-3 flex-wrap">
           <h1 className="text-2xl font-bold font-mono text-[#33243b]">{invoice.number}</h1>
@@ -154,7 +178,10 @@ export default function InvoiceView({ invoice }: Props) {
               {transition.icon} {transition.label}
             </button>
           )}
-          <button className="btn-secondary" onClick={() => window.print()}>
+          <button className="btn-secondary" disabled={busy} onClick={() => exportInvoice(false)}>
+            <Download size={15} /> PDF downloaden
+          </button>
+          <button className="btn-secondary" disabled={busy} onClick={() => exportInvoice(true)}>
             <Printer size={15} /> Afdrukken
           </button>
           <button className="btn-danger" disabled={busy} onClick={deleteInvoice}>
@@ -163,6 +190,12 @@ export default function InvoiceView({ invoice }: Props) {
         </div>
       </div>
 
+      {!canExport && <div className="card p-4 text-sm no-print">
+        <strong>Gratis conceptfactuur</strong>
+        <p>Je kunt één factuur opstellen. Voor verzenden, PDF downloaden of afdrukken is een betaald abonnement nodig.</p>
+        <button className="btn-primary mt-3" onClick={() => router.push("/billing")}>Bekijk abonnementen</button>
+      </div>}
+      {!canExport && <p className="locked-print-message hidden">Concept — een betaald Time2Pay-abonnement is vereist om deze factuur af te drukken.</p>}
       {isOverdue && (
         <div className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 no-print">
           <AlertTriangle size={18} className="mt-0.5 shrink-0" />
