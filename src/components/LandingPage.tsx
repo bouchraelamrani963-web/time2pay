@@ -4,17 +4,14 @@ import { ArrowRight, ArrowUpRight, Check } from "lucide-react";
 
 const steps = [
   {
-    number: "01",
     title: "Voeg je klant toe",
     description: "Bewaar klantgegevens op één plek. Je hoeft ze niet steeds opnieuw in te vullen.",
   },
   {
-    number: "02",
     title: "Vul je werk in",
     description: "Bereken de kosten op basis van uren, vierkante meters, materiaal of een vaste prijs.",
   },
   {
-    number: "03",
     title: "Maak je factuur",
     description: "Maak een overzichtelijke factuur, download de PDF en volg de betaalstatus.",
   },
@@ -22,32 +19,26 @@ const steps = [
 
 const features = [
   {
-    number: "01",
     title: "Facturen op jouw manier",
     description: "Factureer per uur, m², materiaal of vaste prijs. Alle posten netjes bij elkaar.",
   },
   {
-    number: "02",
     title: "Klanten bij de hand",
     description: "Een overzicht met klantgegevens die je meteen kunt gebruiken bij een nieuwe factuur.",
   },
   {
-    number: "03",
     title: "Zie wat nog openstaat",
     description: "Houd bij welke facturen betaald zijn en welke nog aandacht nodig hebben.",
   },
   {
-    number: "04",
     title: "Professionele PDF's",
     description: "Een duidelijk document dat je kunt downloaden, printen of naar je klant versturen.",
   },
   {
-    number: "05",
     title: "Inzicht zonder zoeken",
     description: "Bekijk je omzet, je openstaande bedragen en je recente facturen in één overzicht.",
   },
   {
-    number: "06",
     title: "Betalingen opvolgen",
     description: "Houd vervaldatums in de gaten en stuur een herinnering wanneer dat nodig is.",
   },
@@ -198,9 +189,8 @@ export default function LandingPage() {
             </div>
             <div className="mt-14 grid gap-9 border-t border-[#e9deda] pt-9 md:grid-cols-3 md:gap-12">
               {steps.map((step) => (
-                <div key={step.number}>
-                  <p className="text-sm font-semibold text-[#a2715e]">{step.number}</p>
-                  <h3 className="mt-7 text-xl font-semibold tracking-tight text-[#342b39]">{step.title}</h3>
+                <div key={step.title}>
+                  <h3 className="text-xl font-semibold tracking-tight text-[#342b39]">{step.title}</h3>
                   <p className="mt-3 max-w-sm text-sm leading-7 text-[#766a73]">{step.description}</p>
                 </div>
               ))}
@@ -216,8 +206,7 @@ export default function LandingPage() {
             </div>
             <div className="grid gap-x-16 md:grid-cols-2">
               {features.map((feature) => (
-                <div key={feature.number} className="grid grid-cols-[36px_1fr] gap-3 border-t border-[#e9deda] py-7 sm:gap-6">
-                  <span className="pt-1 text-xs font-medium text-[#789182]">{feature.number}</span>
+                <div key={feature.title} className="border-t border-[#e9deda] py-7">
                   <div>
                     <h3 className="text-lg font-semibold tracking-tight">{feature.title}</h3>
                     <p className="mt-2 max-w-md text-sm leading-7 text-[#746a70]">{feature.description}</p>
