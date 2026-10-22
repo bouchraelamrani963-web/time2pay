@@ -30,18 +30,18 @@ export default function Navbar(_props: Props = {}) {
 
   if (isPublicRoute) {
     return (
-      <nav className="sticky top-0 z-40 border-b border-[#dce4dd] bg-[#f7f8f5]">
+      <nav className="sticky top-0 z-40 border-b border-[#e9deda] bg-[#fbf8f5]">
         <div className="mx-auto flex w-full max-w-[1240px] items-center justify-between gap-4 px-6 py-5 sm:px-8">
-          <Link href="/" className="text-xl font-bold tracking-[-0.045em] text-[#203d32]">
-            Time2Pay<span className="text-[#6c927e]">.</span>
+          <Link href="/" className="text-xl font-bold tracking-[-0.045em] text-[#4a3042]">
+            Time2Pay<span className="text-[#b3846d]">.</span>
           </Link>
-          <div className="hidden items-center gap-9 text-sm font-medium text-[#64766a] sm:flex">
-            <a href="/#how-it-works" className="hover:text-[#203d32]">Werkwijze</a>
-            <a href="/#features" className="hover:text-[#203d32]">Functies</a>
-            <a href="/#pricing" className="hover:text-[#203d32]">Prijzen</a>
-            <Link href="/login" className="hover:text-[#203d32]">Inloggen</Link>
+          <div className="hidden items-center gap-9 text-sm font-medium text-[#786d73] sm:flex">
+            <a href="/#how-it-works" className="hover:text-[#4a3042]">Werkwijze</a>
+            <a href="/#features" className="hover:text-[#4a3042]">Functies</a>
+            <a href="/#pricing" className="hover:text-[#4a3042]">Prijzen</a>
+            <Link href="/login" className="hover:text-[#4a3042]">Inloggen</Link>
           </div>
-          <Link href="/register" className="inline-flex min-h-10 items-center justify-center rounded-md bg-[#244a3c] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#18382d] sm:px-5">
+          <Link href="/register" className="inline-flex min-h-10 items-center justify-center rounded-md bg-[#543749] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#3e2937] sm:px-5">
             Begin gratis
           </Link>
         </div>
