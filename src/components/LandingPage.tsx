@@ -1,4 +1,5 @@
 import Link from "next/link";
+import BrandLogo from "./BrandLogo";
 import { ArrowRight, ArrowUpRight, Check } from "lucide-react";
 
 const steps = [
@@ -291,7 +292,7 @@ export default function LandingPage() {
 
       <footer className="bg-[#fbf8f5]">
         <div className="mx-auto flex max-w-[1240px] flex-col gap-6 px-6 py-10 text-sm sm:px-8 md:flex-row md:items-center md:justify-between">
-          <Link href="/" className="text-lg font-bold tracking-[-0.04em] text-[#4a3042]">Time2Pay<span className="text-[#b3846d]">.</span></Link>
+          <Link href="/" aria-label="Time2Pay – homepage" className="inline-flex"><BrandLogo size="footer" /></Link>
           <div className="flex flex-wrap items-center gap-x-7 gap-y-3 text-[#786d73]">
             <a href="#how-it-works" className="hover:text-[#543749]">Werkwijze</a>
             <a href="#features" className="hover:text-[#543749]">Functies</a>

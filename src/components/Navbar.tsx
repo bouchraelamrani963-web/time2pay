@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { FileText, LayoutDashboard, LogOut, Plus, Settings, Users } from "lucide-react";
+import BrandLogo from "./BrandLogo";
 
 const appLinks = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, exact: true },
@@ -32,9 +33,7 @@ export default function Navbar(_props: Props = {}) {
     return (
       <nav className="sticky top-0 z-40 border-b border-[#e9deda] bg-[#fbf8f5]">
         <div className="mx-auto flex w-full max-w-[1240px] items-center justify-between gap-4 px-6 py-5 sm:px-8">
-          <Link href="/" className="text-xl font-bold tracking-[-0.045em] text-[#4a3042]">
-            Time2Pay<span className="text-[#b3846d]">.</span>
-          </Link>
+          <Link href="/" aria-label="Time2Pay – homepage" className="shrink-0"><BrandLogo size="nav" /></Link>
           <div className="hidden items-center gap-9 text-sm font-medium text-[#786d73] sm:flex">
             <a href="/#how-it-works" className="hover:text-[#4a3042]">Werkwijze</a>
             <a href="/#features" className="hover:text-[#4a3042]">Functies</a>
@@ -53,9 +52,7 @@ export default function Navbar(_props: Props = {}) {
     <nav className="sticky top-0 z-40 border-b border-[#e9deda] bg-[#fffdfb]">
       <div className="mx-auto max-w-[1240px] px-4 sm:px-8">
         <div className="flex min-h-[76px] items-center justify-between gap-4">
-          <Link href="/dashboard" className="shrink-0 text-xl font-bold tracking-[-0.045em] text-[#543749]">
-            Time2Pay<span className="text-[#b3846d]">.</span>
-          </Link>
+          <Link href="/dashboard" aria-label="Time2Pay – dashboard" className="shrink-0"><BrandLogo size="nav" /></Link>
           <div className="hidden items-center gap-1 lg:flex">
             {appLinks.map(({ href, label, icon: Icon, exact }) => {
               const active = exact ? pathname === href : pathname.startsWith(href);

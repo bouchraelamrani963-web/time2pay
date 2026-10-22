@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import BrandLogo from "@/components/BrandLogo";
 import { useRouter } from "next/navigation";
 import { AlertCircle, ArrowRight, Lock, Mail, User } from "lucide-react";
 import toast from "react-hot-toast";
@@ -125,7 +126,7 @@ export default function RegisterPage() {
     <div className="min-h-[calc(100vh-5rem)] flex items-center justify-center bg-[#fbf8f5] px-4 py-16 sm:py-20">
       <div className="w-full max-w-[460px]">
         <div className="mb-9 text-center">
-          <Link href="/" className="mb-8 inline-flex items-center text-2xl font-bold tracking-[-0.05em] text-[#543749]">Time2Pay<span className="text-[#b3846d]">.</span></Link>
+          <Link href="/" aria-label="Time2Pay – homepage" className="mb-8 inline-flex items-center justify-center"><BrandLogo size="auth" /></Link>
           <h1 className="text-3xl font-semibold tracking-[-0.03em] text-[#33243b]">Account aanmaken</h1>
           <p className="mt-2 text-sm text-[#776c74]">
             Maak je account aan om Time2Pay te ontdekken.
