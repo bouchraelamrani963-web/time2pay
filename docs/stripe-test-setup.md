@@ -22,31 +22,45 @@ EU-verkopen. De preview toont 21% btw. Dit is geen bevestiging van de echte
 btw-registratie, KOR-status of omzet. Deze testregistratie niet blind kopiëren
 naar live. Automatische belasting voor dashboardtransacties staat aan.
 
-## Nog nodig voor een werkende testdeployment
+## Testdeployment en opgeslagen configuratie
 
-1. Gebruik een eigen testdatabase en Firebase-testproject. Geen productiedatabase.
-2. Pas daar `prisma/schema.prisma` toe met `prisma db push`. De nieuwe tabel
-   `billing_accounts` bewaart uitsluitend klantkoppelingen en de gebruikte gratis
-   conceptfactuur. Er zijn geen databasewijzigingen uitgevoerd tijdens deze taak.
-3. Configureer servervariabelen, nooit `NEXT_PUBLIC_`:
-   - `TIME2PAY_BILLING_MODE=test`
-   - `STRIPE_TEST_RESTRICTED_KEY=rk_test_...` uit deze sandbox, met minimale
-     rechten: Account/Prices/Tax registrations/Subscriptions read; Customers en
-     Checkout Sessions en Billing Portal Sessions write. Geen live-sleutel gebruiken.
-   - `STRIPE_TEST_WEBHOOK_SECRET=whsec_...`
-4. Maak in deze sandbox een webhook voor de testdeployment op
-   `/api/billing/webhook`. Minimaal `checkout.session.completed` en
-   `checkout.session.async_payment_succeeded`; daarnaast
-   `invoice.paid`, `invoice.payment_failed`, `customer.subscription.updated` en
-   `customer.subscription.deleted` voor observatie van verlengingen. De handler
-   verifieert handtekeningen en weigert live-events. Elk beschermd verzoek haalt
-   de actuele abonnement- en factuurstatus bij Stripe op, zodat vertraagde of
-   herhaalde events geen betaalrechten verlenen.
-5. Het test-klantenportaal is opgeslagen: factuurhistorie, betaalgegevens
-   bijwerken en opzeggen aan het einde van de betaalde periode. Planwissels
-   staan uit. Controleer de betaalmethoden en het portaal met een synthetische
-   klant vóór ingebruikname. Er is geen actieve klantinschrijving aangemaakt.
-6. Test de onderstaande keten met synthetische accounts, testkaarten en testmail.
+Alle wijzigingen gelden alleen voor Vercel Preview, gitbranch
+`codex/time2pay-stripe-test`. De productiedeployment is niet gewijzigd.
+
+- Aparte gratis Neon-database `time2pay-stripe-test`, regio Frankfurt,
+  resource `red-block-41592881`. Geen productiedata gekopieerd.
+- Het volledige Prisma-schema is op de lege testdatabase toegepast via de
+  Vercel SQL-editor. Gecontroleerd: `billing_accounts`, `clients`,
+  `company_settings`, `invoice_items`, `invoices` bestaan.
+- Branchspecifieke geheime waarden opgeslagen: `DATABASE_URL`, `DIRECT_URL`,
+  `STRIPE_TEST_RESTRICTED_KEY`, `STRIPE_TEST_WEBHOOK_SECRET` en
+  `TIME2PAY_BILLING_MODE=test`. De gedeelde productievariabelen zijn behouden.
+- Restricted Stripe-testkey: Account, Prices, Tax settings/registrations,
+  Subscriptions en Invoices read; Customers, Checkout Sessions en Customer
+  Portal write. Geen sleutels in git of dit document.
+- Sandbox-webhook `we_1UTNzpITnweMFGCg0lUasbPD`: alleen
+  `checkout.session.completed` en `checkout.session.async_payment_succeeded`,
+  API-versie `2026-09-30.endive`, bestemming:
+  `https://time2pay-git-codex-tim-c28bac-bouchraelamrani963-4055s-projects.vercel.app/api/billing/webhook`.
+  Aflevering nog niet bewezen. De handler verifieert handtekeningen en weigert
+  live-events. Ieder beschermd verzoek leest de actuele abonnementsstatus bij
+  Stripe; daarvoor zijn geen aanvullende lifecycle-webhooks vereist.
+- Test-klantenportaal: factuurhistorie, betaalgegevens bijwerken en opzeggen
+  aan het einde van de betaalde periode. Planwissels staan uit.
+- Firebase gebruikt nog de bestaande configuratie voor Production en Preview.
+  Authenticatie is dus niet geïsoleerd. Maak geen synthetische gebruikers aan
+  in dit gedeelde project. Voor de browsercontrole kan de eigenaar zelf met
+  een bestaand account aanmelden; alle factuurdata staat in de testdatabase.
+- E-mailcredentials zijn alleen aanwezig voor Production. Testmaillevering is
+  niet geconfigureerd. Geen echte e-mails versturen vanuit deze test.
+
+Nog nodig: een aangemelde browserflow, sandbox-checkout inclusief btw,
+geverifieerde webhookaflevering, betaalrechten na betaling en intrekking bij
+mislukte verlenging/opzegging. Extern POST-verzoek zonder Vercel-sessie geeft HTTP 401. Vercel Standard
+Protection blokkeert dus de webhook. Een domeinuitzondering voor alleen de
+branchpreview is voorbereid maar NIET toegepast: toestemming voor de wijziging
+van toegangsbeveiliging is nodig. De nieuwe Preview-deployment
+`C4Ba6x1XHBpbZF8v3xyEviutVEEY` is succesvol gebouwd met de testconfiguratie.
 
 De testintegratie weigert live-sleutels, een ander Stripe-account en
 `VERCEL_ENV=production`. Zonder testconfiguratie blijft afrekenen gesloten.
@@ -82,5 +96,6 @@ in deze wijziging en moeten apart worden geverifieerd vóór een commerciële st
 - 12 gerichte tests: `npm run test:billing`, geslaagd met Node 24.19.0.
 - `npm run build`: Next.js compileert en genereert alle statische pagina's.
 - Nog niet uitgevoerd: aangemelde browserflow, echte Stripe-testcheckout/webhook,
-  gelijktijdige databaseverzoeken en levering van testmail. Daarvoor ontbreken
-  de geïsoleerde testdatabase, Firebase-testconfiguratie en Stripe-testsleutels.
+  gelijktijdige databaseverzoeken en levering van testmail. Een aanmelding door
+  de eigenaar is nodig voor de browserflow; testmail ontbreekt nog.
+
