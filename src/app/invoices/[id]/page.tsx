@@ -40,7 +40,7 @@ export default async function InvoiceDetailPage({ params }: { params: { id: stri
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <Link href="/invoices" className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-900">
+        <Link href="/invoices" className="inline-flex items-center gap-1 text-sm text-[#726671] hover:text-[#33243b]">
           <ChevronLeft size={16} /> Terug naar facturen
         </Link>
         <SendInvoiceButton invoiceId={invoice.id} clientEmail={invoice.client.email} status={invoice.status} />

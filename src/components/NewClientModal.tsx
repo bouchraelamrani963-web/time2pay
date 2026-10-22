@@ -89,11 +89,11 @@ export default function NewClientModal() {
       </button>
 
       {open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#241a26]/50 p-4">
+          <div className="w-full max-w-md rounded-lg border border-[#e9deda] bg-white p-6 shadow-xl shadow-[#33243b]/10">
             <div className="flex items-center justify-between mb-5">
-              <h2 className="text-lg font-bold text-gray-900">Klant toevoegen</h2>
-              <button onClick={() => setOpen(false)} className="text-gray-400 hover:text-gray-600">
+              <h2 className="text-lg font-bold text-[#33243b]">Klant toevoegen</h2>
+              <button onClick={() => setOpen(false)} className="text-[#92858d] hover:text-[#675b66]">
                 <X size={20} />
               </button>
             </div>
@@ -102,7 +102,7 @@ export default function NewClientModal() {
                 <label className="label">Naam *</label>
                 <input className="input" placeholder="Jan de Vries Schilderwerk" value={form.name} onChange={(e) => setField("name", e.target.value)} />
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid gap-3 sm:grid-cols-2">
                 <div>
                   <label className="label">E-mail</label>
                   <input className="input" type="email" placeholder="jan@..." value={form.email} onChange={(e) => setField("email", e.target.value)} />

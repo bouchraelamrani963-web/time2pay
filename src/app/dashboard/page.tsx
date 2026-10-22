@@ -40,28 +40,28 @@ export default async function DashboardPage() {
   const draftCount = allInvoices.filter((i) => i.status === "DRAFT").length;
 
   const stats = [
-    { label: "Omzet exclusief btw", value: formatEuro(totalRevenue), icon: TrendingUp, color: "text-green-600" },
-    { label: "BTW ontvangen", value: formatEuro(vatReceived), icon: ReceiptText, color: "text-emerald-600" },
-    { label: "Openstaand", value: formatEuro(outstanding), icon: Clock, color: "text-orange-500" },
-    { label: "Facturen", value: allInvoices.length, icon: FileText, color: "text-blue-600" },
-    { label: "Klanten", value: clients, icon: Users, color: "text-purple-600" },
+    { label: "Omzet exclusief btw", value: formatEuro(totalRevenue), icon: TrendingUp, color: "text-[#9a624d]" },
+    { label: "BTW ontvangen", value: formatEuro(vatReceived), icon: ReceiptText, color: "text-[#9a624d]" },
+    { label: "Openstaand", value: formatEuro(outstanding), icon: Clock, color: "text-[#9a624d]" },
+    { label: "Facturen", value: allInvoices.length, icon: FileText, color: "text-[#9a624d]" },
+    { label: "Klanten", value: clients, icon: Users, color: "text-[#9a624d]" },
   ];
 
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-        <p className="text-sm text-gray-500">Overzicht van je facturatie</p>
+        <h1 className="text-3xl font-semibold tracking-[-0.035em] text-[#33243b]">Dashboard</h1>
+        <p className="text-sm text-[#726671]">Overzicht van je facturatie</p>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         {stats.map(({ label, value, icon: Icon, color }) => (
-          <div key={label} className="card p-5">
-            <div className={`mb-2 ${color}`}>
-              <Icon size={20} />
+          <div key={label} className="card flex min-h-[142px] flex-col justify-between p-5">
+            <div className="flex items-start justify-between gap-2">
+              <p className="text-xs font-medium text-[#726671]">{label}</p>
+              <Icon size={18} className={color} aria-hidden />
             </div>
-            <p className="text-2xl font-bold text-gray-900">{value}</p>
-            <p className="text-xs text-gray-500 mt-1">{label}</p>
+            <p className="mt-6 text-[clamp(1.25rem,1.7vw,1.7rem)] font-semibold tracking-[-0.035em] tabular-nums text-[#33243b]">{value}</p>
           </div>
         ))}
       </div>
@@ -73,20 +73,20 @@ export default async function DashboardPage() {
         </div>
       )}
 
-      <div className="card">
-        <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
-          <h2 className="font-semibold text-gray-900">Recente facturen</h2>
-          <Link href="/invoices" className="text-sm text-blue-600 hover:underline">Alle facturen</Link>
+      <div className="card overflow-x-auto">
+        <div className="flex items-center justify-between border-b border-[#eee5e1] px-6 py-4">
+          <h2 className="font-semibold text-[#33243b]">Recente facturen</h2>
+          <Link href="/invoices" className="text-sm text-[#543749] hover:underline">Alle facturen</Link>
         </div>
         {invoices.length === 0 ? (
-          <div className="px-6 py-12 text-center text-sm text-gray-500">
+          <div className="px-6 py-12 text-center text-sm text-[#726671]">
             Nog geen facturen.{" "}
-            <Link href="/invoices/new" className="text-blue-600 underline">Maak je eerste factuur</Link>
+            <Link href="/invoices/new" className="text-[#543749] underline">Maak je eerste factuur</Link>
           </div>
         ) : (
-          <table className="w-full text-sm">
+          <table className="w-full min-w-[620px] text-sm">
             <thead>
-              <tr className="border-b border-gray-100 text-xs text-gray-500">
+              <tr className="border-b border-[#eee5e1] text-xs text-[#726671]">
                 <th className="px-6 py-3 text-left font-medium">Nummer</th>
                 <th className="px-6 py-3 text-left font-medium">Klant</th>
                 <th className="px-6 py-3 text-left font-medium">Status</th>
@@ -102,9 +102,9 @@ export default async function DashboardPage() {
                 });
 
                 return (
-                  <tr key={inv.id} className="border-b border-gray-50 hover:bg-gray-50">
+                  <tr key={inv.id} className="border-b border-gray-50 hover:bg-[#fbf8f5]">
                     <td className="px-6 py-3">
-                      <Link href={`/invoices/${inv.id}`} className="font-mono font-semibold text-blue-600 hover:underline">
+                      <Link href={`/invoices/${inv.id}`} className="font-mono font-semibold text-[#543749] hover:underline">
                         {inv.number}
                       </Link>
                     </td>

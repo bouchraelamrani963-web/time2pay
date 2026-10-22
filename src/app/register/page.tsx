@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import BrandLogo from "@/components/BrandLogo";
 import { useRouter } from "next/navigation";
 import { AlertCircle, ArrowRight, Lock, Mail, User } from "lucide-react";
 import toast from "react-hot-toast";
@@ -122,20 +123,17 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center px-4 py-12">
-      <div className="w-full max-w-md">
-        <div className="mb-8 text-center">
-          <Link href="/" className="mb-6 inline-flex items-center gap-0">
-            <span className="text-3xl font-black tracking-tight text-blue-600">Time</span>
-            <span className="text-3xl font-black tracking-tight text-gray-900">2Pay</span>
-          </Link>
-          <h1 className="text-2xl font-bold text-gray-900">Gratis starten</h1>
-          <p className="mt-2 text-sm text-gray-500">
-            Maak je account aan en start met professioneel factureren.
+    <div className="min-h-[calc(100vh-5rem)] flex items-center justify-center bg-[#fbf8f5] px-4 py-16 sm:py-20">
+      <div className="w-full max-w-[460px]">
+        <div className="mb-9 text-center">
+          <Link href="/" aria-label="Time2Pay – homepage" className="mb-8 inline-flex items-center justify-center"><BrandLogo size="auth" /></Link>
+          <h1 className="text-3xl font-semibold tracking-[-0.03em] text-[#33243b]">Account aanmaken</h1>
+          <p className="mt-2 text-sm text-[#776c74]">
+            Maak je account aan om Time2Pay te ontdekken.
           </p>
         </div>
 
-        <div className="rounded-xl border border-gray-200 bg-white p-8 shadow-md">
+        <div className="border border-[#eadfda] bg-white p-8 shadow-[0_18px_45px_-38px_rgba(56,37,52,0.28)] sm:p-10">
           <form onSubmit={onSubmit} className="space-y-5">
             {error && (
               <div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
@@ -145,13 +143,13 @@ export default function RegisterPage() {
             )}
 
             <div>
-              <label htmlFor="name" className="label">Naam</label>
+              <label htmlFor="name" className="mb-2 block text-xs font-semibold text-[#534653]">Naam</label>
               <div className="relative">
-                <User size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <User size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#a89ca0]" />
                 <input
                   id="name"
                   autoComplete="name"
-                  className="input pl-9"
+                  className="block w-full rounded-md border border-[#e1d5d2] bg-[#fefdfb] px-4 py-3 pl-10 text-sm text-[#33243b] outline-none transition-colors placeholder:text-[#aa9ea2] focus:border-[#9a624d] focus:ring-2 focus:ring-[#9a624d]/15"
                   placeholder="Jan de Vries"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
@@ -160,14 +158,14 @@ export default function RegisterPage() {
             </div>
 
             <div>
-              <label htmlFor="email" className="label">E-mailadres</label>
+              <label htmlFor="email" className="mb-2 block text-xs font-semibold text-[#534653]">E-mailadres</label>
               <div className="relative">
-                <Mail size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <Mail size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#a89ca0]" />
                 <input
                   id="email"
                   type="email"
                   autoComplete="email"
-                  className="input pl-9"
+                  className="block w-full rounded-md border border-[#e1d5d2] bg-[#fefdfb] px-4 py-3 pl-10 text-sm text-[#33243b] outline-none transition-colors placeholder:text-[#aa9ea2] focus:border-[#9a624d] focus:ring-2 focus:ring-[#9a624d]/15"
                   placeholder="naam@bedrijf.nl"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -176,14 +174,14 @@ export default function RegisterPage() {
             </div>
 
             <div>
-              <label htmlFor="password" className="label">Wachtwoord</label>
+              <label htmlFor="password" className="mb-2 block text-xs font-semibold text-[#534653]">Wachtwoord</label>
               <div className="relative">
-                <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#a89ca0]" />
                 <input
                   id="password"
                   type="password"
                   autoComplete="new-password"
-                  className="input pl-9"
+                  className="block w-full rounded-md border border-[#e1d5d2] bg-[#fefdfb] px-4 py-3 pl-10 text-sm text-[#33243b] outline-none transition-colors placeholder:text-[#aa9ea2] focus:border-[#9a624d] focus:ring-2 focus:ring-[#9a624d]/15"
                   placeholder="Minimaal 8 tekens"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -191,7 +189,7 @@ export default function RegisterPage() {
               </div>
             </div>
 
-            <button type="submit" disabled={submitting} className="btn-primary w-full justify-center py-2.5">
+            <button type="submit" disabled={submitting} className="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-md bg-[#543749] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#3e2937] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#543749] disabled:opacity-60">
               {submitting ? "Bezig met aanmaken..." : (
                 <>
                   Registreren <ArrowRight size={16} />
@@ -201,9 +199,9 @@ export default function RegisterPage() {
           </form>
         </div>
 
-        <p className="mt-6 text-center text-sm text-gray-500">
+        <p className="mt-6 text-center text-sm text-[#776c74]">
           Heb je al een account?{" "}
-          <Link href="/login" className="font-semibold text-blue-600 hover:text-blue-700">
+          <Link href="/login" className="font-semibold text-[#543749] hover:text-[#9a624d]">
             Inloggen
           </Link>
         </p>

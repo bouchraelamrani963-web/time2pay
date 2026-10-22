@@ -47,7 +47,7 @@ export default function InvoiceFilters({ clients, initialQ, initialClientId }: P
   return (
     <form onSubmit={onSubmit} className="flex flex-wrap items-center gap-2">
       <div className="relative flex-1 min-w-[200px]">
-        <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+        <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#92858d]" />
         <input
           type="text"
           className="input pl-9"

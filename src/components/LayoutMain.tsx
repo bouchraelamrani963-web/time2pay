@@ -10,12 +10,12 @@ import { usePathname } from "next/navigation";
 export default function LayoutMain({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
-  if (pathname === "/") {
+  if (pathname === "/" || pathname === "/login" || pathname === "/register") {
     return <main className="min-h-screen">{children}</main>;
   }
 
   return (
-    <main className="mx-auto w-full max-w-[1200px] px-6 py-10 sm:px-8 sm:py-12">
+    <main className="app-shell mx-auto w-full max-w-[1240px] px-4 py-10 sm:px-8 sm:py-12">
       {children}
     </main>
   );

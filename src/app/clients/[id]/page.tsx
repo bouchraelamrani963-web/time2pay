@@ -23,8 +23,8 @@ function formatDate(value: Date) {
 function DetailRow({ label, value }: { label: string; value?: string | null }) {
   return (
     <div>
-      <dt className="text-xs font-semibold uppercase tracking-wide text-gray-400">{label}</dt>
-      <dd className="mt-1 text-sm font-medium text-gray-900 whitespace-pre-line">{value || "-"}</dd>
+      <dt className="text-xs font-semibold uppercase tracking-wide text-[#92858d]">{label}</dt>
+      <dd className="mt-1 text-sm font-medium text-[#33243b] whitespace-pre-line">{value || "-"}</dd>
     </div>
   );
 }
@@ -57,11 +57,11 @@ export default async function ClientDetailPage({ params }: { params: { id: strin
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <Link href="/clients" className="mb-4 inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-900">
+          <Link href="/clients" className="mb-4 inline-flex items-center gap-1 text-sm text-[#726671] hover:text-[#33243b]">
             <ChevronLeft size={16} /> Terug naar klanten
           </Link>
-          <h1 className="text-2xl font-bold text-gray-900">{client.name}</h1>
-          <p className="mt-1 text-sm text-gray-500">
+          <h1 className="text-3xl font-semibold tracking-[-0.035em] text-[#33243b]">{client.name}</h1>
+          <p className="mt-1 text-sm text-[#726671]">
             {client.invoices.length} factuur{client.invoices.length !== 1 ? "en" : ""} gekoppeld aan deze klant
           </p>
         </div>
@@ -79,10 +79,10 @@ export default async function ClientDetailPage({ params }: { params: { id: strin
 
       <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
         <section className="card p-6">
-          <div className="mb-6 flex items-center justify-between border-b border-gray-100 pb-4">
+          <div className="mb-6 flex items-center justify-between border-b border-[#eee5e1] pb-4">
             <div>
-              <h2 className="text-lg font-bold text-gray-900">Klantgegevens</h2>
-              <p className="text-sm text-gray-500">Contact- en facturatiegegevens</p>
+              <h2 className="text-lg font-bold text-[#33243b]">Klantgegevens</h2>
+              <p className="text-sm text-[#726671]">Contact- en facturatiegegevens</p>
             </div>
           </div>
 
@@ -99,32 +99,32 @@ export default async function ClientDetailPage({ params }: { params: { id: strin
 
         <aside className="card p-6">
           <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#f8f0eb] text-[#543749]">
               <FileText size={20} />
             </div>
             <div>
-              <p className="text-sm font-semibold text-gray-500">Totaal gefactureerd</p>
-              <p className="text-2xl font-black text-gray-900">{formatEuro(totalInvoiced)}</p>
+              <p className="text-sm font-semibold text-[#726671]">Totaal gefactureerd</p>
+              <p className="text-2xl font-semibold tracking-tight text-[#33243b]">{formatEuro(totalInvoiced)}</p>
             </div>
           </div>
-          <div className="mt-6 grid grid-cols-2 gap-3 border-t border-gray-100 pt-5 text-sm">
+          <div className="mt-6 grid grid-cols-2 gap-3 border-t border-[#eee5e1] pt-5 text-sm">
             <div>
-              <p className="text-gray-500">Facturen</p>
-              <p className="mt-1 text-lg font-bold text-gray-900">{client.invoices.length}</p>
+              <p className="text-[#726671]">Facturen</p>
+              <p className="mt-1 text-lg font-bold text-[#33243b]">{client.invoices.length}</p>
             </div>
             <div>
-              <p className="text-gray-500">Klant sinds</p>
-              <p className="mt-1 text-lg font-bold text-gray-900">{formatDate(client.createdAt)}</p>
+              <p className="text-[#726671]">Klant sinds</p>
+              <p className="mt-1 text-lg font-bold text-[#33243b]">{formatDate(client.createdAt)}</p>
             </div>
           </div>
         </aside>
       </div>
 
-      <section className="card overflow-hidden">
-        <div className="flex items-center justify-between border-b border-gray-100 px-6 py-5">
+      <section className="card overflow-x-auto">
+        <div className="flex items-center justify-between border-b border-[#eee5e1] px-6 py-5">
           <div>
-            <h2 className="text-lg font-bold text-gray-900">Facturen</h2>
-            <p className="text-sm text-gray-500">Alle facturen voor {client.name}</p>
+            <h2 className="text-lg font-bold text-[#33243b]">Facturen</h2>
+            <p className="text-sm text-[#726671]">Alle facturen voor {client.name}</p>
           </div>
           <Link href={`/invoices/new?clientId=${client.id}`} className="btn-secondary">
             <Plus size={15} /> Nieuwe factuur
@@ -132,16 +132,16 @@ export default async function ClientDetailPage({ params }: { params: { id: strin
         </div>
 
         {client.invoices.length === 0 ? (
-          <div className="py-16 text-center text-sm text-gray-500">
+          <div className="py-16 text-center text-sm text-[#726671]">
             Nog geen facturen voor deze klant. {" "}
-            <Link href={`/invoices/new?clientId=${client.id}`} className="font-semibold text-blue-600 underline">
+            <Link href={`/invoices/new?clientId=${client.id}`} className="font-semibold text-[#543749] underline">
               Maak de eerste factuur aan
             </Link>
           </div>
         ) : (
-          <table className="w-full text-sm">
+          <table className="w-full min-w-[630px] text-sm">
             <thead>
-              <tr className="border-b border-gray-100 text-xs text-gray-500">
+              <tr className="border-b border-[#eee5e1] text-xs text-[#726671]">
                 <th className="px-6 py-3 text-left font-medium">Nummer</th>
                 <th className="px-6 py-3 text-left font-medium">Datum</th>
                 <th className="px-6 py-3 text-left font-medium">Vervalt</th>
@@ -158,20 +158,20 @@ export default async function ClientDetailPage({ params }: { params: { id: strin
                 });
 
                 return (
-                  <tr key={invoice.id} className="border-b border-gray-50 hover:bg-gray-50">
+                  <tr key={invoice.id} className="border-b border-gray-50 hover:bg-[#fbf8f5]">
                     <td className="px-6 py-3">
-                      <Link href={`/invoices/${invoice.id}`} className="font-mono font-semibold text-blue-600 hover:underline">
+                      <Link href={`/invoices/${invoice.id}`} className="font-mono font-semibold text-[#543749] hover:underline">
                         {invoice.number}
                       </Link>
                     </td>
-                    <td className="px-6 py-3 text-gray-500">{formatDate(invoice.issueDate)}</td>
-                    <td className="px-6 py-3 text-gray-500">{formatDate(invoice.dueDate)}</td>
+                    <td className="px-6 py-3 text-[#726671]">{formatDate(invoice.issueDate)}</td>
+                    <td className="px-6 py-3 text-[#726671]">{formatDate(invoice.dueDate)}</td>
                     <td className="px-6 py-3">
                       <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ${STATUS_COLORS[status]}`}>
                         {STATUS_LABELS[status]}
                       </span>
                     </td>
-                    <td className="px-6 py-3 text-right font-semibold text-gray-900">{formatEuro(invoice.total)}</td>
+                    <td className="px-6 py-3 text-right font-semibold text-[#33243b]">{formatEuro(invoice.total)}</td>
                   </tr>
                 );
               })}

@@ -12,6 +12,7 @@ export const metadata: Metadata = {
   title: "Time2Pay — Nooit meer achter je geld aan",
   description:
     "Time2Pay automatiseert facturen, herinneringen en betalingsoverzicht voor Nederlandse zzp'ers en vakmensen.",
+  icons: { icon: "/brand/time2pay-icon.svg", shortcut: "/brand/time2pay-icon.svg" },
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {

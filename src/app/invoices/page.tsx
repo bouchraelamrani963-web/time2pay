@@ -50,8 +50,8 @@ export default async function InvoicesPage({
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Facturen</h1>
-          <p className="text-sm text-gray-500">{filteredInvoices.length} factuur{filteredInvoices.length !== 1 ? "en" : ""}</p>
+          <h1 className="text-3xl font-semibold tracking-[-0.035em] text-[#33243b]">Facturen</h1>
+          <p className="text-sm text-[#726671]">{filteredInvoices.length} factuur{filteredInvoices.length !== 1 ? "en" : ""}</p>
         </div>
         <Link href="/invoices/new" className="btn-primary">
           <Plus size={16} /> Nieuwe factuur
@@ -63,10 +63,10 @@ export default async function InvoicesPage({
           <Link
             key={s}
             href={s === "all" ? "/invoices" : `/invoices?status=${s}`}
-            className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
+            className={`rounded-md border border-[#e6dcd8] px-3 py-2 text-xs font-semibold transition-colors ${
               (s === "all" && !status) || s === status
-                ? "bg-blue-600 text-white"
-                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                ? "bg-[#543749] text-white"
+                : "bg-white text-[#675b66] hover:bg-[#fbf8f5]"
             }`}
           >
             {s === "all" ? "Alle" : STATUS_LABELS[s]}
@@ -74,16 +74,16 @@ export default async function InvoicesPage({
         ))}
       </div>
 
-      <div className="card overflow-hidden">
+      <div className="card overflow-x-auto">
         {filteredInvoices.length === 0 ? (
-          <div className="py-16 text-center text-sm text-gray-500">
-            Geen facturen gevonden.{" "}
-            <Link href="/invoices/new" className="text-blue-600 underline">Maak er een aan</Link>
+          <div className="py-16 text-center text-sm text-[#726671]">
+            Nog geen facturen in dit overzicht.{" "}
+            <Link href="/invoices/new" className="text-[#543749] underline">Maak er een aan</Link>
           </div>
         ) : (
-          <table className="w-full text-sm">
+          <table className="w-full min-w-[790px] text-sm">
             <thead>
-              <tr className="border-b border-gray-100 text-xs text-gray-500">
+              <tr className="border-b border-[#eee5e1] text-xs text-[#726671]">
                 <th className="px-6 py-3 text-left font-medium">Nummer</th>
                 <th className="px-6 py-3 text-left font-medium">Klant</th>
                 <th className="px-6 py-3 text-left font-medium">Datum</th>
@@ -102,15 +102,15 @@ export default async function InvoicesPage({
                 const reminderCount = Math.max(0, inv.reminderCount ?? 0);
 
                 return (
-                  <tr key={inv.id} className="border-b border-gray-50 hover:bg-gray-50">
+                  <tr key={inv.id} className="border-b border-gray-50 hover:bg-[#fbf8f5]">
                     <td className="px-6 py-3">
-                      <Link href={`/invoices/${inv.id}`} className="font-mono font-semibold text-blue-600 hover:underline">
+                      <Link href={`/invoices/${inv.id}`} className="font-mono font-semibold text-[#543749] hover:underline">
                         {inv.number}
                       </Link>
                     </td>
-                    <td className="px-6 py-3 text-gray-700">{inv.client.name}</td>
-                    <td className="px-6 py-3 text-gray-500">{formatDate(inv.issueDate)}</td>
-                    <td className="px-6 py-3 text-gray-500">{formatDate(inv.dueDate)}</td>
+                    <td className="px-6 py-3 text-[#574c57]">{inv.client.name}</td>
+                    <td className="px-6 py-3 text-[#726671]">{formatDate(inv.issueDate)}</td>
+                    <td className="px-6 py-3 text-[#726671]">{formatDate(inv.dueDate)}</td>
                     <td className="px-6 py-3">
                       <div className="flex flex-wrap items-center gap-2">
                         <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ${STATUS_COLORS[displayStatus]}`}>

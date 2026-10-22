@@ -39,10 +39,10 @@ export default async function SettingsPage() {
     : emptySettings();
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Instellingen</h1>
-        <p className="mt-1 text-sm text-gray-500">Beheer de bedrijfsgegevens die Time2Pay op facturen gebruikt.</p>
+        <h1 className="text-3xl font-semibold tracking-[-0.035em] text-[#33243b]">Instellingen</h1>
+        <p className="mt-1 text-sm text-[#726671]">Beheer de bedrijfsgegevens die Time2Pay op facturen gebruikt.</p>
       </div>
       <CompanySettingsForm initialValues={initialValues} />
     </div>

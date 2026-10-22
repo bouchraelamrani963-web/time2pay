@@ -123,7 +123,7 @@ export default function InvoiceView({ invoice }: Props) {
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-3 flex-wrap">
-          <h1 className="text-2xl font-bold font-mono text-gray-900">{invoice.number}</h1>
+          <h1 className="text-2xl font-bold font-mono text-[#33243b]">{invoice.number}</h1>
           <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${STATUS_COLORS[effStatus]}`}>
             {STATUS_LABELS[effStatus]}
           </span>
@@ -182,10 +182,10 @@ export default function InvoiceView({ invoice }: Props) {
       <div className={`card p-6 space-y-6 print:shadow-none print:border-none ${isOverdue ? "ring-1 ring-red-200" : ""}`} id="invoice-print">
         <div className="flex justify-between items-start">
           <div>
-            <p className="text-2xl font-black text-blue-600">Time<span className="text-gray-900">2Pay</span></p>
+            <p className="text-2xl font-semibold tracking-tight text-[#543749]">Time<span className="text-[#33243b]">2Pay</span></p>
           </div>
-          <div className="text-right text-sm text-gray-600 space-y-0.5">
-            <p className="text-lg font-bold font-mono text-gray-900">{invoice.number}</p>
+          <div className="text-right text-sm text-[#675b66] space-y-0.5">
+            <p className="text-lg font-bold font-mono text-[#33243b]">{invoice.number}</p>
             <p>Factuurdatum: {formatDate(invoice.issueDate)}</p>
             <p>
               Vervaldatum:{" "}
@@ -199,17 +199,17 @@ export default function InvoiceView({ invoice }: Props) {
           </div>
         </div>
 
-        <div className="border-t border-gray-100 pt-4">
-          <p className="text-xs text-gray-400 uppercase font-semibold mb-1">Klant</p>
-          <p className="font-bold text-gray-900">{invoice.client.name}</p>
-          {invoice.client.address && <p className="text-sm text-gray-600 whitespace-pre-line">{invoice.client.address}</p>}
-          {invoice.client.email && <p className="text-sm text-gray-600">{invoice.client.email}</p>}
-          {invoice.client.vatNumber && <p className="text-sm text-gray-500">BTW: {invoice.client.vatNumber}</p>}
+        <div className="border-t border-[#eee5e1] pt-4">
+          <p className="text-xs text-[#92858d] uppercase font-semibold mb-1">Klant</p>
+          <p className="font-bold text-[#33243b]">{invoice.client.name}</p>
+          {invoice.client.address && <p className="text-sm text-[#675b66] whitespace-pre-line">{invoice.client.address}</p>}
+          {invoice.client.email && <p className="text-sm text-[#675b66]">{invoice.client.email}</p>}
+          {invoice.client.vatNumber && <p className="text-sm text-[#726671]">BTW: {invoice.client.vatNumber}</p>}
         </div>
 
-        <table className="w-full text-sm border-t border-gray-100 pt-4">
+        <div className="overflow-x-auto"><table className="w-full min-w-[620px] text-sm border-t border-[#eee5e1] pt-4">
           <thead>
-            <tr className="border-b-2 border-gray-200 text-xs text-gray-500">
+            <tr className="border-b-2 border-[#e4d9d5] text-xs text-[#726671]">
               <th className="py-2 text-left font-semibold">Type</th>
               <th className="py-2 text-left font-semibold">Omschrijving</th>
               <th className="py-2 text-right font-semibold">Aantal</th>
@@ -220,29 +220,29 @@ export default function InvoiceView({ invoice }: Props) {
           <tbody>
             {invoice.items.map((item) => (
               <tr key={item.id} className="border-b border-gray-50">
-                <td className="py-2 pr-4 text-gray-500 text-xs">{ITEM_TYPE_LABELS[item.type]}</td>
+                <td className="py-2 pr-4 text-[#726671] text-xs">{ITEM_TYPE_LABELS[item.type]}</td>
                 <td className="py-2 pr-4">{item.description}</td>
-                <td className="py-2 text-right text-gray-600">
+                <td className="py-2 text-right text-[#675b66]">
                   {item.type === "FIXED" ? "—" : `${item.quantity} ${item.unit ?? ""}`}
                 </td>
-                <td className="py-2 text-right text-gray-600">{formatEuro(item.unitPrice)}</td>
+                <td className="py-2 text-right text-[#675b66]">{formatEuro(item.unitPrice)}</td>
                 <td className="py-2 text-right font-semibold">{formatEuro(item.lineTotal)}</td>
               </tr>
             ))}
           </tbody>
-        </table>
+        </table></div>
 
         <div className="flex justify-end">
           <div className="w-64 space-y-1 text-sm">
-            <div className="flex justify-between text-gray-600">
+            <div className="flex justify-between text-[#675b66]">
               <span>Subtotaal</span>
               <span>{formatEuro(invoice.subtotal)}</span>
             </div>
-            <div className="flex justify-between text-gray-600">
+            <div className="flex justify-between text-[#675b66]">
               <span>BTW ({invoice.vatRate}%)</span>
               <span>{formatEuro(invoice.vatAmount)}</span>
             </div>
-            <div className="flex justify-between border-t-2 border-gray-900 pt-2 font-bold text-gray-900">
+            <div className="flex justify-between border-t-2 border-gray-900 pt-2 font-bold text-[#33243b]">
               <span>Totaal te betalen</span>
               <span className="text-lg">{formatEuro(invoice.total)}</span>
             </div>
@@ -250,8 +250,8 @@ export default function InvoiceView({ invoice }: Props) {
         </div>
 
         {invoice.notes && (
-          <div className="border-t border-gray-100 pt-4 text-sm text-gray-600">
-            <p className="text-xs text-gray-400 uppercase font-semibold mb-1">Notities</p>
+          <div className="border-t border-[#eee5e1] pt-4 text-sm text-[#675b66]">
+            <p className="text-xs text-[#92858d] uppercase font-semibold mb-1">Notities</p>
             <p className="whitespace-pre-line">{invoice.notes}</p>
           </div>
         )}

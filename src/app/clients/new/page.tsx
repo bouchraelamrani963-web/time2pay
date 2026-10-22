@@ -73,13 +73,13 @@ export default function NewClientPage() {
       <div>
         <Link
           href={returnTo === "invoice" ? "/invoices/new" : "/clients"}
-          className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-900 mb-4"
+          className="inline-flex items-center gap-1 text-sm text-[#726671] hover:text-[#33243b] mb-4"
         >
           <ChevronLeft size={16} />
           {returnTo === "invoice" ? "Terug naar factuur" : "Terug naar klanten"}
         </Link>
-        <h1 className="text-2xl font-bold text-gray-900">Nieuwe klant</h1>
-        <p className="text-sm text-gray-500">Voeg een klant toe om facturen aan te maken.</p>
+        <h1 className="text-3xl font-semibold tracking-[-0.035em] text-[#33243b]">Nieuwe klant</h1>
+        <p className="text-sm text-[#726671]">Voeg een klant toe om facturen aan te maken.</p>
       </div>
 
       <form onSubmit={onSubmit} className="card p-6 space-y-5 max-w-xl">
@@ -108,7 +108,7 @@ export default function NewClientPage() {
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid gap-3 sm:grid-cols-2">
           <div>
             <label className="label">Telefoon</label>
             <input
@@ -139,7 +139,7 @@ export default function NewClientPage() {
           />
         </div>
 
-        <div className="flex items-center justify-end gap-3 border-t border-gray-100 pt-5">
+        <div className="flex items-center justify-end gap-3 border-t border-[#eee5e1] pt-5">
           <Link
             href={returnTo === "invoice" ? "/invoices/new" : "/clients"}
             className="btn-secondary"
