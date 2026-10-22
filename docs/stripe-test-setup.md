@@ -55,9 +55,8 @@ Alle wijzigingen gelden alleen voor Vercel Preview, gitbranch
 - E-mailcredentials zijn alleen aanwezig voor Production. Testmaillevering is
   niet geconfigureerd. Geen echte e-mails versturen vanuit deze test.
 
-Nog nodig: een aangemelde browserflow, sandbox-checkout inclusief btw,
-betaalrechten na betaling en intrekking bij
-mislukte verlenging/opzegging. Na toestemming van de eigenaar is uitsluitend de branchpreview hierboven
+De aangemelde Starter-testflow is uitgevoerd. Nog te controleren vóór livegang:
+Pro/Business-checkout, mislukte verlenging/opzegging en echte testmaillevering. Na toestemming van de eigenaar is uitsluitend de branchpreview hierboven
 uitgezonderd van Vercel Deployment Protection. De Time2Pay-login blijft nodig.
 Extern POST-verzoek zonder handtekening geeft nu HTTP 400 (terecht), een door
 Stripe ondertekend testbericht geeft HTTP 200. De productiedomeinen blijven
@@ -97,7 +96,24 @@ in deze wijziging en moeten apart worden geverifieerd vóór een commerciële st
 - TypeScript: `npx tsc --noEmit` geslaagd.
 - 12 gerichte tests: `npm run test:billing`, geslaagd met Node 24.19.0.
 - `npm run build`: Next.js compileert en genereert alle statische pagina's.
-- Nog niet uitgevoerd: aangemelde browserflow, Time2Pay-abonnementscheckout,
-  gelijktijdige databaseverzoeken en levering van testmail. Een aanmelding door
-  de eigenaar is nodig voor de browserflow; testmail ontbreekt nog.
+- Browserflow uitgevoerd op 22 oktober 2026 met bestaand eigenaaraccount en
+  volledig synthetische factuurgegevens in de aparte testdatabase:
+  eerste concept F2026-5284 aangemaakt; tweede gratis concept geweigerd.
+- Zonder betaling leiden Verzenden, PDF downloaden en Afdrukken naar /billing.
+- Starter-checkout geslaagd met Stripe-testkaart 4242. Totaal EUR 9 inclusief
+  EUR 1,56 btw bij Nederlands testadres. Geen echte betaling.
+- Na geverifieerde webhook bevestigt Time2Pay betaalrechten en verdwijnt de
+  gratis-conceptmelding. De beschermde PDF opent als één pagina in de browser.
+  De automatische download-eventcontrole liep vast; bestandsopslag via de
+  downloadknop is daarom niet onafhankelijk bevestigd.
+- Portal toont Time2Pay Starter, EUR 9 per maand, betaalde testfactuur van
+  22 oktober en volgende factuurdatum 22 november 2026. Sandbox-abonnement
+  `sub_1UTOacITnweMFGCgOfOx6FqQ` blijft actief, zonder echte afschrijving.
+- Fysiek afdrukken en e-mailbezorging zijn niet uitgevoerd. De testklant heeft
+  geen mailadres en Preview heeft geen mailcredentials.
+- Nog niet uitgevoerd: Pro/Business-checkout, gelijktijdige databaseverzoeken,
+  ingetrokken toegang na mislukte verlenging of einde opzegging.
+- Kleine UI-beperking: na betaling staat bij alle prijspakketten 'Abonnement
+  actief'; feitelijk is alleen Starter afgesloten. Planwissels zijn geblokkeerd.
+  Dit vóór commerciële ingebruikname verduidelijken.
 
