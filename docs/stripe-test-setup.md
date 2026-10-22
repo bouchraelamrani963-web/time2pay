@@ -42,7 +42,8 @@ Alle wijzigingen gelden alleen voor Vercel Preview, gitbranch
   `checkout.session.completed` en `checkout.session.async_payment_succeeded`,
   API-versie `2026-09-30.endive`, bestemming:
   `https://time2pay-git-codex-tim-c28bac-bouchraelamrani963-4055s-projects.vercel.app/api/billing/webhook`.
-  Aflevering nog niet bewezen. De handler verifieert handtekeningen en weigert
+  Aflevering bewezen met sandbox-testevent `evt_1UTOL7ITnweMFGCgGIDMolsn`,
+  22 oktober 2026 17:55:38 CEST: HTTP 200, `received: true`. De handler verifieert handtekeningen en weigert
   live-events. Ieder beschermd verzoek leest de actuele abonnementsstatus bij
   Stripe; daarvoor zijn geen aanvullende lifecycle-webhooks vereist.
 - Test-klantenportaal: factuurhistorie, betaalgegevens bijwerken en opzeggen
@@ -55,12 +56,13 @@ Alle wijzigingen gelden alleen voor Vercel Preview, gitbranch
   niet geconfigureerd. Geen echte e-mails versturen vanuit deze test.
 
 Nog nodig: een aangemelde browserflow, sandbox-checkout inclusief btw,
-geverifieerde webhookaflevering, betaalrechten na betaling en intrekking bij
-mislukte verlenging/opzegging. Extern POST-verzoek zonder Vercel-sessie geeft HTTP 401. Vercel Standard
-Protection blokkeert dus de webhook. Een domeinuitzondering voor alleen de
-branchpreview is voorbereid maar NIET toegepast: toestemming voor de wijziging
-van toegangsbeveiliging is nodig. De nieuwe Preview-deployment
-`C4Ba6x1XHBpbZF8v3xyEviutVEEY` is succesvol gebouwd met de testconfiguratie.
+betaalrechten na betaling en intrekking bij
+mislukte verlenging/opzegging. Na toestemming van de eigenaar is uitsluitend de branchpreview hierboven
+uitgezonderd van Vercel Deployment Protection. De Time2Pay-login blijft nodig.
+Extern POST-verzoek zonder handtekening geeft nu HTTP 400 (terecht), een door
+Stripe ondertekend testbericht geeft HTTP 200. De productiedomeinen blijven
+ongewijzigd. Preview `C4Ba6x1XHBpbZF8v3xyEviutVEEY` is succesvol gebouwd met
+de testconfiguratie.
 
 De testintegratie weigert live-sleutels, een ander Stripe-account en
 `VERCEL_ENV=production`. Zonder testconfiguratie blijft afrekenen gesloten.
@@ -95,7 +97,7 @@ in deze wijziging en moeten apart worden geverifieerd vóór een commerciële st
 - TypeScript: `npx tsc --noEmit` geslaagd.
 - 12 gerichte tests: `npm run test:billing`, geslaagd met Node 24.19.0.
 - `npm run build`: Next.js compileert en genereert alle statische pagina's.
-- Nog niet uitgevoerd: aangemelde browserflow, echte Stripe-testcheckout/webhook,
+- Nog niet uitgevoerd: aangemelde browserflow, Time2Pay-abonnementscheckout,
   gelijktijdige databaseverzoeken en levering van testmail. Een aanmelding door
   de eigenaar is nodig voor de browserflow; testmail ontbreekt nog.
 
