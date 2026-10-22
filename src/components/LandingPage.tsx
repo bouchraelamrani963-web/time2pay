@@ -57,7 +57,7 @@ const pricingPlans = [
     name: "Starter",
     price: "€ 9",
     description: "Voor wie eenvoudig wil beginnen.",
-    details: ["Tot 15 facturen per maand", "Basis klantbeheer", "PDF downloaden", "Dashboard overzicht"],
+    details: ["Tot 30 facturen per maand", "Basis klantbeheer", "PDF downloaden", "Dashboard overzicht"],
     href: "/register?plan=starter",
     action: "Kies Starter",
   },
