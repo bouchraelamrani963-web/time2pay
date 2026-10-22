@@ -43,7 +43,7 @@ export default function BillingPlans({ paid, hasCustomer }: { paid: boolean; has
           <p className="text-3xl font-semibold">€{plan.cents / 100}<span className="text-sm font-normal"> / maand</span></p>
           <p className="text-sm">Inclusief btw. Maandelijks automatisch verlengd.</p>
           <button className="btn-primary" disabled={paid || busy !== null} onClick={() => checkout(key)}>
-            {paid ? "Abonnement actief" : busy === key ? "Openen…" : `Kies ${plan.name}`}
+            {paid ? "Je hebt al een abonnement" : busy === key ? "Openen…" : `Kies ${plan.name}`}
           </button>
         </div>)}
     </div>
