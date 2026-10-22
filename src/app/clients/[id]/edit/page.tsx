@@ -60,11 +60,11 @@ export default async function EditClientPage({
   return (
     <div className="space-y-6">
       <div>
-        <Link href={`/clients/${client.id}`} className="mb-4 inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-900">
+        <Link href={`/clients/${client.id}`} className="mb-4 inline-flex items-center gap-1 text-sm text-[#726671] hover:text-[#33243b]">
           <ChevronLeft size={16} /> Terug naar klant
         </Link>
-        <h1 className="text-2xl font-bold text-gray-900">Klant bewerken</h1>
-        <p className="text-sm text-gray-500">Werk de gegevens van {client.name} bij.</p>
+        <h1 className="text-3xl font-semibold tracking-[-0.035em] text-[#33243b]">Klant bewerken</h1>
+        <p className="text-sm text-[#726671]">Werk de gegevens van {client.name} bij.</p>
       </div>
 
       <form action={updateClient} className="card max-w-xl space-y-5 p-6">
@@ -126,7 +126,7 @@ export default async function EditClientPage({
           />
         </div>
 
-        <div className="flex items-center justify-end gap-3 border-t border-gray-100 pt-5">
+        <div className="flex items-center justify-end gap-3 border-t border-[#eee5e1] pt-5">
           <Link href={`/clients/${client.id}`} className="btn-secondary">
             Annuleren
           </Link>

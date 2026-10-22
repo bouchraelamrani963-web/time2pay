@@ -31,10 +31,10 @@ export default async function NewInvoicePage({
     <div className="space-y-6">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <Link href="/invoices" className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-900 mb-4">
+          <Link href="/invoices" className="inline-flex items-center gap-1 text-sm text-[#726671] hover:text-[#33243b] mb-4">
             <ChevronLeft size={16} /> Terug naar facturen
           </Link>
-          <h1 className="text-2xl font-bold text-gray-900">Nieuwe factuur</h1>
+          <h1 className="text-3xl font-semibold tracking-[-0.035em] text-[#33243b]">Nieuwe factuur</h1>
           {clients.length === 0 && (
             <p className="mt-2 text-sm text-orange-600">
               Voeg eerst een klant toe.{" "}

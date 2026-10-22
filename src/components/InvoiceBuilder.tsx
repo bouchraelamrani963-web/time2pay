@@ -164,13 +164,13 @@ export default function InvoiceBuilder({ clients, initialClientId }: Props) {
       </div>
 
       <div className="card overflow-hidden">
-        <div className="border-b border-gray-100 px-4 py-3 text-sm font-semibold text-gray-700">
+        <div className="border-b border-[#eee5e1] px-4 py-3 text-sm font-semibold text-[#574c57]">
           Regelposten
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full min-w-[790px] text-sm">
             <thead>
-              <tr className="border-b border-gray-100 text-xs text-gray-500">
+              <tr className="border-b border-[#eee5e1] text-xs text-[#726671]">
                 <th className="px-3 py-2 text-left w-8">#</th>
                 <th className="px-2 py-2 text-left w-32">Type</th>
                 <th className="px-2 py-2 text-left">Omschrijving</th>
@@ -194,7 +194,7 @@ export default function InvoiceBuilder({ clients, initialClientId }: Props) {
             </tbody>
           </table>
         </div>
-        <div className="px-4 py-3 border-t border-gray-100">
+        <div className="px-4 py-3 border-t border-[#eee5e1]">
           <button type="button" onClick={addItem} className="btn-secondary text-xs">
             <Plus size={14} /> Regel toevoegen
           </button>
@@ -202,16 +202,16 @@ export default function InvoiceBuilder({ clients, initialClientId }: Props) {
       </div>
 
       <div className="flex flex-col items-end gap-1">
-        <div className="w-72 space-y-1 text-sm">
-          <div className="flex justify-between text-gray-600">
+        <div className="w-full max-w-[300px] space-y-2 text-sm">
+          <div className="flex justify-between text-[#675b66]">
             <span>Subtotaal</span>
             <span>{formatEuro(totals.subtotal)}</span>
           </div>
-          <div className="flex justify-between text-gray-600">
+          <div className="flex justify-between text-[#675b66]">
             <span>BTW ({vatRate}%)</span>
             <span>{formatEuro(totals.vatAmount)}</span>
           </div>
-          <div className="flex justify-between border-t border-gray-200 pt-2 font-bold text-gray-900">
+          <div className="flex justify-between border-t border-[#e4d9d5] pt-2 font-bold text-[#33243b]">
             <span>Totaal</span>
             <span className="text-lg">{formatEuro(totals.total)}</span>
           </div>
@@ -228,7 +228,7 @@ export default function InvoiceBuilder({ clients, initialClientId }: Props) {
         />
       </div>
 
-      <div className="flex items-center justify-end gap-3 border-t border-gray-200 pt-4">
+      <div className="flex items-center justify-end gap-3 border-t border-[#e4d9d5] pt-4">
         <button
           type="button"
           className="btn-primary"

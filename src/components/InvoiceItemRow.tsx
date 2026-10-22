@@ -38,8 +38,8 @@ export default function InvoiceItemRow({ item, index, onChange, onRemove }: Prop
   const isFixed = item.type === "FIXED";
 
   return (
-    <tr className="group border-b border-gray-100 hover:bg-gray-50">
-      <td className="px-3 py-2 text-xs text-gray-400 w-8">{index + 1}</td>
+    <tr className="group border-b border-[#eee5e1] hover:bg-[#fbf8f5]">
+      <td className="px-3 py-2 text-xs text-[#92858d] w-8">{index + 1}</td>
 
       <td className="px-2 py-2 w-32">
         <select
@@ -91,7 +91,7 @@ export default function InvoiceItemRow({ item, index, onChange, onRemove }: Prop
 
       <td className="px-2 py-2 w-28">
         <div className="relative">
-          <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-gray-400">€</span>
+          <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-[#92858d]">€</span>
           <input
             className="input pl-5 text-xs text-right"
             type="number"
@@ -104,15 +104,16 @@ export default function InvoiceItemRow({ item, index, onChange, onRemove }: Prop
         </div>
       </td>
 
-      <td className="px-3 py-2 w-28 text-right text-sm font-semibold text-gray-800">
+      <td className="px-3 py-2 w-28 text-right text-sm font-semibold text-[#493b49]">
         {formatEuro(lineTotal)}
       </td>
 
       <td className="px-2 py-2 w-8">
         <button
           type="button"
+          aria-label="Factuurregel verwijderen"
           onClick={() => onRemove(item.id)}
-          className="hidden group-hover:flex items-center justify-center rounded text-red-400 hover:text-red-600 transition-colors"
+          className="flex items-center justify-center rounded p-2 text-red-600 transition-colors hover:bg-red-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-red-600"
         >
           <Trash2 size={15} />
         </button>

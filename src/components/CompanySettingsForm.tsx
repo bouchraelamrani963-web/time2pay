@@ -90,15 +90,15 @@ export default function CompanySettingsForm({ initialValues }: Props) {
   }
 
   return (
-    <form onSubmit={submit} className="card p-6">
-      <div className="border-b border-gray-100 pb-4">
-        <h2 className="text-lg font-bold text-gray-900">Bedrijfsgegevens</h2>
-        <p className="mt-1 text-sm text-gray-500">
+    <form onSubmit={submit} className="card p-6 sm:p-8">
+      <div className="border-b border-[#eee5e1] pb-4">
+        <h2 className="text-lg font-bold text-[#33243b]">Bedrijfsgegevens</h2>
+        <p className="mt-1 text-sm text-[#726671]">
           Deze gegevens worden gebruikt als afzender en betaalinformatie op nieuwe factuur-PDF's.
         </p>
       </div>
 
-      <div className="mt-6 grid gap-4 sm:grid-cols-2">
+      <div className="mt-7 grid gap-5 sm:grid-cols-2">
         {fields.map((field) => (
           <div key={field.name} className={field.name === "street" ? "sm:col-span-2" : undefined}>
             <label className="label" htmlFor={field.name}>
@@ -116,9 +116,9 @@ export default function CompanySettingsForm({ initialValues }: Props) {
         ))}
       </div>
 
-      <div className="mt-6 flex justify-end border-t border-gray-100 pt-4">
+      <div className="mt-6 flex justify-end border-t border-[#eee5e1] pt-4">
         <button type="submit" className="btn-primary" disabled={saving}>
-          <Save size={15} /> {saving ? "Opslaan..." : "Bedrijfsgegevens opslaan"}
+          <Save size={15} /> {saving ? "Opslaan..." : "Wijzigingen opslaan"}
         </button>
       </div>
     </form>
