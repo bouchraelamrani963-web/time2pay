@@ -57,6 +57,7 @@ model Invoice {
   paidAt         DateTime?
   reminderSentAt DateTime?
   reminderCount  Int           @default(0)
+  issuedAt       DateTime?
   notes          String?
   vatRate        Float         @default(21)
   subtotal       Float         @default(0)
@@ -67,6 +68,7 @@ model Invoice {
   updatedAt      DateTime      @updatedAt
 
   @@index([userId])
+  @@index([userId, issuedAt])
   @@index([status, dueDate])
   @@map("invoices")
 }
@@ -99,4 +101,29 @@ enum ItemType {
   M2
   MATERIAL
   FIXED
+}
+
+model BillingAccount {
+  userId               String    @id
+  stripeCustomerId     String?   @unique
+  stripeSubscriptionId String?   @unique
+  stripePriceId        String?
+  plan                 String?
+  status               String    @default("INACTIVE")
+  periodStart          DateTime?
+  periodEnd            DateTime?
+  paidThrough          DateTime?
+  issuedCount          Int       @default(0)
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  @@map("billing_accounts")
+}
+
+model StripeWebhookEvent {
+  id        String   @id
+  eventType String
+  createdAt DateTime @default(now())
+
+  @@map("stripe_webhook_events")
 }
