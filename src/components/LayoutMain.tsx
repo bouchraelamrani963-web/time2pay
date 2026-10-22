@@ -10,7 +10,7 @@ import { usePathname } from "next/navigation";
 export default function LayoutMain({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
-  if (pathname === "/") {
+  if (pathname === "/" || pathname === "/login" || pathname === "/register") {
     return <main className="min-h-screen">{children}</main>;
   }
 
