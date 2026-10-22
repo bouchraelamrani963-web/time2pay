@@ -53,7 +53,10 @@ export async function POST(req: NextRequest) {
     }
     const origin = new URL(req.url).origin;
     const bucket = Math.floor(Date.now() / 1800000);
-    const suffix = createHash("sha256").update(`${user.uid}-${bucket}`).digest("hex").slice(0, 8)
+    // A new purchase after cancellation must not reuse a completed checkout.
+    const previousSubscriptionId = subscriptions.data[0]?.id ?? "new";
+    const attemptKey = `${user.uid}-${planKey}-${previousSubscriptionId}-${bucket}`;
+    const suffix = createHash("sha256").update(attemptKey).digest("hex").slice(0, 8)
       .split("").map(char => String.fromCharCode(97 + parseInt(char, 16))).join("");
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
@@ -69,7 +72,7 @@ export async function POST(req: NextRequest) {
       success_url: `${origin}/billing?result=success`,
       cancel_url: `${origin}/billing?result=cancelled`,
       integration_identifier: `time2pay_${suffix}`,
-    }, { idempotencyKey: `time2pay-checkout-${user.uid}-${bucket}` });
+    }, { idempotencyKey: `time2pay-checkout-${attemptKey}` });
     return NextResponse.json({ url: session.url });
   } catch {
     return NextResponse.json({ error: "Betalen is nog niet beschikbaar. De testconfiguratie moet eerst worden gecontroleerd." }, { status: 503 });
