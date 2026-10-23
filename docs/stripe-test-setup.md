@@ -191,3 +191,10 @@ De synthetische testklant heeft nu delivered@resend.dev als e-mailadres.
 De 19 tests slagen met de domeinbeperkte testafzender. Preview-build 1a13490
 is Ready. Een verouderde pagina tijdens een deployment gaf kort een serverfout;
 na herladen slaagde het opslaan van het testklantadres.
+
+### Vervanging credential — 23 oktober 2026
+
+Ongebruikte eerste sleutel na bevestiging ingetrokken. Vervangende sleutel
+heeft dezelfde domeinbeperkte verzendrechten. Formaat vóór opslag gecontroleerd;
+Vercel bevestigt succesvolle rotatie van alleen de branchspecifieke
+RESEND_TEST_API_KEY. Providerbezorgtest volgt na de nieuwe Preview-build.
