@@ -1,5 +1,15 @@
 # Time2Pay — Stripe sandbox, 22 oktober 2026
 
+## Laatste status — 23 oktober 2026
+
+De laatste bevindingen hieronder vervangen eerdere tussentijdse open punten.
+Alle drie maandpakketten zijn in de sandbox afgerekend en gecontroleerd.
+Testmail en herinneringsmail zijn nu succesvol via Resend geleverd aan het
+uitsluitend voor tests gebruikte delivered@resend.dev; geen echte klantmails.
+Productie is ongewijzigd. Nog open vóór livegang: echte bedrijfsgegevens en
+fiscale registratie/KOR-status, natuurlijke kalenderverlenging, herstel na
+mislukte betaling, gelijktijdige databaseverzoeken en fysieke afdrukcontrole.
+
 Deze wijziging is uitsluitend voorbereid voor een aparte testdeployment. Niet
 mergen naar productie voordat de volledige testketen is gecontroleerd. Er zijn
 geen echte klanten, betalingen of klantabonnementen aangemaakt.
@@ -198,3 +208,23 @@ Ongebruikte eerste sleutel na bevestiging ingetrokken. Vervangende sleutel
 heeft dezelfde domeinbeperkte verzendrechten. Formaat vóór opslag gecontroleerd;
 Vercel bevestigt succesvolle rotatie van alleen de branchspecifieke
 RESEND_TEST_API_KEY. Providerbezorgtest volgt na de nieuwe Preview-build.
+
+## Providerbezorgtest afgerond — 23 oktober 2026
+
+- Preview-build 66d3f3f, deployment BPZK7M218y7rmmoXDCpqRnm2vGLZ: Ready.
+- Een tijdelijk Starter-sandboxabonnement opnieuw afgerekend met testkaart
+  4242: sub_1UTdn8ITnweMFGCg9ucoeeuR. Geen echte betaling.
+- Testfactuur F2026-5284 vanuit de beschermde UI verstuurd. Resend bevestigt
+  sent en delivered op 23 oktober 10:26 in de dashboardweergave (CEST).
+  Bericht 01a167de-2395-73be-baa9-3c9187a58ac3, onderwerp [TEST] Factuur
+  F2026-5284 van Time2Pay, afzender testmail@time2pay.nl,
+  ontvanger delivered@resend.dev. Bijlage Factuur-F2026-5284.pdf aanwezig.
+- Eerste herinnering vanuit de UI verstuurd. Resend bevestigt sent en delivered
+  10:27 CEST, bericht 01a167df-0321-7366-8fb0-03474ac36568,
+  met dezelfde testontvanger en PDF-bijlage. App toont Verzonden en
+  '1e herinnering verstuurd'. Dit is provider-testbezorging, geen inboxcontrole.
+- Tijdelijk Starter-testabonnement direct beëindigd zonder terugbetaling.
+  Stripe bevestigt Opgezegd; de gratis melding keert terug en PDF-knop
+  verwijst opnieuw naar /billing. Alle tijdelijke testabonnementen beëindigd.
+- 19 gerichte tests geslaagd na de testafzenderwijziging. Geen nieuwe
+  productievariabelen, echte betalingen of echte klantmails; PR blijft concept.
