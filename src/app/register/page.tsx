@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { AlertCircle, ArrowRight, Lock, Mail, User } from "lucide-react";
 import toast from "react-hot-toast";
 import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
+import { startSession, SessionError } from "@/lib/auth-client-session";
 import { getFirebaseAuth } from "@/lib/firebase-client";
 
 function errorCode(error: unknown): string | undefined {
@@ -55,24 +56,6 @@ function mapFirebaseError(error: unknown): string {
   }
 }
 
-async function startSession(idToken: string) {
-  const response = await fetch("/api/auth/session", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ idToken }),
-  });
-
-  if (response.ok) return;
-
-  const responseBody = await response.text().catch(() => "");
-  console.error("[register session failed]", {
-    status: response.status,
-    body: responseBody,
-  });
-
-  throw new Error(`session_failed:${response.status}:${responseBody || "geen response body"}`);
-}
-
 export default function RegisterPage() {
   const router = useRouter();
   const [name, setName] = useState("");
@@ -108,7 +91,11 @@ export default function RegisterPage() {
       try {
         await startSession(idToken);
       } catch (sessionError) {
-        setError(`Account aangemaakt, maar sessie kon niet worden gestart. ${errorMessage(sessionError)}`);
+        if (sessionError instanceof SessionError && ["mfa_setup_required", "email_verification_required", "mfa_required"].includes(sessionError.code)) {
+          router.push("/login?security=setup");
+          return;
+        }
+        setError("Je account is aangemaakt. Log opnieuw in om verder te gaan.");
         setSubmitting(false);
         return;
       }

@@ -3,6 +3,8 @@ import { cookies } from "next/headers";
 import { getAdminAuth, getMissingFirebaseAdminEnv } from "@/lib/firebase-admin";
 import { SESSION_COOKIE, SESSION_MAX_AGE_DAYS } from "@/lib/auth";
 
+import { getMfaConfiguration, isRecentSignIn, mfaAccessError } from "@/lib/auth-policy";
+
 export const runtime = "nodejs";
 
 function safeErrorInfo(error: unknown) {
@@ -28,7 +30,14 @@ function firebaseAdminEnvError() {
   );
 }
 
+export async function GET() {
+  return NextResponse.json(getMfaConfiguration(), { headers: { "Cache-Control": "no-store" } });
+}
+
 export async function POST(req: NextRequest) {
+  if (req.headers.get("origin") !== new URL(req.url).origin) {
+    return NextResponse.json({ error: "invalid_origin", message: "Ongeldig verzoek." }, { status: 403 });
+  }
   try {
     const envError = firebaseAdminEnvError();
     if (envError) return envError;
@@ -43,6 +52,22 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const auth = getAdminAuth();
+    const decoded = await auth.verifyIdToken(idToken, true);
+    if (!isRecentSignIn(decoded.auth_time)) {
+      return NextResponse.json({ error: "recent_login_required", message: "Log opnieuw in om verder te gaan." }, { status: 401 });
+    }
+    const account = await auth.getUser(decoded.uid);
+    const accessError = mfaAccessError(decoded, account);
+    if (accessError) {
+      const messages = {
+        account_disabled: "Dit account is uitgeschakeld.",
+        email_verification_required: "Bevestig eerst je e-mailadres.",
+        mfa_setup_required: "Stel eerst je authenticator-app in.",
+        mfa_required: "Voer de code uit je authenticator-app in.",
+      };
+      return NextResponse.json({ error: accessError, message: messages[accessError] }, { status: 403 });
+    }
     const expiresIn = SESSION_MAX_AGE_DAYS * 24 * 60 * 60 * 1000;
     const sessionCookie = await getAdminAuth().createSessionCookie(idToken, { expiresIn });
 
@@ -59,7 +84,7 @@ export async function POST(req: NextRequest) {
     const info = safeErrorInfo(error);
     console.error("[auth/session POST]", info);
     return NextResponse.json(
-      { error: "session_cookie_failed", message: "Sessie aanmaken mislukt.", details: info },
+      { error: "session_cookie_failed", message: "Inloggen is niet gelukt. Probeer opnieuw." },
       { status: 401 }
     );
   }

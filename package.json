@@ -12,7 +12,8 @@
     "db:migrate": "prisma migrate dev",
     "db:push": "prisma db push",
     "db:studio": "prisma studio",
-    "test:billing": "node --test tests/billing-access.test.mjs tests/billing-routes.test.cjs tests/invoice-email.test.cjs"
+    "test:billing": "node --test tests/billing-access.test.mjs tests/billing-routes.test.cjs tests/invoice-email.test.cjs",
+    "test:auth": "node --test tests/auth-mfa.test.cjs"
   },
   "prisma": {
     "schema": "prisma/schema.prisma"
