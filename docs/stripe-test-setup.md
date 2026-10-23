@@ -156,7 +156,7 @@ in deze wijziging en moeten apart worden geverifieerd vóór een commerciële st
 - Preview/local weigert productie-mailcredentials en vereist expliciet
   `TIME2PAY_EMAIL_MODE=test` plus een aparte `RESEND_TEST_API_KEY`.
 - Alle testfacturen en herinneringen worden server-side omgeleid naar
-  `delivered@resend.dev`, met afzender `onboarding@resend.dev` en
+  `delivered@resend.dev`, met afzender `testmail@time2pay.nl` en
   onderwerpvoorvoegsel [TEST]. De respons rapporteert de daadwerkelijke
   testontvanger; een ingevuld klantadres wordt niet gebruikt voor aflevering.
 - Productie behoudt haar eigen mailconfiguratie. Geen productievariabelen
@@ -171,3 +171,12 @@ in deze wijziging en moeten apart worden geverifieerd vóór een commerciële st
 - De bedrijfsvelden in de geïsoleerde testversie zijn leeg. Geen KvK-nummer,
   btw-id, adres of IBAN aangenomen. Echte fiscale registratie/KOR-status moet
   door de eigenaar worden bevestigd vóór livegang.
+
+## Resend-configuratie — 23 oktober 2026
+
+Na expliciete toestemming is een aparte sleutel 'Time2Pay Preview testmail'
+aangemaakt: uitsluitend Sending access, beperkt tot time2pay.nl. De sleutel
+staat alleen als Secret RESEND_TEST_API_KEY op de Preview-branch
+codex/time2pay-stripe-test. TIME2PAY_EMAIL_MODE=test is daar ook opgeslagen.
+Productiesleutels blijven ongewijzigd. Testafzender: testmail@time2pay.nl;
+ontvanger blijft geforceerd delivered@resend.dev. Providerbezorgtest volgt.
