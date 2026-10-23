@@ -3,20 +3,27 @@
 const { cert, initializeApp } = require('firebase-admin/app');
 const { getAuth } = require('firebase-admin/auth');
 async function main() {
+  if (process.env.TIME2PAY_CONFIGURE_TEST_TOTP !== "true") return;
   const projectId = process.env.FIREBASE_PROJECT_ID;
   if (!projectId || projectId === 'time2pay-c5c5c' ||
       projectId !== process.env.TIME2PAY_TOTP_TEST_PROJECT_ID ||
       process.env.VERCEL_ENV === 'production') {
     throw Error('Only the explicitly isolated Time2Pay test project is allowed.');
   }
-  const keyBase64 = process.env.FIREBASE_PRIVATE_KEY_BASE64;
-  const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
-  if (!keyBase64 || !clientEmail) throw Error('Test credentials are required.');
-  initializeApp({ credential: cert({ projectId, clientEmail,
-    privateKey: Buffer.from(keyBase64, 'base64').toString('utf8') }) });
+  const credentials = JSON.parse(process.env.FIREBASE_TEST_SERVICE_ACCOUNT_JSON || 'null');
+  if (!credentials || credentials.project_id !== projectId ||
+      typeof credentials.client_email !== 'string' ||
+      !credentials.client_email.endsWith(`@${projectId}.iam.gserviceaccount.com`)) {
+    throw Error('Test credentials are required.');
+  }
+  initializeApp({ credential: cert(credentials) }, 'time2pay-totp-config');
   const manager = getAuth().projectConfigManager();
   const before = await manager.getProjectConfig();
   const otherProviders = (before.multiFactorConfig?.providerConfigs ?? []).filter(p => !p.totpProviderConfig);
+  const current = before.multiFactorConfig?.providerConfigs?.find(p => p.totpProviderConfig);
+  if (current?.state === 'ENABLED' && current.totpProviderConfig.adjacentIntervals === 0) {
+    console.log('Isolated test TOTP configuration already verified.'); return;
+  }
   await manager.updateProjectConfig({ multiFactorConfig: {
     ...before.multiFactorConfig,
     providerConfigs: [...otherProviders, { state: 'ENABLED', totpProviderConfig: { adjacentIntervals: 0 } }],

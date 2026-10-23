@@ -65,3 +65,36 @@ met echte tweede factor is nog niet bewezen. Alle activatieflags blijven uit.
 `scripts/enable-test-totp.cjs` bevat een native Admin SDK-configuratiestap voor
 uitsluitend het apart opgegeven testproject, zonder credentialuitvoer; niet
 uitgevoerd. De script blokkeert het bekende liveproject.
+
+## Veilige handmatige sleuteloverdracht — 23 oktober 2026
+
+Na expliciete toestemming is een testsleutel gemaakt. De browser-downloadcontrole
+liep vast en de verbinding is hersteld. De sleutel bestaat: Google Cloud toont
+key-ID f0041420771ac068cedc47f9ac45a5b356406e55 bij de afzonderlijke
+Firebase Admin SDK-serviceaccount. De privésleutel is niet ingezien of gelogd.
+Browserbeveiliging blokkeert toegang tot chrome://downloads; geen workaround
+gebruikt om het bestand uit te lezen.
+
+Een Vercel-formulier staat klaar met tien Secret-variabelen voor uitsluitend
+Preview-branch codex/time2pay-stripe-test. Nog niet opgeslagen. De eigenaar
+moet de volledige JSON uit het gedownloade testbestand zelf in de eerste
+waarde FIREBASE_TEST_SERVICE_ACCOUNT_JSON plakken en opslaan. Geen geheimen
+via chat. De andere negen waarden zijn ingevuld: aparte server/client-project-ID,
+web-appconfiguratie en TOTP-flags. Web-app Time2Pay Preview is geregistreerd,
+app-ID 1:915356451132:web:a3c30603687a4f5e669e39.
+
+De testserver accepteert uitsluitend een JSON-sleutel voor dit geïsoleerde
+project, weigert gedeelde productiecredentials en een bestaande default-app,
+en weigert deze testmodus in Vercel Production. Drie aanvullende grenscontroles
+slagen: totaal 16 auth-tests plus 19 billing/mailtests. Volledige build geslaagd.
+
+Na veilige opslag en expliciete testredeploy configureert de bewaakte buildstap
+TOTP met adjacentIntervals=0, alleen wanneer TIME2PAY_CONFIGURE_TEST_TOTP=true.
+Deze stap leest alleen de aparte testcredential, verifieert project en provider,
+en logt geen geheimen. Bij ontbrekende rechten/configuratie stopt de build;
+geen publieke setup-route. Productie heeft deze flags niet.
+
+Providerinschrijving en daadwerkelijke login met autorisatiecode zijn nog niet
+uitgevoerd. Vóór livegang ook veilig identiteitsherstel en verlies van telefoon
+testen. De eigenaar voert persoonlijke wachtwoord-/authenticator-inschrijving
+zelf uit. Live website en bestaande liveidentiteiten zijn ongewijzigd.

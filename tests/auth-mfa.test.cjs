@@ -125,3 +125,37 @@ test('already-issued password-only cookies lose access once MFA is enrolled or r
   assert.equal((await fixture({ token: second }).session.getSession()).uid, 'user-test');
   assert.equal((await fixture({ token: first, account: plain }).session.getSession()).uid, 'user-test');
 });
+
+function adminFixture(env, apps = []) {
+  const credentials = [];
+  const module = load('src/lib/firebase-admin.ts', {
+    'server-only': {},
+    'firebase-admin/app': { getApps: () => apps, cert: value => { credentials.push(value); return value; }, initializeApp: (config, name) => ({ config, name }) },
+    'firebase-admin/auth': { getAuth: app => app },
+  }, env);
+  return { module, credentials };
+}
+const testEnv = { VERCEL_ENV: 'preview', TIME2PAY_TOTP_TEST_PROJECT_ID: 'time2pay-preview', FIREBASE_PROJECT_ID: 'time2pay-preview', NEXT_PUBLIC_FIREBASE_PROJECT_ID: 'time2pay-preview', FIREBASE_CLIENT_EMAIL: 'production@example.com', FIREBASE_PRIVATE_KEY: 'production-key-never-used' };
+const fakeCredential = { project_id: 'time2pay-preview', client_email: 'test@time2pay-preview.iam.gserviceaccount.com', private_key: '-----BEGIN PRIVATE KEY-----test-only' };
+test('isolated auth never falls back to inherited production credentials or a default Firebase app', () => {
+  const f = adminFixture(testEnv, [{ name: '[DEFAULT]' }]);
+  assert.equal(f.module.getMissingFirebaseAdminEnv()[0], 'FIREBASE_TEST_SERVICE_ACCOUNT_JSON');
+  assert.throws(() => f.module.getAdminAuth());
+  assert.equal(f.credentials.length, 0);
+});
+test('isolated auth rejects mismatched project credentials and production activation', () => {
+  for (const env of [
+    { ...testEnv, FIREBASE_TEST_SERVICE_ACCOUNT_JSON: JSON.stringify({ ...fakeCredential, project_id: 'time2pay-c5c5c' }) },
+    { ...testEnv, VERCEL_ENV: 'production', FIREBASE_TEST_SERVICE_ACCOUNT_JSON: JSON.stringify(fakeCredential) },
+    { ...testEnv, FIREBASE_TEST_SERVICE_ACCOUNT_JSON: 'invalid-json' },
+  ]) {
+    const f = adminFixture(env);
+    assert.throws(() => f.module.getAdminAuth());
+    assert.equal(f.credentials.length, 0);
+  }
+});
+test('isolated auth uses its own named Firebase app and test credential', () => {
+  const f = adminFixture({ ...testEnv, FIREBASE_TEST_SERVICE_ACCOUNT_JSON: JSON.stringify(fakeCredential) }, [{ name: '[DEFAULT]' }]);
+  assert.equal(f.module.getAdminAuth().name, 'time2pay-isolated-test');
+  assert.equal(f.credentials[0].project_id, 'time2pay-preview');
+});

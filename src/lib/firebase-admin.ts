@@ -8,6 +8,9 @@ let adminApp: App | undefined;
 let adminAuth: Auth | undefined;
 
 export function getMissingFirebaseAdminEnv(): string[] {
+  if (process.env.TIME2PAY_TOTP_TEST_PROJECT_ID) {
+    return process.env.FIREBASE_TEST_SERVICE_ACCOUNT_JSON ? [] : ["FIREBASE_TEST_SERVICE_ACCOUNT_JSON"];
+  }
   const missing: string[] = requiredBaseAdminEnv.filter((key) => !process.env[key]);
 
   if (!process.env.FIREBASE_PRIVATE_KEY_BASE64 && !process.env.FIREBASE_PRIVATE_KEY) {
@@ -36,16 +39,34 @@ function getFirebasePrivateKey(): string {
 function getAdminApp(): App {
   if (adminApp) return adminApp;
 
-  if (getApps().length > 0) {
-    adminApp = getApps()[0];
-    return adminApp;
-  }
+  const testProject = process.env.TIME2PAY_TOTP_TEST_PROJECT_ID;
+  const appName = testProject ? "time2pay-isolated-test" : "[DEFAULT]";
+  const existing = getApps().find(app => app.name === appName);
+  if (existing) { adminApp = existing; return adminApp; }
 
   const missing = getMissingFirebaseAdminEnv();
   if (missing.length > 0) {
     const error = new Error(`Firebase Admin-configuratie ontbreekt: ${missing.join(", ")}`);
     Object.assign(error, { code: "time2pay/missing-firebase-admin-env" });
     throw error;
+  }
+
+  if (testProject) {
+    try {
+      const credentials = JSON.parse(process.env.FIREBASE_TEST_SERVICE_ACCOUNT_JSON as string);
+      if (process.env.VERCEL_ENV === "production" || testProject === "time2pay-c5c5c" ||
+          credentials.project_id !== testProject || process.env.FIREBASE_PROJECT_ID !== testProject ||
+          process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID !== testProject ||
+          typeof credentials.client_email !== "string" ||
+          !credentials.client_email.endsWith(`@${testProject}.iam.gserviceaccount.com`) ||
+          typeof credentials.private_key !== "string" || !credentials.private_key.startsWith("-----BEGIN PRIVATE KEY-----")) {
+        throw new Error("invalid test credential");
+      }
+      adminApp = initializeApp({ credential: cert(credentials) }, appName);
+      return adminApp;
+    } catch {
+      throw new Error("De geïsoleerde Firebase-testconfiguratie is ongeldig.");
+    }
   }
 
   const projectId = process.env.FIREBASE_PROJECT_ID as string;
