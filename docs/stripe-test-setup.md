@@ -118,3 +118,35 @@ in deze wijziging en moeten apart worden geverifieerd vóór een commerciële st
   Deze tekstwijziging volgt via de automatische Preview-build; de functionele
   test hierboven is uitgevoerd vóór deze uitsluitend tekstuele wijziging.
 
+
+## Aanvullende browsercontroles — 22 en 23 oktober 2026
+
+- Starter per einde periode opgezegd via het klantenportaal. Toegang bleef
+  beschikbaar tot de geplande einddatum. Daarna direct beëindigd in de sandbox:
+  de gratis-conceptmelding kwam terug en export werd geblokkeerd.
+- Pro EUR 19 inclusief EUR 3,30 btw op 22 oktober succesvol afgerekend via de
+  Time2Pay-checkout, gekoppeld en vrijgegeven. Subscriptie
+  `sub_1UTOoCITnweMFGCgEMIrY6em`, op 23 oktober direct beëindigd voor de
+  volgende test.
+- Business EUR 39 inclusief EUR 6,77 btw op 23 oktober succesvol afgerekend,
+  gekoppeld en vrijgegeven. Subscriptie `sub_1UTdCRITnweMFGCgP7zg5P5p`.
+- Fout bij pakketkeuze vlak na opzegging opgelost: de idempotency key bevat
+  nu het pakket én de vorige subscription-ID. Hierdoor worden retries
+  hergebruikt en nieuwe aankopen niet met een afgeronde checkout verward.
+  TypeScript geslaagd; 13 tests geslaagd, inclusief een regressietest voor
+  herhalen, pakket wijzigen en opnieuw afsluiten.
+- Geweigerde vervolgfactuur gesimuleerd met `pm_card_chargeCustomerFail`.
+  Voor een directe test is de Business-subscriptie tijdelijk naar trialing
+  gezet en weer beëindigd, daarna is met een tijdelijke aantalwijziging
+  (1 naar 2, always_invoice) een positieve factuur afgedwongen. Dit is een
+  geforceerde vervolgbetaling, geen volledige kalenderverlenging met testklok.
+  Stripe-status werd `past_due`. Zowel de PDF-knop als een rechtstreekse
+  GET op de beschermde PDF-route werden geblokkeerd met
+  `SUBSCRIPTION_REQUIRED`.
+- Aantal teruggezet naar 1; Business vervolgens direct beëindigd. Alle drie
+  testabonnementen zijn nu beëindigd; de producten en maandprijzen blijven
+  behouden. Testklant en factuurhistorie blijven beschikbaar.
+- Nog open: natuurlijke kalenderverlenging, herstel na een mislukte betaling,
+  gelijktijdige databaseverzoeken en echte testmailbezorging. Er is nog geen
+  aparte Preview-mailkoppeling. Er zijn geen echte betalingen of klantmails
+  verstuurd en geen wijzigingen naar productie gemerged.
