@@ -16,8 +16,8 @@ async function main() {
       !credentials.client_email.endsWith(`@${projectId}.iam.gserviceaccount.com`)) {
     throw Error('Test credentials are required.');
   }
-  initializeApp({ credential: cert(credentials) }, 'time2pay-totp-config');
-  const manager = getAuth().projectConfigManager();
+  const app = initializeApp({ credential: cert(credentials) }, 'time2pay-totp-config');
+  const manager = getAuth(app).projectConfigManager();
   const before = await manager.getProjectConfig();
   const otherProviders = (before.multiFactorConfig?.providerConfigs ?? []).filter(p => !p.totpProviderConfig);
   const current = before.multiFactorConfig?.providerConfigs?.find(p => p.totpProviderConfig);
@@ -34,4 +34,9 @@ async function main() {
   }
   console.log('TOTP enabled and verified for the isolated test project.');
 }
-main().catch(() => { console.error('Test TOTP setup failed. Check the isolated project configuration and permissions.'); process.exitCode = 1; });
+main().catch(error => {
+  const safeCode = typeof error?.code === 'string' ? error.code :
+    (error instanceof SyntaxError ? 'INVALID_JSON' : 'UNCLASSIFIED');
+  console.error('Test TOTP setup failed. Code:', safeCode, 'Check the isolated project configuration and permissions.');
+  process.exitCode = 1;
+});
