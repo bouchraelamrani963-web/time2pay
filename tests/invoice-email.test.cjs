@@ -26,7 +26,7 @@ test('Preview cannot reuse the production mail key or send without explicit test
   const result = config.getInvoiceEmailConfig();
   assert.equal(usedKey, 'separate-test-key');
   assert.equal(result.testRecipient, 'delivered@resend.dev');
-  assert.match(result.from, /onboarding@resend.dev/);
+  assert.equal(result.from, 'Time2Pay test <testmail@time2pay.nl>');
 });
 
 test('Production keeps its configured sender and has no test recipient override', () => {
