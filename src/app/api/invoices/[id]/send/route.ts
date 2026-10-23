@@ -202,7 +202,8 @@ export async function POST(
       );
     }
 
-    const { resend, from } = getInvoiceEmailConfig();
+    const { resend, from, testRecipient } = getInvoiceEmailConfig();
+    const actualRecipient = testRecipient || recipientEmail;
     const companySettings = await prisma.companySettings.findUnique({
       where: { userId: user.uid },
     });
@@ -223,8 +224,8 @@ export async function POST(
 
     const { error } = await resend.emails.send({
       from,
-      to: recipientEmail,
-      subject: `Factuur ${invoice.number} van Time2Pay`,
+      to: actualRecipient,
+      subject: `${testRecipient ? "[TEST] " : ""}Factuur ${invoice.number} van Time2Pay`,
       html: buildInvoiceHtml(emailParams),
       text: buildInvoiceText(emailParams),
       attachments: [
@@ -282,7 +283,7 @@ export async function POST(
 
     return NextResponse.json({
       success: true,
-      sentTo: recipientEmail,
+      sentTo: actualRecipient,
       invoice: updatedInvoice,
     });
   } catch (error) {
