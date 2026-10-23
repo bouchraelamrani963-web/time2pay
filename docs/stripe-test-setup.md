@@ -150,3 +150,24 @@ in deze wijziging en moeten apart worden geverifieerd vóór een commerciële st
   gelijktijdige databaseverzoeken en echte testmailbezorging. Er is nog geen
   aparte Preview-mailkoppeling. Er zijn geen echte betalingen of klantmails
   verstuurd en geen wijzigingen naar productie gemerged.
+
+## Voorbereiding testmail — 23 oktober 2026
+
+- Preview/local weigert productie-mailcredentials en vereist expliciet
+  `TIME2PAY_EMAIL_MODE=test` plus een aparte `RESEND_TEST_API_KEY`.
+- Alle testfacturen en herinneringen worden server-side omgeleid naar
+  `delivered@resend.dev`, met afzender `onboarding@resend.dev` en
+  onderwerpvoorvoegsel [TEST]. De respons rapporteert de daadwerkelijke
+  testontvanger; een ingevuld klantadres wordt niet gebruikt voor aflevering.
+- Productie behoudt haar eigen mailconfiguratie. Geen productievariabelen
+  aangepast. De nieuwe tests en wijzigingen zijn alleen in de conceptbranch.
+- Zes aanvullende tests: apart sleutelgebruik, verplichte testmodus, behoud
+  productieconfiguratie, testontvanger, HTML-escaping, PDF-bijlage en uitsluitend
+  statusmutatie na provideracceptatie voor facturen en herinneringen.
+  Totaal 19 tests geslaagd; TypeScript en volledige build geslaagd.
+- Echte provideraflevering is nog niet getest. Resend vraagt om aanmelding;
+  de inlogpagina staat klaar voor de eigenaar. Er is nog geen nieuwe
+  Resend-sleutel gemaakt en geen e-mail verstuurd.
+- De bedrijfsvelden in de geïsoleerde testversie zijn leeg. Geen KvK-nummer,
+  btw-id, adres of IBAN aangenomen. Echte fiscale registratie/KOR-status moet
+  door de eigenaar worden bevestigd vóór livegang.
