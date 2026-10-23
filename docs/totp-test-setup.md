@@ -44,3 +44,24 @@ Bronnen (geraadpleegd 23 oktober 2026):
 - https://firebase.google.com/docs/auth/web/totp-mfa
 - https://firebase.google.com/docs/auth/admin/manage-cookies
 - https://firebase.google.com/docs/reference/admin/node/firebase-admin.auth.decodedidtoken
+
+## Firebase-voorbereiding — 23 oktober 2026
+
+Aparte omgeving `time2pay-preview` aangemaakt in het bestaande Google-account.
+Spark-plan behouden (console toont geen kosten), Gemini en Analytics niet aangezet.
+E-mail/wachtwoordprovider ingeschakeld. Authentication with Identity Platform
+geactiveerd uitsluitend op dit nieuwe, lege testproject; Spark blijft behouden.
+SMS-MFA blijft uit. TOTP-providerconfiguratie nog niet toegepast.
+
+Er is nog geen technische privésleutel gemaakt of Vercel-authconfiguratie
+vervangen. Het bevestigingsvenster voor een sleutel van
+firebase-adminsdk-fbsvc@time2pay-preview.iam.gserviceaccount.com staat klaar.
+Dit is een sleutel voor de Firebase-services van alleen het aparte testproject;
+geen productietoegang. Aanmaak en veilige overdracht naar de Vercel-testbranch
+wachten op expliciete bevestiging. Het testproject heeft nog geen gebruikers.
+
+De loginpagina van commit 6ee9e1f is bereikbaar in Preview. Een nieuwe aanmelding
+met echte tweede factor is nog niet bewezen. Alle activatieflags blijven uit.
+`scripts/enable-test-totp.cjs` bevat een native Admin SDK-configuratiestap voor
+uitsluitend het apart opgegeven testproject, zonder credentialuitvoer; niet
+uitgevoerd. De script blokkeert het bekende liveproject.
