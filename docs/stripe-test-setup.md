@@ -180,3 +180,14 @@ staat alleen als Secret RESEND_TEST_API_KEY op de Preview-branch
 codex/time2pay-stripe-test. TIME2PAY_EMAIL_MODE=test is daar ook opgeslagen.
 Productiesleutels blijven ongewijzigd. Testafzender: testmail@time2pay.nl;
 ontvanger blijft geforceerd delivered@resend.dev. Providerbezorgtest volgt.
+
+### Validatie mailcredential
+
+De eerste overname van de eenmalige sleutel bleek bij formaatcontrole ongeldig.
+Deze waarde is nog niet als werkende providerkoppeling bevestigd. De ongebruikte
+Resend-sleutel moet worden ingetrokken en vervangen met identieke rechten;
+de onomkeerbare intrekking wacht op expliciete toestemming. Geen mail verzonden.
+De synthetische testklant heeft nu delivered@resend.dev als e-mailadres.
+De 19 tests slagen met de domeinbeperkte testafzender. Preview-build 1a13490
+is Ready. Een verouderde pagina tijdens een deployment gaf kort een serverfout;
+na herladen slaagde het opslaan van het testklantadres.
