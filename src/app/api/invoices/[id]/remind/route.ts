@@ -158,7 +158,8 @@ export async function POST(_request: Request, { params }: { params: { id: string
       );
     }
 
-    const { resend, from } = getInvoiceEmailConfig();
+    const { resend, from, testRecipient } = getInvoiceEmailConfig();
+    const actualRecipient = testRecipient || recipientEmail;
     const companySettings = await prisma.companySettings.findUnique({
       where: { userId: user.uid },
     });
@@ -176,8 +177,8 @@ export async function POST(_request: Request, { params }: { params: { id: string
 
     const { error } = await resend.emails.send({
       from,
-      to: recipientEmail,
-      subject: `Betalingsherinnering factuur ${invoice.number}`,
+      to: actualRecipient,
+      subject: `${testRecipient ? "[TEST] " : ""}Betalingsherinnering factuur ${invoice.number}`,
       html: buildReminderHtml(reminderParams),
       text: buildReminderText(reminderParams),
       attachments: [
@@ -239,7 +240,7 @@ export async function POST(_request: Request, { params }: { params: { id: string
     return NextResponse.json({
       success: true,
       message: "Betalingsherinnering verstuurd.",
-      sentTo: recipientEmail,
+      sentTo: actualRecipient,
       invoice: updatedInvoice,
     });
   } catch (error) {
