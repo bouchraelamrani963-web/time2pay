@@ -2,7 +2,7 @@
 
 import { Trash2 } from "lucide-react";
 import { ITEM_TYPE_LABELS, type ItemType } from "@/types/invoice";
-import { defaultUnit, calcLineTotal } from "@/lib/calculations";
+import { defaultUnit, calcLineTotal, calcOrtAmount } from "@/lib/calculations";
 
 export interface DraftItem {
   id: string;
@@ -11,6 +11,7 @@ export interface DraftItem {
   quantity: number;
   unitPrice: number;
   unit: string;
+  ortPerc: number;
 }
 
 interface Props {
@@ -33,7 +34,9 @@ export default function InvoiceItemRow({ item, index, onChange, onRemove }: Prop
     quantity: item.quantity,
     unitPrice: item.unitPrice,
     unit: item.unit,
+    ortPerc: item.ortPerc,
   });
+  const ortAmount = calcOrtAmount(item);
 
   const isFixed = item.type === "FIXED";
 
@@ -104,8 +107,20 @@ export default function InvoiceItemRow({ item, index, onChange, onRemove }: Prop
         </div>
       </td>
 
+      <td className="px-2 py-2 w-24">
+        {item.type === "HOURS" ? (
+          <select className="input text-xs" aria-label="Onregelmatigheidstoeslag"
+            value={item.ortPerc} onChange={(e) => onChange(item.id, "ortPerc", Number(e.target.value))}>
+            <option value={0}>Geen</option>
+            <option value={25}>25%</option>
+            <option value={50}>50%</option>
+            <option value={100}>100%</option>
+          </select>
+        ) : <span className="px-2 text-xs text-[#92858d]">—</span>}
+      </td>
       <td className="px-3 py-2 w-28 text-right text-sm font-semibold text-[#493b49]">
         {formatEuro(lineTotal)}
+        {ortAmount > 0 && <span className="block text-xs font-normal text-[#9a624d]">+ ORT {item.ortPerc}%: {formatEuro(ortAmount)}</span>}
       </td>
 
       <td className="px-2 py-2 w-8">

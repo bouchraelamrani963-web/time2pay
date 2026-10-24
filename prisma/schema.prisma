@@ -92,6 +92,8 @@ model InvoiceItem {
   unitPrice   Float
   unit        String?
   lineTotal   Float
+  ortPerc     Float    @default(0)
+  ortBedrag   Float    @default(0)
   sortOrder   Int      @default(0)
 
   @@map("invoice_items")

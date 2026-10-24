@@ -34,6 +34,7 @@ function emptyItem(): DraftItem {
     quantity: 1,
     unitPrice: 0,
     unit: "uur",
+    ortPerc: 0,
   };
 }
 
@@ -77,6 +78,7 @@ export default function InvoiceBuilder({ clients, initialClientId }: Props) {
         const updated = { ...item, [field]: value };
         if (field === "type") {
           updated.unit = defaultUnit(value as ItemType);
+          if (value !== "HOURS") updated.ortPerc = 0;
         }
         return updated;
       })
@@ -84,7 +86,7 @@ export default function InvoiceBuilder({ clients, initialClientId }: Props) {
   }, []);
 
   const totals = calcInvoiceTotals(
-    items.map((i) => ({ type: i.type, description: i.description, quantity: i.quantity, unitPrice: i.unitPrice, unit: i.unit })),
+    items.map((i) => ({ type: i.type, description: i.description, quantity: i.quantity, unitPrice: i.unitPrice, unit: i.unit, ortPerc: i.ortPerc })),
     vatRate
   );
 
@@ -108,6 +110,7 @@ export default function InvoiceBuilder({ clients, initialClientId }: Props) {
             quantity: item.quantity,
             unitPrice: item.unitPrice,
             unit: item.unit,
+            ortPerc: item.type === "HOURS" ? item.ortPerc : 0,
             sortOrder: idx,
           })),
         }),
@@ -172,7 +175,7 @@ export default function InvoiceBuilder({ clients, initialClientId }: Props) {
           Regelposten
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[790px] text-sm">
+          <table className="w-full min-w-[890px] text-sm">
             <thead>
               <tr className="border-b border-[#eee5e1] text-xs text-[#726671]">
                 <th className="px-3 py-2 text-left w-8">#</th>
@@ -181,6 +184,7 @@ export default function InvoiceBuilder({ clients, initialClientId }: Props) {
                 <th className="px-2 py-2 text-right w-24">Aantal</th>
                 <th className="px-2 py-2 text-center w-20">Eenheid</th>
                 <th className="px-2 py-2 text-right w-28">Prijs</th>
+                <th className="px-2 py-2 text-left w-24">ORT</th>
                 <th className="px-3 py-2 text-right w-28">Totaal</th>
                 <th className="w-8" />
               </tr>
@@ -207,6 +211,18 @@ export default function InvoiceBuilder({ clients, initialClientId }: Props) {
 
       <div className="flex flex-col items-end gap-1">
         <div className="w-full max-w-[300px] space-y-2 text-sm">
+          {totals.ortAmount > 0 && (
+            <>
+              <div className="flex justify-between text-[#675b66]">
+                <span>Basisbedrag</span>
+                <span>{formatEuro(totals.subtotal - totals.ortAmount)}</span>
+              </div>
+              <div className="flex justify-between text-[#9a624d]">
+                <span>ORT</span>
+                <span>{formatEuro(totals.ortAmount)}</span>
+              </div>
+            </>
+          )}
           <div className="flex justify-between text-[#675b66]">
             <span>Subtotaal</span>
             <span>{formatEuro(totals.subtotal)}</span>

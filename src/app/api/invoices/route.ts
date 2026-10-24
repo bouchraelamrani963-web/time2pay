@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireUserOrUnauthorized } from "@/lib/auth";
-import { calcInvoiceTotals, generateInvoiceNumber } from "@/lib/calculations";
+import { calcOrtAmount, calcInvoiceTotals, generateInvoiceNumber } from "@/lib/calculations";
 import { effectiveStatus } from "@/lib/invoice-status";
 import type { InvoiceStatus } from "@/types/invoice";
 import { z } from "zod";
@@ -15,6 +15,7 @@ const ItemSchema = z.object({
   quantity: z.number().min(0),
   unitPrice: z.number().min(0),
   unit: z.string().optional(),
+  ortPerc: z.union([z.literal(0), z.literal(25), z.literal(50), z.literal(100)]).default(0),
   sortOrder: z.number().int().default(0),
 });
 
@@ -65,6 +66,9 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const data = CreateInvoiceSchema.parse(body);
+    if (data.items?.some(item => item.type !== "HOURS" && item.ortPerc !== 0)) {
+      return NextResponse.json({ error: "ORT is alleen toegestaan voor uren." }, { status: 422 });
+    }
 
     const ownedClient = await prisma.client.findFirst({
       where: { id: data.clientId, userId: user.uid },
@@ -101,10 +105,8 @@ export async function POST(req: NextRequest) {
         total,
         items: {
           create: data.items.map((item) => {
-            const lineTotal =
-              item.type === "FIXED"
-                ? item.unitPrice
-                : Math.round(item.quantity * item.unitPrice * 100) / 100;
+            const lineTotal = calcInvoiceTotals([item], 0).items[0].lineTotal;
+            const ortBedrag = calcOrtAmount(item);
             return {
               type: item.type,
               description: item.description,
@@ -112,6 +114,8 @@ export async function POST(req: NextRequest) {
               unitPrice: item.unitPrice,
               unit: item.unit || null,
               lineTotal,
+              ortPerc: item.type === "HOURS" ? item.ortPerc : 0,
+              ortBedrag,
               sortOrder: item.sortOrder,
             };
           }),

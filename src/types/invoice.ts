@@ -21,6 +21,8 @@ export interface InvoiceItem {
   unitPrice: number;
   unit?: string | null;
   lineTotal: number;
+  ortPerc: number;
+  ortBedrag: number;
   sortOrder: number;
 }
 
@@ -56,6 +58,7 @@ export interface CreateInvoicePayload {
     quantity: number;
     unitPrice: number;
     unit?: string;
+    ortPerc?: number;
     sortOrder: number;
   }[];
 }

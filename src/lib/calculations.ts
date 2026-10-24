@@ -6,13 +6,15 @@ export interface LineItem {
   quantity: number;
   unitPrice: number;
   unit?: string;
+  ortPerc?: number;
 }
 
 export interface InvoiceTotals {
   subtotal: number;
+  ortAmount: number;
   vatAmount: number;
   total: number;
-  items: Array<LineItem & { lineTotal: number }>;
+  items: Array<LineItem & { lineTotal: number; ortBedrag: number }>;
 }
 
 export function calcLineTotal(item: LineItem): number {
@@ -28,6 +30,11 @@ export function calcLineTotal(item: LineItem): number {
   }
 }
 
+/** ORT is calculated only on hourly base, never on materials or square metres. */
+export function calcOrtAmount(item: LineItem): number {
+  return item.type === "HOURS" ? round2(calcLineTotal(item) * ((item.ortPerc ?? 0) / 100)) : 0;
+}
+
 export function calcInvoiceTotals(
   items: LineItem[],
   vatRate: number
@@ -35,13 +42,15 @@ export function calcInvoiceTotals(
   const enriched = items.map((item) => ({
     ...item,
     lineTotal: calcLineTotal(item),
+    ortBedrag: calcOrtAmount(item),
   }));
 
-  const subtotal = round2(enriched.reduce((sum, i) => sum + i.lineTotal, 0));
+  const ortAmount = round2(enriched.reduce((sum, i) => sum + i.ortBedrag, 0));
+  const subtotal = round2(enriched.reduce((sum, i) => sum + i.lineTotal + i.ortBedrag, 0));
   const vatAmount = round2(subtotal * (vatRate / 100));
   const total = round2(subtotal + vatAmount);
 
-  return { subtotal, vatAmount, total, items: enriched };
+  return { subtotal, ortAmount, vatAmount, total, items: enriched };
 }
 
 export function defaultUnit(type: ItemType): string {
