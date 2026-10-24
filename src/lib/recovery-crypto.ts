@@ -11,7 +11,7 @@ export function normalizeRecoveryCode(code: string) {
 export function createRecoveryCodes() {
   const codes = new Set<string>();
   while (codes.size < 10) codes.add(randomBytes(16).toString("hex").toUpperCase().match(/.{4}/g)!.join("-"));
-  return [...codes];
+  return Array.from(codes);
 }
 export function equalDigest(a: string | null | undefined, b: string) {
   if (!a || !/^[a-f0-9]{64}$/.test(a) || !/^[a-f0-9]{64}$/.test(b)) return false;

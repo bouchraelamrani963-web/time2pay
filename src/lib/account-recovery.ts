@@ -101,7 +101,7 @@ export async function beginRecovery(account: UserRecord, inputCode: string) {
     const startedAt = new Date();
     await tx.accountRecovery.update({ where: { userId: account.uid }, data: {
       status: "RESETTING", grantHash, startedAt, expiresAt: new Date(startedAt.getTime() + 15 * 60 * 1000),
-      oldFactors: [...new Set([...(state.oldFactors ?? []), ...(latest.multiFactor?.enrolledFactors.map(f => f.uid) ?? [])])],
+      oldFactors: Array.from(new Set([...(state.oldFactors ?? []), ...(latest.multiFactor?.enrolledFactors.map(f => f.uid) ?? [])])),
     } });
     await audit(tx, account.uid, "RECOVERY_STARTED", account.email!);
     return true;
