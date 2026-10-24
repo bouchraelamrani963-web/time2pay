@@ -14,7 +14,8 @@
     "db:studio": "prisma studio",
     "test:billing": "node --test tests/billing-access.test.mjs tests/billing-routes.test.cjs tests/invoice-email.test.cjs",
     "test:services": "node --test tests/service-rates.test.cjs",
-    "test:auth": "node --test tests/auth-mfa.test.cjs"
+    "test:auth": "node --test tests/auth-mfa.test.cjs",
+    "test:recovery": "node --test tests/auth-recovery.test.cjs tests/auth-recovery-db.test.cjs"
   },
   "prisma": {
     "schema": "prisma/schema.prisma"

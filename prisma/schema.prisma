@@ -117,3 +117,62 @@ enum ItemType {
   MATERIAL
   FIXED
 }
+
+
+// Recovery data is additive. No password, TOTP secret or plaintext recovery code.
+model AccountRecovery {
+  userId       String   @id
+  status       String   @default("NONE")
+  codesIssuedAt DateTime?
+  grantHash    String?  @unique
+  startedAt    DateTime?
+  expiresAt    DateTime?
+  oldFactors   String[] @default([])
+  updatedAt    DateTime @updatedAt
+  @@map("account_recovery")
+}
+model RecoveryCode {
+  id        String   @id @default(cuid())
+  userId    String
+  codeHash  String
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+  @@unique([userId, codeHash])
+  @@index([userId])
+  @@map("recovery_codes")
+}
+model SecurityRateBucket {
+  key         String   @id
+  attempts    Int      @default(0)
+  windowStart DateTime
+  blockedUntil DateTime?
+  @@map("security_rate_buckets")
+}
+model SecurityEvent {
+  id        String   @id @default(cuid())
+  userId    String
+  kind      String
+  createdAt DateTime @default(now())
+  @@index([userId, createdAt])
+  @@map("security_events")
+}
+model SecurityNotice {
+  id        String   @id @default(cuid())
+  userId    String
+  email     String
+  kind      String
+  sentAt    DateTime?
+  createdAt DateTime @default(now())
+  @@index([sentAt, createdAt])
+  @@map("security_notices")
+}
+model RecoverySupportRequest {
+  id        String   @id @default(cuid())
+  userId    String
+  contactEmail String
+  description String
+  status    String   @default("REVIEW_REQUIRED")
+  createdAt DateTime @default(now())
+  @@index([userId, createdAt])
+  @@map("recovery_support_requests")
+}

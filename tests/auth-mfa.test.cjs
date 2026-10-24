@@ -19,8 +19,8 @@ function load(file, stubs = {}, env = {}) {
 const policyFile = 'src/lib/auth-policy.ts';
 const policy = load(policyFile);
 const first = { email_verified: true, firebase: { sign_in_provider: 'password' } };
-const second = { email_verified: true, firebase: { sign_in_provider: 'password', sign_in_second_factor: 'totp' } };
-const enrolled = { disabled: false, multiFactor: { enrolledFactors: [{ factorId: 'totp' }] } };
+const second = { email_verified: true, firebase: { sign_in_provider: 'password', sign_in_second_factor: 'totp', second_factor_identifier: 'totp-test' } };
+const enrolled = { disabled: false, multiFactor: { enrolledFactors: [{ factorId: 'totp', uid: 'totp-test' }] } };
 const plain = { disabled: false };
 
 test('an enrolled account cannot use a password-only token, even before global enforcement', () => {
@@ -75,6 +75,9 @@ function fixture({ token = first, account = enrolled, required = false, revoked 
   const env = { TIME2PAY_REQUIRE_TOTP: String(required) };
   const actualPolicy = load(policyFile, {}, env);
   const stubs = {
+    '@/lib/account-recovery': { exchangeRecoverySession: async () => ({}), recoveryLocked: async () => false, deliverSecurityNotices: async () => {} },
+    './account-recovery': { recoveryLocked: async () => false },
+    '@/lib/recovery-config': { RECOVERY_COOKIE: '__Host-time2pay_recovery', recoveryEnabled: () => false },
     'server-only': {}, 'next/server': { NextResponse },
     'next/headers': { cookies: () => ({ get: () => ({ value: 'signed-session' }), set: (...args) => setCookies.push(args) }) },
     'next/navigation': { redirect: () => { throw Error('redirect'); } },

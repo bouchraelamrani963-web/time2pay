@@ -1,3 +1,5 @@
+import { RecoveryError, exchangeRecoverySession, deliverSecurityNotices } from "@/lib/account-recovery";
+import { RECOVERY_COOKIE, recoveryEnabled } from "@/lib/recovery-config";
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { getAdminAuth, getMissingFirebaseAdminEnv } from "@/lib/firebase-admin";
@@ -31,7 +33,7 @@ function firebaseAdminEnvError() {
 }
 
 export async function GET() {
-  return NextResponse.json(getMfaConfiguration(), { headers: { "Cache-Control": "no-store" } });
+  return NextResponse.json({ ...getMfaConfiguration(), recoveryEnabled: recoveryEnabled() }, { headers: { "Cache-Control": "no-store" } });
 }
 
 export async function POST(req: NextRequest) {
@@ -57,11 +59,14 @@ export async function POST(req: NextRequest) {
     if (!isRecentSignIn(decoded.auth_time)) {
       return NextResponse.json({ error: "recent_login_required", message: "Log opnieuw in om verder te gaan." }, { status: 401 });
     }
-    const account = await auth.getUser(decoded.uid);
+    let account = await auth.getUser(decoded.uid);
+    const recoveryResult = await exchangeRecoverySession(decoded, account, cookies().get(RECOVERY_COOKIE)?.value);
+    if (recoveryResult.recovered) account = await auth.getUser(decoded.uid);
     const accessError = mfaAccessError(decoded, account);
     if (accessError) {
       const messages = {
         account_disabled: "Dit account is uitgeschakeld.",
+        recovery_required: "Voltooi eerst je beveiligde accountherstel.",
         email_verification_required: "Bevestig eerst je e-mailadres.",
         mfa_setup_required: "Stel eerst je authenticator-app in.",
         mfa_required: "Voer de code uit je authenticator-app in.",
@@ -79,8 +84,13 @@ export async function POST(req: NextRequest) {
       path: "/",
     });
 
-    return NextResponse.json({ ok: true });
+    if (recoveryResult.recovered) cookies().delete(RECOVERY_COOKIE);
+    if (recoveryEnabled()) await deliverSecurityNotices(decoded.uid);
+    return NextResponse.json({ ok: true, ...recoveryResult }, { headers: { "Cache-Control": "no-store, private" } });
   } catch (error) {
+    if (error instanceof RecoveryError) return NextResponse.json({ error: error.code,
+      message: error.code === "mfa_setup_required" ? "Stel eerst je nieuwe authenticator in." : "Voltooi je beveiligde accountherstel of log opnieuw in." },
+      { status: error.status, headers: { "Cache-Control": "no-store, private" } });
     const info = safeErrorInfo(error);
     console.error("[auth/session POST]", info);
     return NextResponse.json(

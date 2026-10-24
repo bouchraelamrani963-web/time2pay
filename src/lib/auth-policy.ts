@@ -14,16 +14,17 @@ export function getMfaConfiguration() {
 
 export function mfaAccessError(
   token: Pick<DecodedIdToken, "firebase" | "email_verified">,
-  user: Pick<UserRecord, "multiFactor" | "disabled">,
+  user: Pick<UserRecord, "multiFactor" | "disabled" | "customClaims">,
   required = getMfaConfiguration().required,
-): "account_disabled" | "email_verification_required" | "mfa_setup_required" | "mfa_required" | null {
+): "recovery_required" | "account_disabled" | "email_verification_required" | "mfa_setup_required" | "mfa_required" | null {
   if (user.disabled) return "account_disabled";
+  if (user.customClaims?.time2payRecoveryLocked) return "recovery_required";
   const enrolled = user.multiFactor?.enrolledFactors ?? [];
   if (!required && enrolled.length === 0) return null;
   if (!token.email_verified) return "email_verification_required";
   if (!enrolled.some(factor => factor.factorId === "totp")) return "mfa_setup_required";
   // The signed Firebase claim is proof; client-supplied flags/codes are never trusted.
-  if (token.firebase?.sign_in_second_factor !== "totp") return "mfa_required";
+  if (token.firebase?.sign_in_second_factor !== "totp" || !enrolled.some(factor => factor.factorId === "totp" && factor.uid === token.firebase?.second_factor_identifier)) return "mfa_required";
   return null;
 }
 

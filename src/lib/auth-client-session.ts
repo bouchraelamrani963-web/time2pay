@@ -9,7 +9,7 @@ export async function startSession(idToken: string) {
     method: "POST", headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ idToken }),
   });
-  if (response.ok) return;
+  if (response.ok) return await response.json() as { ok: true; recoveryCodes?: string[]; recovered?: boolean };
   const body = await response.json().catch(() => ({}));
   throw new SessionError(body.error ?? "session_failed", body.message ?? "Inloggen is niet gelukt. Probeer opnieuw.");
 }

@@ -1,0 +1,56 @@
+name: Recovery draft checks
+on:
+  pull_request:
+    branches: [codex/time2pay-stripe-test]
+    paths:
+      - "src/**"
+      - "prisma/**"
+      - "tests/**"
+      - "package*.json"
+      - ".github/workflows/recovery-preview-checks.yml"
+permissions:
+  contents: read
+jobs:
+  recovery:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: recovery_ci
+          POSTGRES_PASSWORD: disposable_ci_only
+          POSTGRES_DB: time2pay_recovery_ci
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U recovery_ci -d time2pay_recovery_ci"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL: postgresql://recovery_ci:disposable_ci_only@127.0.0.1:5432/time2pay_recovery_ci
+      DIRECT_URL: postgresql://recovery_ci:disposable_ci_only@127.0.0.1:5432/time2pay_recovery_ci
+      TIME2PAY_RECOVERY_DB_TEST: "true"
+      TIME2PAY_RECOVERY_ENABLED: "false"
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - run: node --version
+      - run: npm ci --ignore-scripts
+      - run: npx prisma generate
+      - run: npx prisma db push --skip-generate
+      - run: npm run test:auth
+      - run: npm run test:recovery
+      - run: npm run test:billing
+      - run: npm run test:services
+      - run: npx tsc --noEmit
+      - run: npm run build
+  dependencies:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - run: npm ci --ignore-scripts
+      - run: npm audit --omit=dev --audit-level=high

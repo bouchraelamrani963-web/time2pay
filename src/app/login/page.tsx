@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import BrandLogo from "@/components/BrandLogo";
 import TotpEnrollment from "@/components/TotpEnrollment";
+import RecoveryCodes from "@/components/RecoveryCodes";
 import { useRouter } from "next/navigation";
 import {
   getMultiFactorResolver, multiFactor, reload, sendEmailVerification,
@@ -28,11 +29,13 @@ function friendlyError(error: unknown) {
   return "Inloggen is niet gelukt. Controleer je gegevens en probeer opnieuw.";
 }
 
-type Step = "password" | "code" | "verify-email" | "enroll";
+type Step = "password" | "code" | "verify-email" | "enroll" | "recoverycodes";
 
 export default function LoginPage() {
   const router = useRouter();
   const [nextPath, setNextPath] = useState("/dashboard");
+  const [recoveryCodes, setRecoveryCodes] = useState<string[]>([]);
+  const [recoveryAvailable, setRecoveryAvailable] = useState(false);
   const [wantsSetup, setWantsSetup] = useState(false);
   const [step, setStep] = useState<Step>("password");
   const [email, setEmail] = useState("");
@@ -48,6 +51,7 @@ export default function LoginPage() {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
+    fetch("/api/auth/session", { cache: "no-store" }).then(r => r.json()).then(c => setRecoveryAvailable(c.recoveryEnabled === true)).catch(() => {});
     setNextPath(safeNextPath(params.get("next")));
     setWantsSetup(params.get("security") === "setup");
   }, []);
@@ -69,7 +73,11 @@ export default function LoginPage() {
 
   async function finishSignIn(user: User, allowSetup = true) {
     try {
-      await startSession(await user.getIdToken(true));
+      const result = await startSession(await user.getIdToken(true));
+      if (result.recoveryCodes?.length === 10) {
+        setSecret(null); setCode(""); setPendingUser(null); setResolver(null);
+        setRecoveryCodes(result.recoveryCodes); setStep("recoverycodes"); return;
+      }
     } catch (err) {
       if (allowSetup && err instanceof SessionError && ["mfa_setup_required", "email_verification_required"].includes(err.code)) {
         await prepareEnrollment(user);
@@ -108,7 +116,7 @@ export default function LoginPage() {
         await multiFactor(pendingUser).enroll(assertion, "Time2Pay authenticator");
         setSecret(null); setCode(""); setPendingUser(null); setStep("password");
         await signOut(getFirebaseAuth());
-        setNotice("Authenticator gekoppeld. Log nu opnieuw in met je wachtwoord en je nieuwe code.");
+        setNotice("Authenticator gekoppeld. Log nu opnieuw in met je wachtwoord en je nieuwe code. Daarna ontvang je jouw herstelcodes.");
       }
     } catch (err) {
       if (typeof err === "object" && err !== null && "code" in err && err.code === "auth/multi-factor-auth-required") {
@@ -147,6 +155,8 @@ export default function LoginPage() {
     }
   }
 
+  if (step === "recoverycodes") return <main className="mx-auto max-w-xl px-5 py-12"><RecoveryCodes codes={recoveryCodes} onDone={() => { setRecoveryCodes([]); router.replace(nextPath); router.refresh(); }} /></main>;
+
   const factors = resolver?.hints.filter(h => h.factorId === TotpMultiFactorGenerator.FACTOR_ID) ?? [];
   return (
     <div className="min-h-[calc(100vh-5rem)] flex items-center justify-center bg-[#fbf8f5] px-4 py-16 sm:py-20">
@@ -183,9 +193,10 @@ export default function LoginPage() {
             </div>}
             {step !== "verify-email" && <button type="submit" disabled={busy} className={buttonClass}>{busy ? "Even controleren..." : step === "password" ? "Inloggen" : step === "enroll" ? "Authenticator koppelen" : "Code bevestigen"}</button>}
             {step !== "password" && <button type="button" disabled={busy} onClick={reset} className="w-full text-sm text-[#543749] underline">Opnieuw beginnen</button>}
-            {step === "code" && <p className="text-xs text-[#776c74]">Geen toegang tot je authenticator? Neem contact op met de beheerder voor veilig accountherstel.</p>}
+            {recoveryAvailable && <p className="text-sm"><Link href="/recover" className="text-[#543749] underline">Geen toegang tot je authenticator?</Link></p>}
           </form>
         </div>
+        {recoveryAvailable && <p className="mt-6 text-center text-sm"><Link href="/security" className="underline">Beveiliging en herstelcodes beheren</Link></p>}
         <p className="mt-6 text-center text-sm text-[#776c74]">Nog geen account? <Link href="/register" className="font-semibold text-[#543749]">Registreren</Link></p>
       </div>
     </div>
