@@ -98,3 +98,9 @@ Providerinschrijving en daadwerkelijke login met autorisatiecode zijn nog niet
 uitgevoerd. Vóór livegang ook veilig identiteitsherstel en verlies van telefoon
 testen. De eigenaar voert persoonlijke wachtwoord-/authenticator-inschrijving
 zelf uit. Live website en bestaande liveidentiteiten zijn ongewijzigd.
+
+## QR enrollment — 24 October 2026
+
+The enrollment screen now renders the Firebase `TotpSecret.generateQrCodeUrl(accountName, "Time2Pay")` URI directly as an SVG using pinned `qrcode.react` 4.2.0. No external QR image service, network request, persisted key or new auth API is introduced. The manual key remains available under “Lukt scannen niet? Instelsleutel invoeren”. Both paths use the same pending Firebase secret and existing six-digit verification before enrollment completes. The QR is only mounted during the enrollment step; existing reset, sign-out and enrollment completion clear that secret.
+
+Validation: existing 16 auth tests pass; Next build (including type checking) passes. Rendered SVG was rasterized and decoded locally at 224 and 192 pixels with synthetic test data: both results match the Firebase URI and manual key. Actual owner enrollment and authenticator confirmation still require the owner. Existing open setup pages will not contain the new UI until a new Preview page is opened and enrollment restarted. No Production deployment or live payment change is included.

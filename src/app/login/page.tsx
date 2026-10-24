@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import BrandLogo from "@/components/BrandLogo";
+import TotpEnrollment from "@/components/TotpEnrollment";
 import { useRouter } from "next/navigation";
 import {
   getMultiFactorResolver, multiFactor, reload, sendEmailVerification,
@@ -168,12 +169,7 @@ export default function LoginPage() {
               <button type="button" className={buttonClass} disabled={busy} onClick={() => verifyEmail("send")}>Bevestigingsmail versturen</button>
               <button type="button" className={buttonClass} disabled={busy} onClick={() => verifyEmail("check")}>E-mailadres controleren</button>
             </div>}
-            {step === "enroll" && secret && <div className="space-y-3 text-sm">
-              <p>Open je authenticator-app, voeg een account toe en kies ‘Instelsleutel invoeren’. Gebruik de naam Time2Pay en kies een tijdgebonden code.</p>
-              <p>Instelsleutel (bewaar deze privé):</p>
-              <code className="block break-all rounded bg-[#fbf8f5] p-3 select-all">{secret.secretKey}</code>
-              <p>Bewaar de hersteloptie van je authenticator veilig voordat je doorgaat. Zonder toegang tot je app kun je niet inloggen. Herstel via de beheerder vereist identiteitscontrole.</p>
-            </div>}
+            {step === "enroll" && secret && <TotpEnrollment secret={secret} accountName={pendingUser?.email || email} />}
             {step === "code" && factors.length > 1 && <div>
               <label htmlFor="factor" className="mb-2 block text-sm">Authenticator</label>
               <select id="factor" value={factorId} onChange={e => { setFactorId(e.target.value); setCode(""); }} className={inputClass}>
