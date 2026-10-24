@@ -1,6 +1,6 @@
 # TOTP recovery draft — 24 October 2026
 
-Status: NOT RELEASED. Recovery endpoints and pages are disabled by default and cannot be enabled in Production by this draft. No migration, real account reset or new credential configuration has been performed. Local execution environment is offline. Do not claim browser/provider acceptance from source inspection or CI mocks.
+Status: NOT RELEASED. Recovery endpoints and pages are disabled by default and cannot be enabled in Production by this draft. No migration on Preview/Production, real account reset or new credential configuration has been performed. CI rehearses the additive SQL against its own disposable database and compares the resulting schema. Local execution environment is offline. Do not claim browser/provider acceptance from source inspection or CI mocks.
 
 ## Existing integration retained
 

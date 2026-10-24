@@ -38,7 +38,12 @@ jobs:
       - run: node --version
       - run: npm ci --ignore-scripts
       - run: npx prisma generate
-      - run: npx prisma db push --skip-generate
+      - name: Rehearse additive recovery migration on disposable database
+        run: |
+          node -e 'const fs=require("node:fs");const schema=fs.readFileSync("prisma/schema.prisma","utf8");const parts=schema.split("// Recovery data is additive.");if(parts.length!==2)throw Error("Baseline marker missing");fs.writeFileSync("prisma/recovery-ci-baseline.prisma",parts[0]);'
+          npx prisma db push --schema prisma/recovery-ci-baseline.prisma --skip-generate
+          npx prisma db execute --schema prisma/schema.prisma --file prisma/migrations/20261024160000_auth_recovery/migration.sql
+          npx prisma migrate diff --from-url "$DATABASE_URL" --to-schema-datamodel prisma/schema.prisma --exit-code
       - run: node --test tests/*.test.cjs tests/*.test.mjs
       - run: npx tsc --noEmit
         if: ${{ !cancelled() }}
