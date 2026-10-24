@@ -119,6 +119,20 @@ enum ItemType {
 }
 
 
+model InvoiceIssue {
+  id             String   @id @default(cuid())
+  userId         String
+  invoiceId      String
+  subscriptionId String
+  periodStart    Int
+  periodEnd      Int
+  createdAt      DateTime @default(now())
+
+  @@unique([userId, invoiceId])
+  @@index([userId, subscriptionId, periodStart])
+  @@map("invoice_issues")
+}
+
 // Recovery data is additive. No password, TOTP secret or plaintext recovery code.
 model AccountRecovery {
   userId       String   @id
@@ -163,7 +177,17 @@ model SecurityNotice {
   kind      String
   sentAt    DateTime?
   createdAt DateTime @default(now())
+  attempts Int @default(0)
+  nextAttemptAt DateTime @default(now())
+  leaseToken String?
+  leaseUntil DateTime?
+  failedAt DateTime?
+  lastErrorCode String?
+  providerId String?
+  workflowRunId String?
+  dispatchLeaseUntil DateTime?
   @@index([sentAt, createdAt])
+  @@index([sentAt, failedAt, nextAttemptAt])
   @@map("security_notices")
 }
 model RecoverySupportRequest {

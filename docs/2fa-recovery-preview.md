@@ -1,12 +1,12 @@
 # TOTP recovery draft — 24 October 2026
 
-Status: NOT RELEASED. Recovery endpoints and pages are disabled by default and cannot be enabled in Production by this draft. No migration on Preview/Production, real account reset or new credential configuration has been performed. CI rehearses the additive SQL against its own disposable database and compares the resulting schema. Local execution environment is offline. Do not claim browser/provider acceptance from source inspection or CI mocks.
+Status: NOT RELEASED. Recovery endpoints and pages are disabled by default and cannot be enabled in Production by this draft. No migration on Preview/Production, real account reset or new credential configuration has been performed. CI rehearses the additive SQL against its own disposable database and compares the resulting schema. Local dependency audit is now zero across all packages; 65 non-database tests, TypeScript and the Next 16 build pass. Ten PostgreSQL/provider-mocked database tests run in disposable CI; Firebase practice tests remain outstanding. Do not claim browser/provider acceptance from source inspection or CI mocks.
 
 ## Existing integration retained
 
 Firebase Auth email/password remains the first factor; Firebase TOTP is the only second factor. Existing QR enrollment and MultiFactorResolver are reused. Address-verification email remains account setup, never a second factor. Recovery notices contain no login code or approval link. There is no new password database, custom login token, email OTP or security question.
 
-The server verifies recovery passwords through the existing project's official accounts:signInWithPassword endpoint, binds its returned localId, email and enrolled MFA identifiers to Admin SDK user data, and never accepts a client-supplied UID or pending credential. The documented response must be verified against the actual isolated project (including API key/reCAPTCHA restrictions) before activation.
+The server verifies recovery passwords through the existing project's official accounts:signInWithPassword endpoint, binds its server-verified email (and localId/email when returned) and enrolled MFA identifiers to Admin SDK user data, and never accepts a client-supplied UID or pending credential. The documented response must be verified against the actual isolated project (including API key/reCAPTCHA restrictions) before activation.
 
 ## Codes and access boundary
 
@@ -22,7 +22,9 @@ An added reserve authenticator uses the existing Firebase enrollment API after f
 
 Recovery POSTs require exact same-origin JSON, bounded bodies and persistent HMAC-keyed account/email/IP limits. IP comes only from Vercel's platform-set x-vercel-forwarded-for; validate anti-spoofing on Preview. Limits: five email/account attempts per 15 minutes; 20 per source IP; three code regenerations/hour; two support requests/account/day. Unknown/incorrect/used codes share a generic failure response. The response never discloses account status, factors or code counts.
 
-Events and notification outbox are committed with security changes. Mail reuses isolated Preview mail configuration and is forced to delivered@resend.dev; failures retain unsent notices. A tested retry worker, retention/monitoring policy and deliverability checks are still required before production release. Never treat notification email as authentication or ownership evidence.
+Events and notification outbox are committed with security changes. Mail reuses isolated Preview mail configuration and is forced to delivered@resend.dev; failures retain unsent notices. A durable Workflow worker now retries with 1m/5m/15m/1h/3h/6h delays, finite HTTP timeouts, atomic send leases, stable provider idempotency keys and a 23-hour delivery window. Only opaque notice IDs and retry timestamps enter the Workflow event log; no credentials, email addresses or recovery codes. `sentAt` records provider acceptance, never confirmed inbox delivery. Exhausted/expired notices remain in a dead-letter state with structured opaque-ID logs for manual review; provider error text is not persisted.
+
+Set TIME2PAY_SECURITY_NOTICES_ENABLED=true only after applying both recovery/outbox migrations, isolated Resend configuration and a strong server-only CRON_SECRET. The worker uses the existing Preview mail sink. The authenticated /api/internal/security-notices sweeper dispatches stranded rows and restarts failed Workflow runs. vercel.json prepares a daily production sweep; Vercel Cron does not run automatically on Preview, so an independently scheduled authenticated Preview sweep is still a release test requirement. Normal provider failure retries run durably without another visitor request. Monitoring/retention and actual Preview worker/provider recovery evidence remain required. Never claim automatic delivery has been proven from mocks. Never treat notification email as authentication or ownership evidence.
 
 ## Support policy — default deny
 
@@ -49,7 +51,7 @@ Before any integration/activation:
 4. Test real registration/address verification, initial QR enrollment + ten-code display/download/print, normal password+TOTP login, second authenticator and both choices.
 5. Test loss of authenticator, used/incorrect code, simultaneous requests, expired/forged/stolen grant from another account, browser refresh/lost cookie, interrupted Firebase operations, existing session revocation, provider outage and reCAPTCHA/API key restrictions.
 6. Verify every protected API/page denies password-only and pending-recovery tokens; test a removed factor, disabled account, global flag off, rollback and CSRF.
-7. Complete notification retry worker, retention/monitoring, operator access/strong ownership policy and support denial/outcome tests. No admin reset shortcut.
+7. Prove the notification Workflow and independently scheduled Preview sweep against real isolated infrastructure; configure dead-letter monitoring and retention. Complete operator access/strong ownership policy and support denial/outcome tests. No admin reset shortcut.
 8. Restore-tested production backup, production-only credentials, explicit rollout design for existing MFA users, and final production checks remain required. This draft deliberately cannot enable production recovery.
 
 Rollback must preserve the additive tables and enforce the custom recovery lock. Do not roll back to a version that ignores it or unset/delete pending recovery state; a failure requires controlled repair, never automatic unlock.

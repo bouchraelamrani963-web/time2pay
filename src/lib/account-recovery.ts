@@ -4,7 +4,6 @@ import type { Prisma } from "@prisma/client";
 import { randomBytes } from "node:crypto";
 import { prisma } from "./prisma";
 import { getAdminAuth } from "./firebase-admin";
-import { getInvoiceEmailConfig } from "./email";
 import { recoveryEnabled, recoverySecret } from "./recovery-config";
 import { createRecoveryCodes, equalDigest, normalizeRecoveryCode, recoveryDigest } from "./recovery-crypto";
 import { mayCompleteRecovery, signedTotpFactor } from "./recovery-policy";
@@ -48,10 +47,13 @@ export async function verifyRecoveryPassword(email: string, password: string) {
     cache: "no-store", signal: AbortSignal.timeout(10000),
   });
   const data = await result.json().catch(() => null);
-  if (!result.ok || typeof data?.localId !== "string" || typeof data?.email !== "string" ||
-      data.email.toLowerCase() !== email.toLowerCase()) throw new RecoveryError("invalid_recovery");
-  const account = await getAdminAuth().getUser(data.localId);
-  if (account.disabled || !account.emailVerified || account.email?.toLowerCase() !== data.email.toLowerCase() ||
+  if (!result.ok || !data || (data.email && data.email.toLowerCase() !== email.toLowerCase())) throw new RecoveryError("invalid_recovery");
+  // Firebase's MFA challenge response may omit localId/email. This response was obtained
+  // directly from Firebase after password verification, never accepted from the browser.
+  const account = typeof data.localId === "string"
+    ? await getAdminAuth().getUser(data.localId)
+    : await getAdminAuth().getUserByEmail(email);
+  if (account.disabled || !account.emailVerified || account.email?.toLowerCase() !== email.toLowerCase() ||
       !account.providerData.some(p => p.providerId === "password")) throw new RecoveryError("invalid_recovery");
   const state = await prisma.accountRecovery.findUnique({ where: { userId: account.uid } });
   const hasPendingMfa = typeof data.mfaPendingCredential === "string" && data.mfaPendingCredential.length > 0 &&
@@ -178,20 +180,12 @@ export async function submitRecoverySupport(account: UserRecord, contactEmail: s
   });
 }
 export async function deliverSecurityNotices(userId: string) {
+  if (!recoveryEnabled() || process.env.TIME2PAY_SECURITY_NOTICES_ENABLED !== "true") return;
   try {
-    const { resend, from, testRecipient } = getInvoiceEmailConfig();
-    const notices = await prisma.securityNotice.findMany({ where: { userId, sentAt: null }, orderBy: { createdAt: "asc" }, take: 10 });
-    for (const notice of notices) {
-      const { error } = await resend.emails.send({
-        from, to: testRecipient || notice.email,
-        subject: (testRecipient ? "[TEST] " : "") + "Time2Pay beveiligingsmelding",
-        text: "Op " + notice.createdAt.toISOString() + " is een beveiligingsactie uitgevoerd: " + notice.kind +
-          ". Was jij dit niet? Neem direct contact op met support. Deel nooit je wachtwoord, authenticator- of herstelcodes.",
-      }, { idempotencyKey: "security-notice-" + notice.id });
-      if (error) break;
-      await prisma.securityNotice.update({ where: { id: notice.id }, data: { sentAt: new Date() } });
-    }
+    const { dispatchSecurityNotices } = await import("./security-notice-dispatch");
+    await dispatchSecurityNotices(userId);
   } catch {
-    // Durable outbox retained; no secrets in logs. Release requires a tested retry worker.
+    // The transaction already persisted the outbox. The authenticated sweeper retries dispatch.
+    console.error("security_notice_dispatch_pending");
   }
 }

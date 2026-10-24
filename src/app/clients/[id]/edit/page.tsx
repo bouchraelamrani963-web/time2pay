@@ -17,13 +17,14 @@ function nullableText(formData: FormData, field: string) {
   return value.length > 0 ? value : null;
 }
 
-export default async function EditClientPage({
-  params,
-  searchParams,
-}: {
-  params: { id: string };
-  searchParams?: { error?: string };
-}) {
+export default async function EditClientPage(
+  props: {
+    params: Promise<{ id: string }>;
+    searchParams?: Promise<{ error?: string }>;
+  }
+) {
+  const searchParams = await props.searchParams;
+  const params = await props.params;
   const user = await requireUser();
   const client = await prisma.client.findFirst({
     where: { id: params.id, userId: user.uid },

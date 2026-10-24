@@ -9,7 +9,6 @@ import {
   Trash2,
   CheckCircle,
   Send,
-  RotateCcw,
   BellRing,
   AlertTriangle,
   Calendar,
@@ -56,7 +55,6 @@ const STATUS_TRANSITIONS: Partial<Record<InvoiceStatus, { label: string; next: I
   DRAFT: { label: "Markeer als verzonden", next: "SENT", icon: <Send size={15} /> },
   SENT: { label: "Markeer als betaald", next: "PAID", icon: <CheckCircle size={15} /> },
   OVERDUE: { label: "Markeer als betaald", next: "PAID", icon: <CheckCircle size={15} /> },
-  PAID: { label: "Terugzetten naar concept", next: "DRAFT", icon: <RotateCcw size={15} /> },
 };
 
 export default function InvoiceView({ invoice, canExport }: Props) {
@@ -77,12 +75,17 @@ export default function InvoiceView({ invoice, canExport }: Props) {
     try {
       const response = await fetch(`/api/invoices/${invoice.id}/pdf`, { cache: "no-store" });
       if (response.status === 402) return router.push("/billing");
-      if (!response.ok) throw new Error("PDF openen mislukt");
+      if (!response.ok) throw new Error(getApiErrorMessage(await readApiResponse(response), "PDF openen mislukt"));
       const blob = await response.blob();
-      if (print) { window.print(); return; }
+
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
+      if (print) {
+        link.target = "_blank"; link.rel = "noopener"; link.click();
+        toast.success("Open de PDF en gebruik daar Afdrukken.");
+        setTimeout(() => URL.revokeObjectURL(url), 60000); return;
+      }
       link.download = `factuur-${invoice.number.replace(/[^a-zA-Z0-9_-]/g, "_")}.pdf`;
       link.click();
       setTimeout(() => URL.revokeObjectURL(url), 1000);
@@ -100,11 +103,11 @@ export default function InvoiceView({ invoice, canExport }: Props) {
         body: JSON.stringify({ status }),
       });
       if (res.status === 402) return router.push("/billing");
-      if (!res.ok) throw new Error();
+      if (!res.ok) throw new Error(getApiErrorMessage(await readApiResponse(res), "Bijwerken mislukt"));
       toast.success("Status bijgewerkt");
       router.refresh();
-    } catch {
-      toast.error("Bijwerken mislukt");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Bijwerken mislukt");
     } finally {
       setBusy(false);
     }
@@ -146,7 +149,7 @@ export default function InvoiceView({ invoice, canExport }: Props) {
   const transition = STATUS_TRANSITIONS[effStatus];
 
   return (
-    <div className={`space-y-6 ${!canExport ? "invoice-preview-locked" : ""}`}>
+    <div className="space-y-6 invoice-preview-locked">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-3 flex-wrap">
           <h1 className="text-2xl font-bold font-mono text-[#33243b]">{invoice.number}</h1>
@@ -194,10 +197,10 @@ export default function InvoiceView({ invoice, canExport }: Props) {
 
       {!canExport && <div className="card p-4 text-sm no-print">
         <strong>Gratis conceptfactuur</strong>
-        <p>Je kunt één factuur opstellen. Voor verzenden, PDF downloaden of afdrukken is een betaald abonnement nodig.</p>
+        <p>Je kunt gratis conceptfacturen opstellen. Voor verzenden, PDF downloaden of afdrukken is een betaald abonnement nodig.</p>
         <button className="btn-primary mt-3" onClick={() => router.push("/billing")}>Bekijk abonnementen</button>
       </div>}
-      {!canExport && <p className="locked-print-message hidden">Concept — een betaald Time2Pay-abonnement is vereist om deze factuur af te drukken.</p>}
+      <p className="locked-print-message hidden">Concept — gebruik de knop Afdrukken voor de gecontroleerde definitieve PDF.</p>
       {isOverdue && (
         <div className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 no-print">
           <AlertTriangle size={18} className="mt-0.5 shrink-0" />
@@ -217,7 +220,7 @@ export default function InvoiceView({ invoice, canExport }: Props) {
       <div className={`card p-6 space-y-6 print:shadow-none print:border-none ${isOverdue ? "ring-1 ring-red-200" : ""}`} id="invoice-print">
         <div className="flex justify-between items-start">
           <div>
-            <p className="text-2xl font-semibold tracking-tight text-[#543749]">Time<span className="text-[#33243b]">2Pay</span></p>
+            <p className="text-2xl font-semibold tracking-tight text-[#543749]">Time<span className="text-[#b3846d]">2</span>Pay</p>
           </div>
           <div className="text-right text-sm text-[#675b66] space-y-0.5">
             <p className="text-lg font-bold font-mono text-[#33243b]">{invoice.number}</p>

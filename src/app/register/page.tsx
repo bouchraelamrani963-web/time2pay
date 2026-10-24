@@ -116,7 +116,7 @@ export default function RegisterPage() {
           <Link href="/" aria-label="Time2Pay – homepage" className="mb-8 inline-flex items-center justify-center"><BrandLogo size="auth" /></Link>
           <h1 className="text-3xl font-semibold tracking-[-0.03em] text-[#33243b]">Account aanmaken</h1>
           <p className="mt-2 text-sm text-[#776c74]">
-            Registreer gratis, zonder betaalgegevens, en stel één conceptfactuur op. Voor verzenden, PDF downloaden en afdrukken kies je een betaald abonnement.
+            Registreer gratis, zonder betaalgegevens, en stel conceptfacturen op. Voor verzenden, PDF downloaden en afdrukken kies je een betaald abonnement.
           </p>
         </div>
 

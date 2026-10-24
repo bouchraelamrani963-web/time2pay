@@ -7,6 +7,8 @@ on:
       - "prisma/**"
       - "tests/**"
       - "package*.json"
+      - "next.config.mjs"
+      - "vercel.json"
       - ".github/workflows/recovery-preview-checks.yml"
 permissions:
   contents: read
@@ -40,10 +42,18 @@ jobs:
       - run: npx prisma generate
       - name: Rehearse additive recovery migration on disposable database
         run: |
-          node -e 'const fs=require("node:fs");const schema=fs.readFileSync("prisma/schema.prisma","utf8");const parts=schema.split("// Recovery data is additive.");if(parts.length!==2)throw Error("Baseline marker missing");fs.writeFileSync("prisma/recovery-ci-baseline.prisma",parts[0]);'
+          node -e 'const fs=require("node:fs");const schema=fs.readFileSync("prisma/schema.prisma","utf8");const parts=schema.split("// Recovery data is additive.");if(parts.length!==2)throw Error("Baseline marker missing");fs.writeFileSync("prisma/recovery-ci-baseline.prisma",parts[0].replace(/model InvoiceIssue \{[\s\S]*?\n\}/,""));'
           npx prisma db push --schema prisma/recovery-ci-baseline.prisma --skip-generate
+          node tests/migration-preservation.cjs seed
+          npx prisma db execute --schema prisma/schema.prisma --file prisma/migrations/20261024090000_billing_issuance/migration.sql
           npx prisma db execute --schema prisma/schema.prisma --file prisma/migrations/20261024160000_auth_recovery/migration.sql
+          npx prisma db execute --schema prisma/schema.prisma --file prisma/migrations/20261024180000_security_notice_retry/migration.sql
           npx prisma migrate diff --from-url "$DATABASE_URL" --to-schema-datamodel prisma/schema.prisma --exit-code
+          node tests/migration-preservation.cjs assert
+          docker exec "${{ job.services.postgres.id }}" pg_dump -U recovery_ci -d time2pay_recovery_ci --clean --if-exists > /tmp/time2pay-ci-backup.sql
+          node tests/migration-preservation.cjs disturb
+          docker exec -i "${{ job.services.postgres.id }}" psql -U recovery_ci -d time2pay_recovery_ci -v ON_ERROR_STOP=1 < /tmp/time2pay-ci-backup.sql > /tmp/time2pay-restore.log
+          node tests/migration-preservation.cjs assert
       - run: node --test tests/*.test.cjs tests/*.test.mjs
       - run: npx tsc --noEmit
         if: ${{ !cancelled() }}
@@ -57,4 +67,4 @@ jobs:
         with:
           persist-credentials: false
       - run: npm ci --ignore-scripts
-      - run: npm audit --omit=dev --audit-level=high
+      - run: npm audit --audit-level=low

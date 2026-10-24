@@ -30,7 +30,8 @@ function DetailRow({ label, value }: { label: string; value?: string | null }) {
   );
 }
 
-export default async function ClientDetailPage({ params }: { params: { id: string } }) {
+export default async function ClientDetailPage(props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const user = await requireUser();
   const client = await prisma.client.findFirst({
     where: { id: params.id, userId: user.uid },

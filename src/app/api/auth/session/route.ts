@@ -14,7 +14,6 @@ function safeErrorInfo(error: unknown) {
   return {
     name: typeof record.name === "string" ? record.name : error instanceof Error ? error.name : "UnknownError",
     code: typeof record.code === "string" ? record.code : undefined,
-    message: typeof record.message === "string" ? record.message : error instanceof Error ? error.message : "Onbekende fout",
   };
 }
 
@@ -60,7 +59,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "recent_login_required", message: "Log opnieuw in om verder te gaan." }, { status: 401 });
     }
     let account = await auth.getUser(decoded.uid);
-    const recoveryResult = await exchangeRecoverySession(decoded, account, cookies().get(RECOVERY_COOKIE)?.value);
+    const recoveryResult = await exchangeRecoverySession(decoded, account, (await cookies()).get(RECOVERY_COOKIE)?.value);
     if (recoveryResult.recovered) account = await auth.getUser(decoded.uid);
     const accessError = mfaAccessError(decoded, account);
     if (accessError) {
@@ -76,7 +75,7 @@ export async function POST(req: NextRequest) {
     const expiresIn = SESSION_MAX_AGE_DAYS * 24 * 60 * 60 * 1000;
     const sessionCookie = await getAdminAuth().createSessionCookie(idToken, { expiresIn });
 
-    cookies().set(SESSION_COOKIE, sessionCookie, {
+    (await cookies()).set(SESSION_COOKIE, sessionCookie, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
@@ -84,7 +83,7 @@ export async function POST(req: NextRequest) {
       path: "/",
     });
 
-    if (recoveryResult.recovered) cookies().delete(RECOVERY_COOKIE);
+    if (recoveryResult.recovered) (await cookies()).delete(RECOVERY_COOKIE);
     if (recoveryEnabled()) await deliverSecurityNotices(decoded.uid);
     return NextResponse.json({ ok: true, ...recoveryResult }, { headers: { "Cache-Control": "no-store, private" } });
   } catch (error) {
@@ -100,9 +99,12 @@ export async function POST(req: NextRequest) {
   }
 }
 
-export async function DELETE() {
+export async function DELETE(req: NextRequest) {
+  if (req.headers.get("origin") !== new URL(req.url).origin) {
+    return NextResponse.json({ error: "invalid_origin" }, { status: 403 });
+  }
   try {
-    const cookieStore = cookies();
+    const cookieStore = await cookies();
     const session = cookieStore.get(SESSION_COOKIE)?.value;
     if (session) {
       const envError = firebaseAdminEnvError();

@@ -8,7 +8,8 @@ import InvoiceView from "@/components/InvoiceView";
 import SendInvoiceButton from "@/components/SendInvoiceButton";
 import type { Invoice } from "@/types/invoice";
 
-export default async function InvoiceDetailPage({ params }: { params: { id: string } }) {
+export default async function InvoiceDetailPage(props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const user = await requireUser();
   const canExport = await hasPaidSubscription(user.uid);
   const raw = await prisma.invoice.findFirst({

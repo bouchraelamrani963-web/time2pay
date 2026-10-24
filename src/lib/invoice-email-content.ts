@@ -64,50 +64,50 @@ export function buildInvoiceHtml(params: {
       const unitLabel = item.unit || itemTypeLabels[item.type] || item.type;
       return `
         <tr>
-          <td style="padding: 12px; border-bottom: 1px solid #e5e7eb;">${escapeHtml(item.description)}${(item.ortBedrag ?? 0) > 0 ? `<div style="font-size: 12px; color: #9a624d;">Basis ${escapeHtml(currencyFormatter.format(item.lineTotal))} + ORT ${escapeHtml(item.ortPerc ?? 0)}%: +${escapeHtml(currencyFormatter.format(item.ortBedrag ?? 0))}</div>` : ""}</td>
-          <td style="padding: 12px; border-bottom: 1px solid #e5e7eb;">${escapeHtml(shiftLabel(item.serviceType) || itemTypeLabels[item.type] || item.type)}</td>
-          <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: right;">${escapeHtml(formatNumber(item.quantity))} ${escapeHtml(unitLabel)}</td>
-          <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: right;">${escapeHtml(currencyFormatter.format(item.unitPrice))}</td>
-          <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: right; font-weight: 600;">${escapeHtml(currencyFormatter.format(item.lineTotal + (item.ortBedrag ?? 0)))}</td>
+          <td style="padding: 12px; border-bottom: 1px solid #E9DEDA;">${escapeHtml(item.description)}${(item.ortBedrag ?? 0) > 0 ? `<div style="font-size: 12px; color: #9a624d;">Basis ${escapeHtml(currencyFormatter.format(item.lineTotal))} + ORT ${escapeHtml(item.ortPerc ?? 0)}%: +${escapeHtml(currencyFormatter.format(item.ortBedrag ?? 0))}</div>` : ""}</td>
+          <td style="padding: 12px; border-bottom: 1px solid #E9DEDA;">${escapeHtml(shiftLabel(item.serviceType) || itemTypeLabels[item.type] || item.type)}</td>
+          <td style="padding: 12px; border-bottom: 1px solid #E9DEDA; text-align: right;">${escapeHtml(formatNumber(item.quantity))} ${escapeHtml(unitLabel)}</td>
+          <td style="padding: 12px; border-bottom: 1px solid #E9DEDA; text-align: right;">${escapeHtml(currencyFormatter.format(item.unitPrice))}</td>
+          <td style="padding: 12px; border-bottom: 1px solid #E9DEDA; text-align: right; font-weight: 600;">${escapeHtml(currencyFormatter.format(item.lineTotal + (item.ortBedrag ?? 0)))}</td>
         </tr>`;
     })
     .join("");
 
   return `
-    <div style="margin: 0; padding: 0; background: #f8fafc; font-family: Arial, sans-serif; color: #111827;">
+    <div style="margin: 0; padding: 0; background: #FBF8F5; font-family: Arial, sans-serif; color: #33243B;">
       <div style="max-width: 720px; margin: 0 auto; padding: 32px 16px;">
-        <div style="background: #ffffff; border: 1px solid #e5e7eb; border-radius: 16px; overflow: hidden;">
-          <div style="padding: 28px 32px; border-bottom: 1px solid #e5e7eb;">
-            <div style="font-size: 22px; font-weight: 700; color: #2563eb;">Time2Pay</div>
+        <div style="background: #ffffff; border: 1px solid #E9DEDA; border-radius: 16px; overflow: hidden;">
+          <div style="padding: 28px 32px; border-bottom: 1px solid #E9DEDA;">
+            <div style="font-size: 22px; font-weight: 700; letter-spacing: -0.7px; color: #543749;">Time<span style="color: #B3846D;">2</span>Pay</div>
             <h1 style="margin: 24px 0 8px; font-size: 24px; line-height: 1.3;">Factuur ${escapeHtml(params.invoiceNumber)}</h1>
-            <p style="margin: 0; color: #4b5563;">Beste ${escapeHtml(params.clientName)}, hierbij ontvang je de factuur. Graag betalen vóór de vervaldatum.</p>
+            <p style="margin: 0; color: #726771;">Beste ${escapeHtml(params.clientName)}, hierbij ontvang je de factuur. Graag betalen vóór de vervaldatum.</p>
           </div>
 
           <div style="padding: 28px 32px;">
             <table style="width: 100%; border-collapse: collapse; margin-bottom: 28px;">
               <tbody>
                 <tr>
-                  <td style="padding: 8px 0; color: #6b7280;">Klant</td>
+                  <td style="padding: 8px 0; color: #897D83;">Klant</td>
                   <td style="padding: 8px 0; text-align: right; font-weight: 600;">${escapeHtml(params.clientName)}</td>
                 </tr>
                 <tr>
-                  <td style="padding: 8px 0; color: #6b7280;">Afzender</td>
+                  <td style="padding: 8px 0; color: #897D83;">Afzender</td>
                   <td style="padding: 8px 0; text-align: right; font-weight: 600;">${escapeHtml(params.senderName)}</td>
                 </tr>
                 <tr>
-                  <td style="padding: 8px 0; color: #6b7280;">Factuurdatum</td>
+                  <td style="padding: 8px 0; color: #897D83;">Factuurdatum</td>
                   <td style="padding: 8px 0; text-align: right; font-weight: 600;">${escapeHtml(dateFormatter.format(params.issueDate))}</td>
                 </tr>
                 <tr>
-                  <td style="padding: 8px 0; color: #6b7280;">Vervaldatum</td>
+                  <td style="padding: 8px 0; color: #897D83;">Vervaldatum</td>
                   <td style="padding: 8px 0; text-align: right; font-weight: 600;">${escapeHtml(dateFormatter.format(params.dueDate))}</td>
                 </tr>
               </tbody>
             </table>
 
-            <table style="width: 100%; border-collapse: collapse; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden;">
+            <table style="width: 100%; border-collapse: collapse; border: 1px solid #E9DEDA; border-radius: 12px; overflow: hidden;">
               <thead>
-                <tr style="background: #f3f4f6; color: #374151;">
+                <tr style="background: #F3ECE7; color: #543749;">
                   <th style="padding: 12px; text-align: left;">Omschrijving</th>
                   <th style="padding: 12px; text-align: left;">Type</th>
                   <th style="padding: 12px; text-align: right;">Aantal</th>
@@ -128,9 +128,9 @@ export function buildInvoiceHtml(params: {
             </div>
             ${params.notes?.trim()
               ? `
-              <div style="margin-top: 24px; padding: 16px; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 12px;">
-                <div style="margin-bottom: 8px; font-size: 13px; font-weight: 700; color: #374151;">Notities / betaalinformatie</div>
-                <div style="white-space: pre-line; color: #374151; font-size: 14px; line-height: 1.6;">${escapeHtml(params.notes)}</div>
+              <div style="margin-top: 24px; padding: 16px; background: #FBF8F5; border: 1px solid #E9DEDA; border-radius: 12px;">
+                <div style="margin-bottom: 8px; font-size: 13px; font-weight: 700; color: #543749;">Notities / betaalinformatie</div>
+                <div style="white-space: pre-line; color: #543749; font-size: 14px; line-height: 1.6;">${escapeHtml(params.notes)}</div>
               </div>`
               : ""}
           </div>

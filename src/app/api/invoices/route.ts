@@ -6,7 +6,6 @@ import { effectiveStatus } from "@/lib/invoice-status";
 import type { InvoiceStatus } from "@/types/invoice";
 import { InvoiceItemSchema, ortPermissionError } from "@/lib/shift-rates";
 import { z } from "zod";
-import { hasPaidSubscription, paymentRequired } from "@/lib/billing";
 
 export const runtime = "nodejs";
 
@@ -76,17 +75,7 @@ export async function POST(req: NextRequest) {
 
     const { subtotal, vatAmount, total } = calcInvoiceTotals(data.items, data.vatRate);
 
-    const paid = await hasPaidSubscription(user.uid);
     const invoice = await prisma.$transaction(async (tx) => {
-      if (!paid) {
-        await tx.billingAccount.createMany({ data: [{ userId: user.uid }], skipDuplicates: true });
-        const claimed = await tx.billingAccount.updateMany({
-          where: { userId: user.uid, freeInvoiceUsed: false }, data: { freeInvoiceUsed: true },
-        });
-        if (!claimed.count || await tx.invoice.count({ where: { userId: user.uid } }) > 0) {
-          throw new Error("FREE_INVOICE_USED");
-        }
-      }
       return tx.invoice.create({
       data: {
         userId: user.uid,
@@ -124,9 +113,8 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(invoice, { status: 201 });
   } catch (err) {
-    if (err instanceof Error && err.message === "FREE_INVOICE_USED") return paymentRequired();
     if (err instanceof z.ZodError) {
-      return NextResponse.json({ error: err.errors }, { status: 422 });
+      return NextResponse.json({ error: err.issues }, { status: 422 });
     }
     return NextResponse.json({ error: "Factuur aanmaken mislukt" }, { status: 500 });
   }

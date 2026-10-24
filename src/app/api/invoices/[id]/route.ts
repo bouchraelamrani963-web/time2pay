@@ -1,3 +1,4 @@
+import { authorizeInvoiceIssue } from "@/lib/invoice-issuance";
 import { NextRequest, NextResponse } from "next/server";
 import { hasPaidSubscription, paymentRequired } from "@/lib/billing";
 import type { Prisma } from "@prisma/client";
@@ -28,8 +29,9 @@ async function findOwnedInvoice(id: string, uid: string) {
 
 export async function GET(
   _req: NextRequest,
-  { params }: { params: { id: string } }
+  { params: promisedParams }: { params: Promise<{ id: string }> }
 ) {
+  const params = await promisedParams;
   const user = await requireUserOrUnauthorized();
   if (user instanceof Response) return user;
 
@@ -47,8 +49,9 @@ export async function GET(
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params: promisedParams }: { params: Promise<{ id: string }> }
 ) {
+  const params = await promisedParams;
   const user = await requireUserOrUnauthorized();
   if (user instanceof Response) return user;
 
@@ -63,7 +66,14 @@ export async function PATCH(
     }
     if (data.status && data.status !== "DRAFT" && !await hasPaidSubscription(user.uid)) return paymentRequired();
 
+    if (data.status && data.status !== "DRAFT" && data.status !== "CANCELLED") {
+      const denied = await authorizeInvoiceIssue(user.uid, params.id);
+      if (denied) return denied;
+    }
     const invoice = await prisma.$transaction(async tx => {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${user.uid}))`;
+      const issued = await tx.invoiceIssue.findUnique({ where: { userId_invoiceId: { userId: user.uid, invoiceId: params.id } } });
+      if (issued && (data.items !== undefined || data.clientId !== undefined || data.vatRate !== undefined || data.ortAgreed !== undefined || data.notes !== undefined || data.dueDate !== undefined || data.status === "DRAFT")) throw new Error("FINAL_INVOICE_LOCKED");
       const current = await tx.invoice.findFirst({ where: { id: params.id, userId: user.uid }, include: { items: true } });
       if (!current) return null;
       const changingPricing = data.items !== undefined || data.clientId !== undefined || data.vatRate !== undefined || data.ortAgreed !== undefined;
@@ -107,11 +117,12 @@ export async function PATCH(
 
     return NextResponse.json(invoice);
   } catch (err) {
+    if (err instanceof Error && err.message === "FINAL_INVOICE_LOCKED") return NextResponse.json({ error: "Een definitieve factuur kan niet worden aangepast of hergebruikt." }, { status: 409 });
     if (err instanceof Error && err.message === "CLIENT_NOT_FOUND") return NextResponse.json({ error: "Klant niet gevonden" }, { status: 404 });
     if (err instanceof Error && err.message === "FINAL_PRICING_LOCKED") return NextResponse.json({ error: "Tarieven van een definitieve factuur kunnen niet worden gewijzigd." }, { status: 409 });
     if (err instanceof Error && err.message === "ORT_NOT_AGREED") return NextResponse.json({ error: "ORT vereist een vastgelegde klantafspraak en bevestiging op deze factuur." }, { status: 422 });
     if (err instanceof z.ZodError) {
-      return NextResponse.json({ error: err.errors }, { status: 422 });
+      return NextResponse.json({ error: err.issues }, { status: 422 });
     }
     return NextResponse.json({ error: "Factuur bijwerken mislukt" }, { status: 500 });
   }
@@ -119,8 +130,9 @@ export async function PATCH(
 
 export async function DELETE(
   _req: NextRequest,
-  { params }: { params: { id: string } }
+  { params: promisedParams }: { params: Promise<{ id: string }> }
 ) {
+  const params = await promisedParams;
   const user = await requireUserOrUnauthorized();
   if (user instanceof Response) return user;
 

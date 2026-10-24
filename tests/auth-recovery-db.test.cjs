@@ -1,5 +1,5 @@
 const test=require('node:test'),assert=require('node:assert/strict'),{randomUUID}=require('node:crypto');
-const {load,identity,token}=require('./recovery-fixture.cjs');
+const {load,identity,token,env}=require('./recovery-fixture.cjs');
 const enabled=process.env.TIME2PAY_RECOVERY_DB_TEST==='true';
 let prisma;
 test.before(async()=>{if(!enabled)return;
@@ -81,4 +81,33 @@ test('PostgreSQL: Firebase reset failure leaves a durable application and provid
  assert.equal((await prisma.accountRecovery.findUnique({where:{userId:f.uid}})).status,'RESETTING');
  assert.equal(await prisma.recoveryCode.count({where:{userId:f.uid,usedAt:{not:null}}}),1);
  assert.equal(f.user().multiFactor.enrolledFactors[0].uid,'old-factor');
+});
+
+test('PostgreSQL: concurrent notice workers accept a single lease and retain durable acceptance evidence',{skip:!enabled},async()=>{
+ const notice=await prisma.securityNotice.create({data:{userId:'qa-notice-'+randomUUID(),email:'private@invalid.example',kind:'RECOVERY_STARTED'}});
+ let calls=0;
+ const worker=load('src/lib/security-notice-worker.ts',{'./prisma':{prisma},
+  './email':{getInvoiceEmailConfig:()=>({resend:{key:'synthetic'},from:'test@invalid.example',testRecipient:'delivered@resend.dev'})},
+  fetch:async(url,req)=>{calls++;assert.deepEqual(JSON.parse(req.body).to,['delivered@resend.dev']);return {ok:true,json:async()=>({id:'synthetic-provider-id'})};}},
+  {...env,TIME2PAY_SECURITY_NOTICES_ENABLED:'true'});
+ await Promise.all(Array.from({length:12},()=>worker.attemptSecurityNotice(notice.id)));
+ assert.equal(calls,1);const stored=await prisma.securityNotice.findUnique({where:{id:notice.id}});
+ assert.equal(stored.attempts,1);assert.ok(stored.sentAt);assert.equal(stored.providerId,'synthetic-provider-id');
+});
+test('PostgreSQL: real advisory locks admit exactly 30 Starter issues and preserve repeat/period behavior',{skip:!enabled},async()=>{
+ const userId='qa-quota-'+randomUUID();
+ const client=await prisma.client.create({data:{userId,name:'Synthetic quota client'}});
+ const invoices=await Promise.all(Array.from({length:32},()=>prisma.invoice.create({data:{userId,clientId:client.id,number:'CI-'+randomUUID(),dueDate:new Date()}})));
+ let entitlement={starter:true,subscriptionId:'sub_fixture',periodStart:100,periodEnd:200};
+ const {NextResponse}=require('next/server');
+ const module=load('src/lib/invoice-issuance.ts',{'./prisma':{prisma},'./billing':{
+  getPaidEntitlement:async()=>entitlement,paymentRequired:()=>NextResponse.json({code:'SUBSCRIPTION_REQUIRED'},{status:402})}});
+ const results=await Promise.all(invoices.slice(0,31).map(i=>module.authorizeInvoiceIssue(userId,i.id)));
+ assert.equal(results.filter(r=>r===null).length,30);assert.equal(results.filter(r=>r?.status===409).length,1);
+ const issued=await prisma.invoiceIssue.findFirst({where:{userId}});
+ assert.equal(await module.authorizeInvoiceIssue(userId,issued.invoiceId),null);
+ assert.equal(await prisma.invoiceIssue.count({where:{userId}}),30);
+ entitlement={...entitlement,periodStart:200,periodEnd:300};
+ assert.equal(await module.authorizeInvoiceIssue(userId,invoices[31].id),null);
+ entitlement=null;assert.equal((await module.authorizeInvoiceIssue(userId,issued.invoiceId)).status,402);
 });

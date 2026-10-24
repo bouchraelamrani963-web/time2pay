@@ -1,4 +1,5 @@
 import { buildInvoiceHtml, buildInvoiceText } from "@/lib/invoice-email-content";
+import { authorizeInvoiceIssue } from "@/lib/invoice-issuance";
 import { NextResponse } from "next/server";
 import { hasPaidSubscription, paymentRequired } from "@/lib/billing";
 import { prisma } from "@/lib/prisma";
@@ -12,11 +13,14 @@ const activeInvoiceSends = new Set<string>();
 
 export async function POST(
   _request: Request,
-  { params }: { params: { id: string } }
+  { params: promisedParams }: { params: Promise<{ id: string }> }
 ) {
+  const params = await promisedParams;
   const user = await requireUserOrUnauthorized();
   if (user instanceof Response) return user;
   if (!await hasPaidSubscription(user.uid)) return paymentRequired();
+  const denied = await authorizeInvoiceIssue(user.uid, params.id);
+  if (denied) return denied;
 
   const sendKey = `${user.uid}:${params.id}`;
   if (activeInvoiceSends.has(sendKey)) {

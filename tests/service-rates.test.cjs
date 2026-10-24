@@ -61,11 +61,13 @@ test('POST rejects unagreed ORT and another user\'s customer without writes',asy
 });
 test('PATCH recalculates VAT-only changes, preserves existing VAT on item edits, locks issued pricing',async()=>{
  let current={id:'invoice',clientId:'client',status:'DRAFT',ortAgreed:false,vatRate:9,items:[line('WEEKEND')]},write;
- const tx={invoice:{findFirst:async()=>current,updateMany:async({data})=>{write=data;return{count:1};}},client:{findFirst:async()=>({id:'client',ortAgreed:true})},invoiceItem:{deleteMany:async()=>{},createMany:async()=>{}}};
- const route=load('src/app/api/invoices/[id]/route.ts',{'@/lib/auth':{requireUserOrUnauthorized:async()=>({uid:'owner'})},'@/lib/prisma':{prisma:{invoice:{findFirst:async()=>({id:'invoice'})},$transaction:fn=>fn(tx)}},'@/lib/billing':{hasPaidSubscription:async()=>true}});
+ let issued=false;
+ const tx={$executeRaw:async()=>{},invoiceIssue:{findUnique:async()=>issued?{invoiceId:"invoice"}:null},invoice:{findFirst:async()=>current,updateMany:async({data})=>{write=data;return{count:1};}},client:{findFirst:async()=>({id:'client',ortAgreed:true})},invoiceItem:{deleteMany:async()=>{},createMany:async()=>{}}};
+ const route=load('src/app/api/invoices/[id]/route.ts',{'@/lib/auth':{requireUserOrUnauthorized:async()=>({uid:'owner'})},'@/lib/prisma':{prisma:{invoice:{findFirst:async()=>({id:'invoice'})},$transaction:fn=>fn(tx)}},'@/lib/billing':{hasPaidSubscription:async()=>true},'@/lib/invoice-issuance':{authorizeInvoiceIssue:async()=>null}});
  const patch=data=>route.PATCH(new Request('https://test.example/api/invoices/invoice',{method:'PATCH',headers:{'content-type':'application/json'},body:JSON.stringify(data)}),{params:{id:'invoice'}});
  assert.equal((await patch({vatRate:21})).status,200);assert.equal(write.total,580.8);
  assert.equal((await patch({items:[line('EVENING')]})).status,200);assert.equal(write.vatRate,9);assert.equal(write.total,436);
+ issued=true;write=null;for(const edit of [{ortAgreed:true},{notes:'changed'},{status:'DRAFT'}])assert.equal((await patch(edit)).status,409);assert.equal(write,null);issued=false;
  current={...current,status:'SENT'};write=null;assert.equal((await patch({vatRate:0})).status,409);assert.equal(write,null);
 });
 test('invoice view, PDF and HTML/text email use matching services, item totals, ORT and VAT',()=>{

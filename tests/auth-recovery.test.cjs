@@ -64,3 +64,24 @@ test('recovery HTTP rejects cross-origin requests and oversized bodies without a
  await assert.rejects(()=>http.readRecoveryBody(new Request('https://test.example',{method:'POST',headers:{origin:'https://evil.example','content-type':'application/json'},body:'{}'})));
  await assert.rejects(()=>http.readRecoveryBody(new Request('https://test.example',{method:'POST',headers:{origin:'https://test.example','content-type':'application/json'},body:JSON.stringify({value:'x'.repeat(9000)})})));
 });
+
+test('Firebase MFA-only challenge response binds the server-verified email to its actual enrolled factor',async()=>{
+ const account=identity();let lookups=0;
+ const stubs={'./prisma':{prisma:{accountRecovery:{findUnique:async()=>null}}},
+  './firebase-admin':{getAdminAuth:()=>({getUserByEmail:async email=>{assert.equal(email,account.email);lookups++;return account;}})},
+  fetch:async()=>({ok:true,json:async()=>({mfaPendingCredential:'server-proof',mfaInfo:[{mfaEnrollmentId:'old-factor'}]})})};
+ assert.equal((await load('src/lib/account-recovery.ts',stubs).verifyRecoveryPassword(account.email,'synthetic')).uid,account.uid);assert.equal(lookups,1);
+ const denied=load('src/lib/account-recovery.ts',{...stubs,fetch:async()=>({ok:true,json:async()=>({mfaPendingCredential:'server-proof',mfaInfo:[{mfaEnrollmentId:'foreign-factor'}]})})});
+ await assert.rejects(()=>denied.verifyRecoveryPassword(account.email,'synthetic'));
+});
+
+test('logout rejects cross-origin revocation and revokes Firebase sessions on an authenticated same-origin request',async()=>{
+ const calls=[];const cookieStore={get:()=>({value:'synthetic-session'}),delete:name=>calls.push('delete:'+name)};
+ const route=load('src/app/api/auth/session/route.ts',{'@/lib/account-recovery':{},'@/lib/recovery-config':{},
+  '@/lib/auth-policy':{},'@/lib/auth':{SESSION_COOKIE:'session'},'next/headers':{cookies:async()=>cookieStore},
+  '@/lib/firebase-admin':{getMissingFirebaseAdminEnv:()=>[],getAdminAuth:()=>({verifySessionCookie:async()=>({sub:'owner'}),revokeRefreshTokens:async uid=>calls.push('revoke:'+uid)})}});
+ assert.equal((await route.DELETE(new Request('https://preview.example/api/auth/session',{method:'DELETE',headers:{origin:'https://evil.example'}}))).status,403);
+ assert.equal(calls.length,0);
+ assert.equal((await route.DELETE(new Request('https://preview.example/api/auth/session',{method:'DELETE',headers:{origin:'https://preview.example'}}))).status,200);
+ assert.deepEqual(calls,['revoke:owner','delete:session']);
+});
