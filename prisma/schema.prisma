@@ -111,3 +111,18 @@ enum ItemType {
   MATERIAL
   FIXED
 }
+
+// Durable issuance ledger: no cascade on invoice deletion, no quota recycling.
+model InvoiceIssue {
+  id             String   @id @default(cuid())
+  userId         String
+  invoiceId      String
+  subscriptionId String
+  periodStart    Int
+  periodEnd      Int
+  createdAt      DateTime @default(now())
+
+  @@unique([userId, invoiceId])
+  @@index([userId, subscriptionId, periodStart])
+  @@map("invoice_issues")
+}

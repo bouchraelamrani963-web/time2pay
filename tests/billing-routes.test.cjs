@@ -11,6 +11,7 @@ const { NextResponse } = require('next/server');
 function loadRoute(filename, user, paid) {
   const fail = new Proxy({}, { get() { throw Error('Protected side effect reached'); } });
   const stubs = {
+    '@/lib/invoice-issuance': { authorizeInvoiceIssue: async () => null },
     '@/lib/auth': { requireUserOrUnauthorized: async () => user },
     '@/lib/billing': { hasPaidSubscription: async () => paid,
       paymentRequired: () => NextResponse.json({ code: 'SUBSCRIPTION_REQUIRED' }, { status: 402 }) },
@@ -63,6 +64,7 @@ test('checkout retries stay stable, but a new plan or canceled subscription gets
     } },
   };
   const stubs = {
+    '@/lib/invoice-issuance': { authorizeInvoiceIssue: async () => null },
     '@/lib/auth': { requireUserOrUnauthorized: async () => ({ uid: 'test-user' }) },
     '@/lib/billing': { getStripe: () => stripe, hasPaidSubscription: async () => false, SANDBOX_ACCOUNT: 'sandbox' },
     '@/lib/billing-plans': { BILLING_PLANS: plans, isBillingPlan: key => Object.hasOwn(plans, key) },

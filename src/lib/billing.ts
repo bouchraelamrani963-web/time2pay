@@ -24,23 +24,30 @@ export function paymentRequired() {
 
 // Always refresh Stripe state. An old webhook or cancelled/failed renewal cannot
 // leave access enabled in a stale local cache. Stripe outages fail closed.
-export async function hasPaidSubscription(userId: string) {
+export async function getPaidEntitlement(userId: string) {
   const account = await prisma.billingAccount.findUnique({ where: { userId } });
-  if (!account?.subscriptionId || !account.customerId) return false;
+  if (!account?.subscriptionId || !account.customerId) return null;
   try {
     const stripe = getStripe();
     const sub = await stripe.subscriptions.retrieve(account.subscriptionId, { expand: ["latest_invoice"] });
     const customerId = typeof sub.customer === "string" ? sub.customer : sub.customer.id;
     const invoice = sub.latest_invoice;
     const item = sub.items.data[0];
-    return customerId === account.customerId && sub.items.data.length === 1 && !!item && grantsPaidAccess({
+    const valid = customerId === account.customerId && sub.items.data.length === 1 && !!item && grantsPaidAccess({
       livemode: sub.livemode,
       status: sub.status,
       invoicePaid: !!invoice && typeof invoice !== "string" && invoice.status === "paid" && invoice.amount_paid > 0,
       priceId: item.price.id,
       periodEnd: item.current_period_end,
     });
+    if (!valid) return null;
+    return { subscriptionId: sub.id, periodStart: item.current_period_start,
+      periodEnd: item.current_period_end, starter: item.price.id === "price_1UTMKLITnweMFGCgJdeTu8jS" };
   } catch {
-    return false;
+    return null;
   }
+}
+
+export async function hasPaidSubscription(userId: string) {
+  return !!await getPaidEntitlement(userId);
 }

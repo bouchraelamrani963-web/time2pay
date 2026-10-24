@@ -1,3 +1,4 @@
+import { authorizeInvoiceIssue } from "@/lib/invoice-issuance";
 import { NextRequest, NextResponse } from "next/server";
 import { hasPaidSubscription, paymentRequired } from "@/lib/billing";
 import type { Prisma } from "@prisma/client";
@@ -67,6 +68,10 @@ export async function PATCH(
     const data = UpdateInvoiceSchema.parse(body);
     if (data.status && data.status !== "DRAFT" && !await hasPaidSubscription(user.uid)) return paymentRequired();
 
+    if (data.status && data.status !== "DRAFT" && data.status !== "CANCELLED") {
+      const denied = await authorizeInvoiceIssue(user.uid, params.id);
+      if (denied) return denied;
+    }
     const updateData: Prisma.InvoiceUncheckedUpdateManyInput = {};
     if (data.clientId) {
       const ownedClient = await prisma.client.findFirst({
@@ -93,6 +98,9 @@ export async function PATCH(
     }
 
     const invoice = await prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${user.uid}))`;
+      const issued = await tx.invoiceIssue.findUnique({ where: { userId_invoiceId: { userId: user.uid, invoiceId: params.id } } });
+      if (issued && (data.items !== undefined || data.clientId !== undefined || data.vatRate !== undefined || data.notes !== undefined || data.dueDate !== undefined || data.status === "DRAFT")) throw new Error("FINAL_INVOICE_LOCKED");
       const updateResult = await tx.invoice.updateMany({
         where: { id: params.id, userId: user.uid },
         data: updateData,
@@ -137,6 +145,7 @@ export async function PATCH(
 
     return NextResponse.json(invoice);
   } catch (err) {
+    if (err instanceof Error && err.message === "FINAL_INVOICE_LOCKED") return NextResponse.json({ error: "Een definitieve factuur kan niet worden aangepast of hergebruikt." }, { status: 409 });
     if (err instanceof z.ZodError) {
       return NextResponse.json({ error: err.errors }, { status: 422 });
     }

@@ -1,3 +1,4 @@
+import { authorizeInvoiceIssue } from "@/lib/invoice-issuance";
 import { NextResponse } from "next/server";
 import { hasPaidSubscription, paymentRequired } from "@/lib/billing";
 import { prisma } from "@/lib/prisma";
@@ -113,6 +114,8 @@ export async function POST(_request: Request, { params }: { params: { id: string
   const user = await requireUserOrUnauthorized();
   if (user instanceof Response) return user;
   if (!await hasPaidSubscription(user.uid)) return paymentRequired();
+  const denied = await authorizeInvoiceIssue(user.uid, params.id);
+  if (denied) return denied;
 
   const sendKey = `${user.uid}:${params.id}`;
   if (activeInvoiceReminders.has(sendKey)) {

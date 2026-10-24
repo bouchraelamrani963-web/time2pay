@@ -44,12 +44,12 @@ const PAGE_WIDTH = 595;
 const PAGE_HEIGHT = 842;
 const MARGIN = 48;
 const BOTTOM_MARGIN = 54;
-const BLUE = "0.149 0.388 0.922";
-const DARK = "0.067 0.094 0.153";
+const BLUE = "0.329 0.216 0.286";
+const DARK = "0.200 0.141 0.231";
 const MUTED = "0.294 0.345 0.416";
 const LIGHT_TEXT = "0.588 0.620 0.678";
-const BORDER = "0.878 0.906 0.941";
-const SOFT_BG = "0.973 0.976 0.980";
+const BORDER = "0.914 0.871 0.855";
+const SOFT_BG = "0.984 0.973 0.961";
 
 const itemTypeLabels: Record<string, string> = {
   HOURS: "Uren",

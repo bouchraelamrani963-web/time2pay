@@ -1,3 +1,4 @@
+import { authorizeInvoiceIssue } from "@/lib/invoice-issuance";
 import { NextResponse } from "next/server";
 import { requireUserOrUnauthorized } from "@/lib/auth";
 import { hasPaidSubscription, paymentRequired } from "@/lib/billing";
@@ -9,6 +10,8 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
   const user = await requireUserOrUnauthorized();
   if (user instanceof Response) return user;
   if (!await hasPaidSubscription(user.uid)) return paymentRequired();
+  const denied = await authorizeInvoiceIssue(user.uid, params.id);
+  if (denied) return denied;
   const invoice = await prisma.invoice.findFirst({ where: { id: params.id, userId: user.uid },
     include: { client: true, items: { orderBy: { sortOrder: "asc" } } } });
   if (!invoice) return NextResponse.json({ error: "Factuur niet gevonden" }, { status: 404 });

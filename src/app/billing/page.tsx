@@ -11,7 +11,7 @@ export default async function BillingPage({ searchParams }: { searchParams: { re
   ]);
   return <div className="space-y-6">
     <h1 className="text-3xl font-semibold">Je abonnement</h1>
-    <p>Registreer gratis en stel één conceptfactuur op. Voor verzenden, PDF downloaden en afdrukken kies je een betaald abonnement.</p>
+    <p>Registreer gratis en stel conceptfacturen op. Voor verzenden, PDF downloaden en afdrukken kies je een betaald abonnement.</p>
     {searchParams.result === "success" && <p role="status" className="card p-4">
       {paid ? "Je betaling is bevestigd. Je kunt je factuur nu verzenden, downloaden of afdrukken." :
         "We wachten op de bevestiging van je betaling. Vernieuw deze pagina over enkele ogenblikken."}
