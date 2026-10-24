@@ -1,5 +1,7 @@
 "use client";
 
+import ShiftRateFields from "@/components/ShiftRateFields";
+import { pricingFromForm } from "@/lib/shift-rates";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -40,12 +42,13 @@ export default function NewClientPage() {
       return;
     }
 
+    const pricing = pricingFromForm(new FormData(e.currentTarget as HTMLFormElement));
     setSaving(true);
     try {
       const res = await fetch("/api/clients", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ ...form, ...pricing }),
       });
 
       if (!res.ok) {
@@ -139,6 +142,7 @@ export default function NewClientPage() {
           />
         </div>
 
+        <ShiftRateFields />
         <div className="flex items-center justify-end gap-3 border-t border-[#eee5e1] pt-5">
           <Link
             href={returnTo === "invoice" ? "/invoices/new" : "/clients"}

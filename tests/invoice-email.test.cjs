@@ -45,9 +45,10 @@ for (const kind of ['send', 'remind']) {
       const pdf = Buffer.from('%PDF-test');
       const invoice = { id: 'invoice-test', userId: 'owner', number: 'F-TEST', status: kind === 'send' ? 'DRAFT' : 'SENT',
         client: { name: '<script>Test</script>', email: 'real-customer@example.com' },
-        issueDate: new Date('2026-10-23'), dueDate: new Date('2026-11-06'), total: 12.1,
+        issueDate: new Date('2026-10-23'), dueDate: new Date('2026-11-06'), total: 12.1, subtotal: 10, vatRate: 21, vatAmount: 2.1,
         notes: '<b>Test only</b>', items: [{ type: 'HOURS', description: '<script>work</script>', quantity: 1, unitPrice: 10, lineTotal: 10, unit: 'uur' }] };
       const route = load(`src/app/api/invoices/[id]/${kind}/route.ts`, {
+        '@/lib/invoice-email-content': load('src/lib/invoice-email-content.ts', { './shift-rates': load('src/lib/shift-rates.ts', {}) }),
         '@/lib/auth': { requireUserOrUnauthorized: async () => ({ uid: 'owner', name: 'Owner' }) },
         '@/lib/billing': { hasPaidSubscription: async () => true },
         '@/lib/prisma': { prisma: { invoice: {

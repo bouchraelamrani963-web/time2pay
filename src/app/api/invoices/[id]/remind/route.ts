@@ -15,6 +15,7 @@ const currencyFormatter = new Intl.NumberFormat("nl-NL", {
 });
 
 const dateFormatter = new Intl.DateTimeFormat("nl-NL", {
+  timeZone: "Europe/Amsterdam",
   day: "2-digit",
   month: "long",
   year: "numeric",

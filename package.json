@@ -13,6 +13,7 @@
     "db:push": "prisma db push",
     "db:studio": "prisma studio",
     "test:billing": "node --test tests/billing-access.test.mjs tests/billing-routes.test.cjs tests/invoice-email.test.cjs",
+    "test:services": "node --test tests/service-rates.test.cjs",
     "test:auth": "node --test tests/auth-mfa.test.cjs"
   },
   "prisma": {

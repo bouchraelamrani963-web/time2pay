@@ -1,9 +1,12 @@
+import { shiftLabel } from "./shift-rates";
+
 export type PdfInvoiceItem = {
   type: string;
   description: string;
   quantity: number;
   unitPrice: number;
   lineTotal: number;
+  serviceType?: string | null;
   ortPerc?: number;
   ortBedrag?: number;
   unit: string | null;
@@ -71,6 +74,7 @@ const numberFormatter = new Intl.NumberFormat("nl-NL", {
 });
 
 const dateFormatter = new Intl.DateTimeFormat("nl-NL", {
+  timeZone: "Europe/Amsterdam",
   day: "2-digit",
   month: "long",
   year: "numeric",
@@ -343,7 +347,7 @@ function renderInvoicePdf(invoice: PdfInvoice, senderName: string, companySettin
 
   for (const item of invoice.items) {
     const typeLabel = itemTypeLabels[item.type] || item.type;
-    const descriptionLines = wrapText(item.description, 225, 10);
+    const descriptionLines = wrapText([shiftLabel(item.serviceType), item.description].filter(Boolean).join(" - "), 225, 10);
     const rowHeight = Math.max(28, descriptionLines.length * 13 + 14 + ((item.ortBedrag ?? 0) > 0 ? 14 : 0));
     ensureSpace(rowHeight + 8, true);
 
@@ -354,9 +358,9 @@ function renderInvoicePdf(invoice: PdfInvoice, senderName: string, companySettin
     });
     drawText(page, formatQuantity(item), 390, topY, { size: 10, color: MUTED, align: "right" });
     drawText(page, formatEuro(item.unitPrice), 460, topY, { size: 10, color: MUTED, align: "right" });
-    drawText(page, formatEuro(item.lineTotal), 547, topY, { size: 10, font: "F2", align: "right" });
+    drawText(page, formatEuro(item.lineTotal + (item.ortBedrag ?? 0)), 547, topY, { size: 10, font: "F2", align: "right" });
     if ((item.ortBedrag ?? 0) > 0) {
-      drawText(page, `ORT ${item.ortPerc ?? 0}%: +${formatEuro(item.ortBedrag ?? 0)}`, 128, topY - 13 * descriptionLines.length, { size: 9, color: MUTED });
+      drawText(page, `Basis ${formatEuro(item.lineTotal)} + ORT ${item.ortPerc ?? 0}%: ${formatEuro(item.ortBedrag ?? 0)}`, 128, topY - 13 * descriptionLines.length, { size: 9, color: MUTED });
     }
 
     y -= rowHeight;
@@ -366,12 +370,21 @@ function renderInvoicePdf(invoice: PdfInvoice, senderName: string, companySettin
 
   const notes = invoice.notes?.trim();
   const hasPaymentInfo = Boolean(companySettings?.iban?.trim());
-  ensureSpace(112 + (hasPaymentInfo ? 74 : 0) + (notes ? 74 : 0));
+  const ortAmount = invoice.items.reduce((sum, item) => sum + (item.ortBedrag ?? 0), 0);
+  ensureSpace((ortAmount > 0 ? 148 : 112) + (hasPaymentInfo ? 74 : 0) + (notes ? 74 : 0));
   y -= 14;
 
   const totalsX = 332;
   const totalsLabelX = totalsX;
   const totalsValueX = PAGE_WIDTH - MARGIN;
+  if (ortAmount > 0) {
+    drawText(page, "Basisbedrag", totalsLabelX, y, { size: 10, color: MUTED });
+    drawText(page, formatEuro(invoice.subtotal - ortAmount), totalsValueX, y, { size: 10, align: "right" });
+    y -= 18;
+    drawText(page, "ORT", totalsLabelX, y, { size: 10, color: MUTED });
+    drawText(page, formatEuro(ortAmount), totalsValueX, y, { size: 10, align: "right" });
+    y -= 18;
+  }
   drawText(page, "Subtotaal", totalsLabelX, y, { size: 10, color: MUTED });
   drawText(page, formatEuro(invoice.subtotal), totalsValueX, y, { size: 10, align: "right" });
   y -= 18;

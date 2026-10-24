@@ -8,6 +8,8 @@ export interface Client {
   phone?: string | null;
   address?: string | null;
   vatNumber?: string | null;
+  shiftRates?: unknown;
+  ortAgreed?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -21,6 +23,7 @@ export interface InvoiceItem {
   unitPrice: number;
   unit?: string | null;
   lineTotal: number;
+  serviceType?: string | null;
   ortPerc: number;
   ortBedrag: number;
   sortOrder: number;
@@ -38,6 +41,7 @@ export interface Invoice {
   reminderSentAt?: string | null;
   reminderCount: number;
   notes?: string | null;
+  ortAgreed?: boolean;
   vatRate: number;
   subtotal: number;
   vatAmount: number;
@@ -51,6 +55,7 @@ export interface CreateInvoicePayload {
   clientId: string;
   dueDate: string;
   notes?: string;
+  ortAgreed?: boolean;
   vatRate: number;
   items: {
     type: ItemType;
@@ -58,6 +63,7 @@ export interface CreateInvoicePayload {
     quantity: number;
     unitPrice: number;
     unit?: string;
+    serviceType?: string | null;
     ortPerc?: number;
     sortOrder: number;
   }[];

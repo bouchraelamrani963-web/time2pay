@@ -1,3 +1,5 @@
+import ShiftRateFields from "@/components/ShiftRateFields";
+import { ClientPricingSchema, pricingFromForm } from "@/lib/shift-rates";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { notFound, redirect } from "next/navigation";
@@ -39,9 +41,12 @@ export default async function EditClientPage({
       redirect(`/clients/${params.id}/edit?error=name`);
     }
 
+    const pricing = ClientPricingSchema.safeParse(pricingFromForm(formData));
+    if (!pricing.success) redirect(`/clients/${params.id}/edit?error=rates`);
     const result = await prisma.client.updateMany({
       where: { id: params.id, userId: currentUser.uid },
       data: {
+        ...pricing.data,
         name,
         email: nullableText(formData, "email"),
         phone: nullableText(formData, "phone"),
@@ -126,6 +131,8 @@ export default async function EditClientPage({
           />
         </div>
 
+        <ShiftRateFields rates={client.shiftRates} ortAgreed={client.ortAgreed} />
+        {searchParams?.error === "rates" && <p role="alert" className="text-sm text-red-600">Vul geldige uurtarieven in, met maximaal twee decimalen.</p>}
         <div className="flex items-center justify-end gap-3 border-t border-[#eee5e1] pt-5">
           <Link href={`/clients/${client.id}`} className="btn-secondary">
             Annuleren

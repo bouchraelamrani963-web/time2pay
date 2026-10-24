@@ -2,6 +2,8 @@
 
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { hourlyRate, type ShiftType } from "@/lib/shift-rates";
 import { Plus, Save } from "lucide-react";
 import toast from "react-hot-toast";
 import InvoiceItemRow, { type DraftItem } from "./InvoiceItemRow";
@@ -26,14 +28,16 @@ function formatEuro(n: number) {
   return new Intl.NumberFormat("nl-NL", { style: "currency", currency: "EUR" }).format(n);
 }
 
-function emptyItem(): DraftItem {
+function emptyItem(rates?: unknown, ortEnabled = false): DraftItem {
   return {
     id: Math.random().toString(36).slice(2),
     type: "HOURS",
     description: "",
     quantity: 1,
-    unitPrice: 0,
+    unitPrice: hourlyRate(rates, "DAY", ortEnabled) ?? 0,
     unit: "uur",
+    serviceType: "DAY",
+    rateMissing: hourlyRate(rates, "DAY", ortEnabled) === null,
     ortPerc: 0,
   };
 }
@@ -62,10 +66,21 @@ export default function InvoiceBuilder({ clients, initialClientId }: Props) {
   });
   const [vatRate, setVatRate] = useState(21);
   const [notes, setNotes] = useState("");
-  const [items, setItems] = useState<DraftItem[]>([emptyItem()]);
+  const selectedClient = clients.find(client => client.id === clientId);
+  const [ortEnabled, setOrtEnabled] = useState(false);
+  const [items, setItems] = useState<DraftItem[]>(() => [emptyItem((clients.find(client => client.id === (initialClientId ?? clients[0]?.id)))?.shiftRates)]);
   const [saving, setSaving] = useState(false);
 
-  const addItem = () => setItems((prev) => [...prev, emptyItem()]);
+  const addItem = () => setItems(prev => [...prev, emptyItem(selectedClient?.shiftRates, ortEnabled)]);
+  function changeClient(id: string) {
+    const client = clients.find(client => client.id === id);
+    setClientId(id); setOrtEnabled(false);
+    setItems(prev => prev.map(item => item.type === "HOURS" ? { ...item, unitPrice: hourlyRate(client?.shiftRates, item.serviceType) ?? 0, rateMissing: hourlyRate(client?.shiftRates, item.serviceType) === null, ortPerc: 0 } : item));
+  }
+  function changeOrt(enabled: boolean) {
+    setOrtEnabled(enabled);
+    setItems(prev => prev.map(item => item.type === "HOURS" ? { ...item, unitPrice: hourlyRate(selectedClient?.shiftRates, item.serviceType, enabled) ?? 0, rateMissing: hourlyRate(selectedClient?.shiftRates, item.serviceType, enabled) === null, ortPerc: 0 } : item));
+  }
 
   const removeItem = useCallback((id: string) => {
     setItems((prev) => prev.filter((i) => i.id !== id));
@@ -78,20 +93,31 @@ export default function InvoiceBuilder({ clients, initialClientId }: Props) {
         const updated = { ...item, [field]: value };
         if (field === "type") {
           updated.unit = defaultUnit(value as ItemType);
-          if (value !== "HOURS") updated.ortPerc = 0;
+          updated.ortPerc = 0;
+          if (value === "HOURS") {
+            updated.serviceType = "DAY";
+            updated.unitPrice = hourlyRate(selectedClient?.shiftRates, "DAY", ortEnabled) ?? 0;
+            updated.rateMissing = hourlyRate(selectedClient?.shiftRates, "DAY", ortEnabled) === null;
+          }
         }
+        if (field === "serviceType") {
+          updated.unitPrice = hourlyRate(selectedClient?.shiftRates, value as ShiftType, ortEnabled) ?? 0;
+          updated.rateMissing = hourlyRate(selectedClient?.shiftRates, value as ShiftType, ortEnabled) === null;
+        }
+        if (field === "unitPrice") { updated.unitPrice = Number(value); updated.rateMissing = value === ""; }
         return updated;
       })
     );
-  }, []);
+  }, [selectedClient, ortEnabled]);
 
   const totals = calcInvoiceTotals(
-    items.map((i) => ({ type: i.type, description: i.description, quantity: i.quantity, unitPrice: i.unitPrice, unit: i.unit, ortPerc: i.ortPerc })),
+    items.map((i) => ({ type: i.type, description: i.description, quantity: i.quantity, unitPrice: i.unitPrice, unit: i.unit, ortPerc: ortEnabled ? i.ortPerc : 0 })),
     vatRate
   );
 
   async function submit() {
     if (!clientId) return toast.error("Selecteer een klant");
+    if (items.some(item => item.type === "HOURS" && item.rateMissing)) return toast.error("Stel voor elke urenregel een uurtarief in. Vul expliciet 0 in voor gratis werk.");
     if (items.some((i) => !i.description)) return toast.error("Vul alle omschrijvingen in");
 
     setSaving(true);
@@ -101,6 +127,7 @@ export default function InvoiceBuilder({ clients, initialClientId }: Props) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           clientId,
+          ortAgreed: ortEnabled,
           dueDate,
           vatRate,
           notes: notes || undefined,
@@ -110,7 +137,8 @@ export default function InvoiceBuilder({ clients, initialClientId }: Props) {
             quantity: item.quantity,
             unitPrice: item.unitPrice,
             unit: item.unit,
-            ortPerc: item.type === "HOURS" ? item.ortPerc : 0,
+            serviceType: item.type === "HOURS" ? item.serviceType : null,
+            ortPerc: ortEnabled && item.type === "HOURS" ? item.ortPerc : 0,
             sortOrder: idx,
           })),
         }),
@@ -144,7 +172,7 @@ export default function InvoiceBuilder({ clients, initialClientId }: Props) {
       <div className="grid gap-4 sm:grid-cols-3">
         <div>
           <label className="label">Klant *</label>
-          <select className="input" value={clientId} onChange={(e) => setClientId(e.target.value)}>
+          <select className="input" value={clientId} onChange={(e) => changeClient(e.target.value)}>
             {clients.length === 0 && <option value="">— geen klanten —</option>}
             {clients.map((c) => (
               <option key={c.id} value={c.id}>{c.name}</option>
@@ -170,6 +198,16 @@ export default function InvoiceBuilder({ clients, initialClientId }: Props) {
         </div>
       </div>
 
+      <div className="card p-4 space-y-3 text-sm">
+        <p className="font-semibold">Vaste uurtarieven per dienst</p>
+        <p>De tarieven van de gekozen klant worden overgenomen. Een aangepaste prijs geldt alleen voor deze factuur.</p>
+        {selectedClient && <Link href={`/clients/${selectedClient.id}/edit`} className="text-[#543749] underline">Tarieven en ORT-afspraak voor deze klant instellen</Link>}
+        <label className="flex items-start gap-2"><input type="checkbox" checked={ortEnabled} disabled={!selectedClient?.ortAgreed} onChange={e => changeOrt(e.target.checked)} className="mt-1" />
+          <span>ORT gebruiken voor deze factuur — alleen zoals afgesproken met deze klant.</span>
+        </label>
+        <p className="text-xs text-[#726671]">{ortEnabled ? "ORT wordt berekend op het dagdiensttarief als basisuurtarief. Kies per urenregel 25%, 50% of 100%; geen automatische combinatie met hogere diensttarieven." : "ORT staat uit. Leg een ORT-afspraak vast bij de klant om deze optie beschikbaar te maken."}</p>
+      </div>
+
       <div className="card overflow-hidden">
         <div className="border-b border-[#eee5e1] px-4 py-3 text-sm font-semibold text-[#574c57]">
           Regelposten
@@ -180,11 +218,12 @@ export default function InvoiceBuilder({ clients, initialClientId }: Props) {
               <tr className="border-b border-[#eee5e1] text-xs text-[#726671]">
                 <th className="px-3 py-2 text-left w-8">#</th>
                 <th className="px-2 py-2 text-left w-32">Type</th>
+                <th className="px-2 py-2 text-left w-36">Dienst</th>
                 <th className="px-2 py-2 text-left">Omschrijving</th>
                 <th className="px-2 py-2 text-right w-24">Aantal</th>
                 <th className="px-2 py-2 text-center w-20">Eenheid</th>
                 <th className="px-2 py-2 text-right w-28">Prijs</th>
-                <th className="px-2 py-2 text-left w-24">ORT</th>
+                {ortEnabled && <th className="px-2 py-2 text-left w-24">ORT</th>}
                 <th className="px-3 py-2 text-right w-28">Totaal</th>
                 <th className="w-8" />
               </tr>
@@ -195,6 +234,7 @@ export default function InvoiceBuilder({ clients, initialClientId }: Props) {
                   key={item.id}
                   item={item}
                   index={idx}
+                  ortEnabled={ortEnabled}
                   onChange={changeItem}
                   onRemove={removeItem}
                 />
