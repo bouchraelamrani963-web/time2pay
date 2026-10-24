@@ -4,6 +4,8 @@ export type PdfInvoiceItem = {
   quantity: number;
   unitPrice: number;
   lineTotal: number;
+  ortPerc?: number;
+  ortBedrag?: number;
   unit: string | null;
 };
 
@@ -342,7 +344,7 @@ function renderInvoicePdf(invoice: PdfInvoice, senderName: string, companySettin
   for (const item of invoice.items) {
     const typeLabel = itemTypeLabels[item.type] || item.type;
     const descriptionLines = wrapText(item.description, 225, 10);
-    const rowHeight = Math.max(28, descriptionLines.length * 13 + 14);
+    const rowHeight = Math.max(28, descriptionLines.length * 13 + 14 + ((item.ortBedrag ?? 0) > 0 ? 14 : 0));
     ensureSpace(rowHeight + 8, true);
 
     const topY = y;
@@ -353,6 +355,9 @@ function renderInvoicePdf(invoice: PdfInvoice, senderName: string, companySettin
     drawText(page, formatQuantity(item), 390, topY, { size: 10, color: MUTED, align: "right" });
     drawText(page, formatEuro(item.unitPrice), 460, topY, { size: 10, color: MUTED, align: "right" });
     drawText(page, formatEuro(item.lineTotal), 547, topY, { size: 10, font: "F2", align: "right" });
+    if ((item.ortBedrag ?? 0) > 0) {
+      drawText(page, `ORT ${item.ortPerc ?? 0}%: +${formatEuro(item.ortBedrag ?? 0)}`, 128, topY - 13 * descriptionLines.length, { size: 9, color: MUTED });
+    }
 
     y -= rowHeight;
     drawLine(page, MARGIN, y + 7, PAGE_WIDTH - MARGIN, y + 7, "0.933 0.945 0.961", 0.6);

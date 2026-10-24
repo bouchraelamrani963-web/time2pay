@@ -259,7 +259,7 @@ export default function InvoiceView({ invoice, canExport }: Props) {
                   {item.type === "FIXED" ? "—" : `${item.quantity} ${item.unit ?? ""}`}
                 </td>
                 <td className="py-2 text-right text-[#675b66]">{formatEuro(item.unitPrice)}</td>
-                <td className="py-2 text-right font-semibold">{formatEuro(item.lineTotal)}</td>
+                <td className="py-2 text-right font-semibold">{formatEuro(item.lineTotal)}{(item.ortBedrag ?? 0) > 0 && <span className="block text-xs font-normal text-[#9a624d]">ORT {item.ortPerc}%: +{formatEuro(item.ortBedrag ?? 0)}</span>}</td>
               </tr>
             ))}
           </tbody>

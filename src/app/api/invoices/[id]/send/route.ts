@@ -57,6 +57,8 @@ function buildInvoiceHtml(params: {
     quantity: number;
     unitPrice: number;
     lineTotal: number;
+    ortPerc?: number;
+    ortBedrag?: number;
     unit: string | null;
   }[];
 }) {
@@ -65,7 +67,7 @@ function buildInvoiceHtml(params: {
       const unitLabel = item.unit || itemTypeLabels[item.type] || item.type;
       return `
         <tr>
-          <td style="padding: 12px; border-bottom: 1px solid #e5e7eb;">${escapeHtml(item.description)}</td>
+          <td style="padding: 12px; border-bottom: 1px solid #e5e7eb;">${escapeHtml(item.description)}${(item.ortBedrag ?? 0) > 0 ? `<div style="font-size: 12px; color: #9a624d;">ORT ${escapeHtml(item.ortPerc ?? 0)}%: +${escapeHtml(currencyFormatter.format(item.ortBedrag ?? 0))}</div>` : ""}</td>
           <td style="padding: 12px; border-bottom: 1px solid #e5e7eb;">${escapeHtml(itemTypeLabels[item.type] || item.type)}</td>
           <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: right;">${escapeHtml(formatNumber(item.quantity))} ${escapeHtml(unitLabel)}</td>
           <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: right;">${escapeHtml(currencyFormatter.format(item.unitPrice))}</td>
