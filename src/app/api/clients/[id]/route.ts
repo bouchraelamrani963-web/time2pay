@@ -9,10 +9,8 @@ export const runtime = "nodejs";
 const CLIENT_HAS_INVOICES_MESSAGE =
   "Deze klant kan niet worden verwijderd omdat er facturen aan deze klant gekoppeld zijn.";
 
-export async function DELETE(
-  _request: Request,
-  { params }: { params: { id: string } }
-) {
+export async function DELETE(_request: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const user = await requireUserOrUnauthorized();
   if (user instanceof Response) return user;
 

@@ -104,7 +104,7 @@ export async function POST(req: NextRequest) {
         {
           error: "Ongeldige klantgegevens",
           message: "Controleer de klantgegevens en tarieven (maximaal twee decimalen).",
-          issues: err.errors,
+          issues: err.issues,
         },
         { status: 422 }
       );

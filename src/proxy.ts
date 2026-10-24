@@ -12,13 +12,15 @@ import type { NextRequest } from "next/server";
  *   "/dashboard"  -> protected (requires session cookie)
  *   app pages      -> protected
  */
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   if (
     pathname === "/" ||
     pathname === "/login" ||
     pathname === "/register" ||
+    pathname === "/recover" ||
+    pathname.startsWith("/.well-known/workflow/") ||
     pathname.startsWith("/api/")
   ) {
     return NextResponse.next();
@@ -36,6 +38,6 @@ export function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|.well-known/workflow/|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
   ],
 };

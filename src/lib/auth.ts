@@ -1,3 +1,4 @@
+import { recoveryLocked } from "./account-recovery";
 import "server-only";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
@@ -17,7 +18,7 @@ export interface SessionUser {
  * Read & verify the Firebase session cookie. Returns null if not signed in.
  */
 export async function getSession(): Promise<SessionUser | null> {
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   const session = cookieStore.get(SESSION_COOKIE)?.value;
   if (!session) return null;
 
@@ -25,7 +26,7 @@ export async function getSession(): Promise<SessionUser | null> {
     const auth = getAdminAuth();
     const decoded = await auth.verifySessionCookie(session, true);
     const account = await auth.getUser(decoded.uid);
-    if (mfaAccessError(decoded, account)) return null;
+    if (mfaAccessError(decoded, account) || (await recoveryLocked(decoded.uid))) return null;
     return {
       uid: decoded.uid,
       email: decoded.email ?? null,

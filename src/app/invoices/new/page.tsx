@@ -5,11 +5,12 @@ import { ChevronLeft, UserPlus } from "lucide-react";
 import InvoiceBuilder from "@/components/InvoiceBuilder";
 import type { Client } from "@/types/invoice";
 
-export default async function NewInvoicePage({
-  searchParams,
-}: {
-  searchParams: { clientId?: string };
-}) {
+export default async function NewInvoicePage(
+  props: {
+    searchParams: Promise<{ clientId?: string }>;
+  }
+) {
+  const searchParams = await props.searchParams;
   const user = await requireUser();
   const rawClients = await prisma.client.findMany({
     where: { userId: user.uid },

@@ -5,3 +5,8 @@ node_modules/
 *.log
 .DS_Store
 prisma/migrations/
+
+# Workflow generated runtime and local durable data
+src/app/.well-known/workflow/
+.workflow-data/
+/.swc

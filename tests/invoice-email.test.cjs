@@ -49,6 +49,7 @@ for (const kind of ['send', 'remind']) {
         notes: '<b>Test only</b>', items: [{ type: 'HOURS', description: '<script>work</script>', quantity: 1, unitPrice: 10, lineTotal: 10, unit: 'uur' }] };
       const route = load(`src/app/api/invoices/[id]/${kind}/route.ts`, {
         '@/lib/invoice-email-content': load('src/lib/invoice-email-content.ts', { './shift-rates': load('src/lib/shift-rates.ts', {}) }),
+        '@/lib/invoice-issuance': { authorizeInvoiceIssue: async () => null },
         '@/lib/auth': { requireUserOrUnauthorized: async () => ({ uid: 'owner', name: 'Owner' }) },
         '@/lib/billing': { hasPaidSubscription: async () => true },
         '@/lib/prisma': { prisma: { invoice: {
