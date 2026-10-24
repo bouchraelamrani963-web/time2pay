@@ -1,5 +1,6 @@
 "use client";
 
+import { shiftLabel } from "@/lib/shift-rates";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -28,7 +29,7 @@ function formatEuro(n: number) {
 }
 
 function formatDate(d: string) {
-  return new Date(d).toLocaleDateString("nl-NL", { day: "2-digit", month: "long", year: "numeric" });
+  return new Date(d).toLocaleDateString("nl-NL", { timeZone: "Europe/Amsterdam", day: "2-digit", month: "long", year: "numeric" });
 }
 
 function formatReminderCount(count: number) {
@@ -67,6 +68,7 @@ export default function InvoiceView({ invoice, canExport }: Props) {
   const payDays = paymentDays(invoice);
   const isOverdue = effStatus === "OVERDUE";
   const canRemind = (effStatus === "SENT" || effStatus === "OVERDUE");
+  const ortAmount = invoice.items.reduce((sum, item) => sum + (item.ortBedrag ?? 0), 0);
   const reminderCount = Math.max(0, invoice.reminderCount ?? 0);
 
   async function exportInvoice(print: boolean) {
@@ -253,13 +255,13 @@ export default function InvoiceView({ invoice, canExport }: Props) {
           <tbody>
             {invoice.items.map((item) => (
               <tr key={item.id} className="border-b border-gray-50">
-                <td className="py-2 pr-4 text-[#726671] text-xs">{ITEM_TYPE_LABELS[item.type]}</td>
+                <td className="py-2 pr-4 text-[#726671] text-xs">{shiftLabel(item.serviceType) || ITEM_TYPE_LABELS[item.type]}</td>
                 <td className="py-2 pr-4">{item.description}</td>
                 <td className="py-2 text-right text-[#675b66]">
                   {item.type === "FIXED" ? "—" : `${item.quantity} ${item.unit ?? ""}`}
                 </td>
                 <td className="py-2 text-right text-[#675b66]">{formatEuro(item.unitPrice)}</td>
-                <td className="py-2 text-right font-semibold">{formatEuro(item.lineTotal)}</td>
+                <td className="py-2 text-right font-semibold">{formatEuro(item.lineTotal + (item.ortBedrag ?? 0))}{(item.ortBedrag ?? 0) > 0 && <span className="block text-xs font-normal text-[#9a624d]">Basis {formatEuro(item.lineTotal)} + ORT {item.ortPerc}%: +{formatEuro(item.ortBedrag ?? 0)}</span>}</td>
               </tr>
             ))}
           </tbody>
@@ -267,6 +269,7 @@ export default function InvoiceView({ invoice, canExport }: Props) {
 
         <div className="flex justify-end">
           <div className="w-64 space-y-1 text-sm">
+            {ortAmount > 0 && <><div className="flex justify-between"><span>Basisbedrag</span><span>{formatEuro(invoice.subtotal - ortAmount)}</span></div><div className="flex justify-between"><span>ORT</span><span>{formatEuro(ortAmount)}</span></div></>}
             <div className="flex justify-between text-[#675b66]">
               <span>Subtotaal</span>
               <span>{formatEuro(invoice.subtotal)}</span>

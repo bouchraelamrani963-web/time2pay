@@ -1,29 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireUserOrUnauthorized } from "@/lib/auth";
-import { calcInvoiceTotals, generateInvoiceNumber } from "@/lib/calculations";
+import { calcOrtAmount, calcInvoiceTotals, generateInvoiceNumber } from "@/lib/calculations";
 import { effectiveStatus } from "@/lib/invoice-status";
 import type { InvoiceStatus } from "@/types/invoice";
+import { InvoiceItemSchema, ortPermissionError } from "@/lib/shift-rates";
 import { z } from "zod";
 import { hasPaidSubscription, paymentRequired } from "@/lib/billing";
 
 export const runtime = "nodejs";
 
-const ItemSchema = z.object({
-  type: z.enum(["HOURS", "M2", "MATERIAL", "FIXED"]),
-  description: z.string().min(1),
-  quantity: z.number().min(0),
-  unitPrice: z.number().min(0),
-  unit: z.string().optional(),
-  sortOrder: z.number().int().default(0),
-});
-
 const CreateInvoiceSchema = z.object({
+  ortAgreed: z.boolean().default(false),
   clientId: z.string().min(1),
   dueDate: z.string(),
   notes: z.string().optional(),
   vatRate: z.number().min(0).max(100).default(21),
-  items: z.array(ItemSchema).min(1),
+  items: z.array(InvoiceItemSchema).min(1).max(100),
 });
 
 export async function GET(req: NextRequest) {
@@ -65,15 +58,21 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const data = CreateInvoiceSchema.parse(body);
+    if (data.items?.some(item => item.type !== "HOURS" && item.ortPerc !== 0)) {
+      return NextResponse.json({ error: "ORT is alleen toegestaan voor uren." }, { status: 422 });
+    }
 
     const ownedClient = await prisma.client.findFirst({
       where: { id: data.clientId, userId: user.uid },
-      select: { id: true },
+      select: { id: true, ortAgreed: true },
     });
 
     if (!ownedClient) {
       return NextResponse.json({ error: "Klant niet gevonden" }, { status: 404 });
     }
+
+    const ortError = ortPermissionError(data.items, data.ortAgreed, ownedClient.ortAgreed);
+    if (ortError) return NextResponse.json({ error: ortError }, { status: 422 });
 
     const { subtotal, vatAmount, total } = calcInvoiceTotals(data.items, data.vatRate);
 
@@ -93,6 +92,7 @@ export async function POST(req: NextRequest) {
         userId: user.uid,
         number: generateInvoiceNumber(),
         clientId: data.clientId,
+        ortAgreed: data.ortAgreed,
         dueDate: new Date(data.dueDate),
         notes: data.notes || null,
         vatRate: data.vatRate,
@@ -101,10 +101,8 @@ export async function POST(req: NextRequest) {
         total,
         items: {
           create: data.items.map((item) => {
-            const lineTotal =
-              item.type === "FIXED"
-                ? item.unitPrice
-                : Math.round(item.quantity * item.unitPrice * 100) / 100;
+            const lineTotal = calcInvoiceTotals([item], 0).items[0].lineTotal;
+            const ortBedrag = calcOrtAmount(item);
             return {
               type: item.type,
               description: item.description,
@@ -112,6 +110,9 @@ export async function POST(req: NextRequest) {
               unitPrice: item.unitPrice,
               unit: item.unit || null,
               lineTotal,
+              serviceType: item.type === "HOURS" ? (item.serviceType ?? "DAY") : null,
+              ortPerc: item.type === "HOURS" ? item.ortPerc : 0,
+              ortBedrag,
               sortOrder: item.sortOrder,
             };
           }),

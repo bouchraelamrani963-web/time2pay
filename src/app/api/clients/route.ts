@@ -2,11 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireUserOrUnauthorized } from "@/lib/auth";
+import { ClientPricingSchema } from "@/lib/shift-rates";
 import { z } from "zod";
 
 export const runtime = "nodejs";
 
 const CreateClientSchema = z.object({
+  ...ClientPricingSchema.shape,
   name: z.string().min(1),
   email: z.string().email().optional().or(z.literal("")),
   phone: z.string().optional(),
@@ -86,6 +88,8 @@ export async function POST(req: NextRequest) {
     const client = await prisma.client.create({
       data: {
         userId: user.uid,
+        shiftRates: data.shiftRates,
+        ortAgreed: data.ortAgreed,
         name: data.name,
         email: data.email || null,
         phone: data.phone || null,
@@ -99,7 +103,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         {
           error: "Ongeldige klantgegevens",
-          message: "Controleer de naam en het e-mailadres.",
+          message: "Controleer de klantgegevens en tarieven (maximaal twee decimalen).",
           issues: err.errors,
         },
         { status: 422 }

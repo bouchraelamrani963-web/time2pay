@@ -15,7 +15,7 @@ function loadRoute(filename, user, paid) {
     '@/lib/billing': { hasPaidSubscription: async () => paid,
       paymentRequired: () => NextResponse.json({ code: 'SUBSCRIPTION_REQUIRED' }, { status: 402 }) },
     '@/lib/prisma': { prisma: fail },
-    '@/lib/email': {}, '@/lib/invoice-pdf': {}, '@/lib/calculations': {}, '@/lib/invoice-status': {},
+    '@/lib/invoice-email-content': {}, '@/lib/email': {}, '@/lib/invoice-pdf': {}, '@/lib/calculations': {}, '@/lib/invoice-status': {},
   };
   const source = fs.readFileSync(path.join(__dirname, '..', filename), 'utf8');
   const output = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;

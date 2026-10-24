@@ -20,6 +20,8 @@ model Client {
   vatNumber String?
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
+  shiftRates Json?
+  ortAgreed Boolean @default(false)
   invoices  Invoice[]
 
   @@index([userId])
@@ -69,6 +71,7 @@ model Invoice {
   reminderSentAt DateTime?
   reminderCount  Int           @default(0)
   notes          String?
+  ortAgreed      Boolean       @default(false)
   vatRate        Float         @default(21)
   subtotal       Float         @default(0)
   vatAmount      Float         @default(0)
@@ -92,6 +95,9 @@ model InvoiceItem {
   unitPrice   Float
   unit        String?
   lineTotal   Float
+  serviceType String?
+  ortPerc     Float    @default(0)
+  ortBedrag   Float    @default(0)
   sortOrder   Int      @default(0)
 
   @@map("invoice_items")
