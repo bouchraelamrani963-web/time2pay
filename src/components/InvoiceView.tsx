@@ -215,7 +215,7 @@ export default function InvoiceView({ invoice, canExport }: Props) {
       <div className={`card p-6 space-y-6 print:shadow-none print:border-none ${isOverdue ? "ring-1 ring-red-200" : ""}`} id="invoice-print">
         <div className="flex justify-between items-start">
           <div>
-            <p className="text-2xl font-semibold tracking-tight text-[#543749]">Time<span className="text-[#33243b]">2Pay</span></p>
+            <p className="text-2xl font-semibold tracking-tight text-[#543749]">Time<span className="text-[#b3846d]">2</span>Pay</p>
           </div>
           <div className="text-right text-sm text-[#675b66] space-y-0.5">
             <p className="text-lg font-bold font-mono text-[#33243b]">{invoice.number}</p>

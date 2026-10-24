@@ -44,12 +44,13 @@ const PAGE_WIDTH = 595;
 const PAGE_HEIGHT = 842;
 const MARGIN = 48;
 const BOTTOM_MARGIN = 54;
-const BLUE = "0.149 0.388 0.922";
-const DARK = "0.067 0.094 0.153";
-const MUTED = "0.294 0.345 0.416";
-const LIGHT_TEXT = "0.588 0.620 0.678";
-const BORDER = "0.878 0.906 0.941";
-const SOFT_BG = "0.973 0.976 0.980";
+const AUBERGINE = "0.329 0.216 0.286"; // #543749
+const COPPER = "0.702 0.518 0.427"; // #B3846D
+const DARK = "0.200 0.141 0.231";
+const MUTED = "0.447 0.404 0.443";
+const LIGHT_TEXT = "0.537 0.490 0.514";
+const BORDER = "0.914 0.871 0.855";
+const SOFT_BG = "0.984 0.973 0.961";
 
 const itemTypeLabels: Record<string, string> = {
   HOURS: "Uren",
@@ -179,8 +180,9 @@ function newPage(pages: PdfPage[]) {
 }
 
 function drawPageTop(page: PdfPage, invoiceNumber: string, pageNumber: number) {
-  drawText(page, "Time", MARGIN, PAGE_HEIGHT - 52, { size: 22, font: "F2", color: BLUE });
-  drawText(page, "2Pay", MARGIN + 50, PAGE_HEIGHT - 52, { size: 22, font: "F2", color: DARK });
+  drawText(page, "Time", MARGIN, PAGE_HEIGHT - 52, { size: 22, font: "F2", color: AUBERGINE });
+  drawText(page, "2", MARGIN + 50, PAGE_HEIGHT - 52, { size: 22, font: "F2", color: COPPER });
+  drawText(page, "Pay", MARGIN + 63, PAGE_HEIGHT - 52, { size: 22, font: "F2", color: AUBERGINE });
   drawText(page, `Factuur ${invoiceNumber}`, PAGE_WIDTH - MARGIN, PAGE_HEIGHT - 52, {
     size: 12,
     font: "F2",
@@ -193,7 +195,7 @@ function drawPageTop(page: PdfPage, invoiceNumber: string, pageNumber: number) {
       align: "right",
     });
   }
-  drawLine(page, MARGIN, PAGE_HEIGHT - 82, PAGE_WIDTH - MARGIN, PAGE_HEIGHT - 82);
+  drawLine(page, MARGIN, PAGE_HEIGHT - 82, PAGE_WIDTH - MARGIN, PAGE_HEIGHT - 82, COPPER, 1);
 }
 
 function drawSectionTitle(page: PdfPage, title: string, x: number, y: number) {
