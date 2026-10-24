@@ -1,28 +1,23 @@
+import { authorizeInvoiceIssue } from "@/lib/invoice-issuance";
 import { NextRequest, NextResponse } from "next/server";
+import { hasPaidSubscription, paymentRequired } from "@/lib/billing";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireUserOrUnauthorized } from "@/lib/auth";
-import { calcInvoiceTotals } from "@/lib/calculations";
+import { calcOrtAmount, calcInvoiceTotals } from "@/lib/calculations";
+import { InvoiceItemSchema, ortPermissionError } from "@/lib/shift-rates";
 import { z } from "zod";
 
 export const runtime = "nodejs";
 
-const ItemSchema = z.object({
-  type: z.enum(["HOURS", "M2", "MATERIAL", "FIXED"]),
-  description: z.string().min(1),
-  quantity: z.number().min(0),
-  unitPrice: z.number().min(0),
-  unit: z.string().optional(),
-  sortOrder: z.number().int().default(0),
-});
-
 const UpdateInvoiceSchema = z.object({
+  ortAgreed: z.boolean().optional(),
   clientId: z.string().optional(),
   dueDate: z.string().optional(),
   notes: z.string().optional().nullable(),
   vatRate: z.number().min(0).max(100).optional(),
   status: z.enum(["DRAFT", "SENT", "PAID", "OVERDUE", "CANCELLED"]).optional(),
-  items: z.array(ItemSchema).optional(),
+  items: z.array(InvoiceItemSchema).min(1).max(100).optional(),
 });
 
 async function findOwnedInvoice(id: string, uid: string) {
@@ -34,8 +29,9 @@ async function findOwnedInvoice(id: string, uid: string) {
 
 export async function GET(
   _req: NextRequest,
-  { params }: { params: { id: string } }
+  { params: promisedParams }: { params: Promise<{ id: string }> }
 ) {
+  const params = await promisedParams;
   const user = await requireUserOrUnauthorized();
   if (user instanceof Response) return user;
 
@@ -53,8 +49,9 @@ export async function GET(
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params: promisedParams }: { params: Promise<{ id: string }> }
 ) {
+  const params = await promisedParams;
   const user = await requireUserOrUnauthorized();
   if (user instanceof Response) return user;
 
@@ -64,79 +61,68 @@ export async function PATCH(
 
     const body = await req.json();
     const data = UpdateInvoiceSchema.parse(body);
-
-    const updateData: Prisma.InvoiceUncheckedUpdateManyInput = {};
-    if (data.clientId) {
-      const ownedClient = await prisma.client.findFirst({
-        where: { id: data.clientId, userId: user.uid },
-        select: { id: true },
-      });
-      if (!ownedClient) return NextResponse.json({ error: "Klant niet gevonden" }, { status: 404 });
-      updateData.clientId = data.clientId;
+    if (data.items?.some(item => item.type !== "HOURS" && item.ortPerc !== 0)) {
+      return NextResponse.json({ error: "ORT is alleen toegestaan voor uren." }, { status: 422 });
     }
-    if (data.dueDate) updateData.dueDate = new Date(data.dueDate);
-    if (data.notes !== undefined) updateData.notes = data.notes;
-    if (data.status) updateData.status = data.status;
+    if (data.status && data.status !== "DRAFT" && !await hasPaidSubscription(user.uid)) return paymentRequired();
 
-    if (data.items !== undefined) {
-      const vatRate = data.vatRate ?? 21;
-      const { subtotal, vatAmount, total } = calcInvoiceTotals(data.items, vatRate);
-      updateData.vatRate = vatRate;
-      updateData.subtotal = subtotal;
-      updateData.vatAmount = vatAmount;
-      updateData.total = total;
-
-    } else if (data.vatRate !== undefined) {
-      updateData.vatRate = data.vatRate;
+    if (data.status && data.status !== "DRAFT" && data.status !== "CANCELLED") {
+      const denied = await authorizeInvoiceIssue(user.uid, params.id);
+      if (denied) return denied;
     }
-
-    const invoice = await prisma.$transaction(async (tx) => {
-      const updateResult = await tx.invoice.updateMany({
-        where: { id: params.id, userId: user.uid },
-        data: updateData,
-      });
-
-      if (updateResult.count === 0) return null;
-
-      if (data.items !== undefined) {
-        await tx.invoiceItem.deleteMany({
-          where: {
-            invoiceId: params.id,
-            invoice: { is: { userId: user.uid } },
-          },
-        });
-        await tx.invoiceItem.createMany({
-          data: data.items.map((item) => {
-            const lineTotal =
-              item.type === "FIXED"
-                ? item.unitPrice
-                : Math.round(item.quantity * item.unitPrice * 100) / 100;
-            return {
-              invoiceId: params.id,
-              type: item.type,
-              description: item.description,
-              quantity: item.quantity,
-              unitPrice: item.unitPrice,
-              unit: item.unit || null,
-              lineTotal,
-              sortOrder: item.sortOrder,
-            };
-          }),
-        });
+    const invoice = await prisma.$transaction(async tx => {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${user.uid}))`;
+      const issued = await tx.invoiceIssue.findUnique({ where: { userId_invoiceId: { userId: user.uid, invoiceId: params.id } } });
+      if (issued && (data.items !== undefined || data.clientId !== undefined || data.vatRate !== undefined || data.ortAgreed !== undefined || data.notes !== undefined || data.dueDate !== undefined || data.status === "DRAFT")) throw new Error("FINAL_INVOICE_LOCKED");
+      const current = await tx.invoice.findFirst({ where: { id: params.id, userId: user.uid }, include: { items: true } });
+      if (!current) return null;
+      const changingPricing = data.items !== undefined || data.clientId !== undefined || data.vatRate !== undefined || data.ortAgreed !== undefined;
+      if (changingPricing && current.status !== "DRAFT") throw new Error("FINAL_PRICING_LOCKED");
+      const targetClientId = data.clientId ?? current.clientId;
+      const client = await tx.client.findFirst({ where: { id: targetClientId, userId: user.uid }, select: { id: true, ortAgreed: true } });
+      if (!client) throw new Error("CLIENT_NOT_FOUND");
+      const ortAgreed = data.ortAgreed ?? (targetClientId === current.clientId ? current.ortAgreed : false);
+      const items = data.items ?? current.items;
+      if (changingPricing) {
+        const error = ortPermissionError(items, ortAgreed, client.ortAgreed);
+        if (error) throw new Error("ORT_NOT_AGREED");
       }
-
-      return tx.invoice.findFirst({
-        where: { id: params.id, userId: user.uid },
-        include: { client: true, items: { orderBy: { sortOrder: "asc" } } },
-      });
+      const updateData: Prisma.InvoiceUncheckedUpdateManyInput = {};
+      if (data.clientId !== undefined) updateData.clientId = targetClientId;
+      if (data.ortAgreed !== undefined || data.clientId !== undefined) updateData.ortAgreed = ortAgreed;
+      if (data.dueDate) updateData.dueDate = new Date(data.dueDate);
+      if (data.notes !== undefined) updateData.notes = data.notes;
+      if (data.status) updateData.status = data.status;
+      if (data.items !== undefined || data.vatRate !== undefined) {
+        const vatRate = data.vatRate ?? current.vatRate;
+        const totals = calcInvoiceTotals(items.map(item => ({ ...item, unit: item.unit ?? undefined })), vatRate);
+        Object.assign(updateData, { vatRate, subtotal: totals.subtotal, vatAmount: totals.vatAmount, total: totals.total });
+      }
+      const updated = await tx.invoice.updateMany({ where: { id: params.id, userId: user.uid }, data: updateData });
+      if (!updated.count) return null;
+      if (data.items !== undefined) {
+        await tx.invoiceItem.deleteMany({ where: { invoiceId: params.id, invoice: { is: { userId: user.uid } } } });
+        await tx.invoiceItem.createMany({ data: data.items.map(item => ({
+          invoiceId: params.id, type: item.type, description: item.description, quantity: item.quantity,
+          unitPrice: item.unitPrice, unit: item.unit || null,
+          serviceType: item.type === "HOURS" ? (item.serviceType ?? "DAY") : null,
+          lineTotal: calcInvoiceTotals([item], 0).items[0].lineTotal,
+          ortPerc: item.ortPerc, ortBedrag: calcOrtAmount(item), sortOrder: item.sortOrder,
+        })) });
+      }
+      return tx.invoice.findFirst({ where: { id: params.id, userId: user.uid }, include: { client: true, items: { orderBy: { sortOrder: "asc" } } } });
     });
 
     if (!invoice) return NextResponse.json({ error: "Niet gevonden" }, { status: 404 });
 
     return NextResponse.json(invoice);
   } catch (err) {
+    if (err instanceof Error && err.message === "FINAL_INVOICE_LOCKED") return NextResponse.json({ error: "Een definitieve factuur kan niet worden aangepast of hergebruikt." }, { status: 409 });
+    if (err instanceof Error && err.message === "CLIENT_NOT_FOUND") return NextResponse.json({ error: "Klant niet gevonden" }, { status: 404 });
+    if (err instanceof Error && err.message === "FINAL_PRICING_LOCKED") return NextResponse.json({ error: "Tarieven van een definitieve factuur kunnen niet worden gewijzigd." }, { status: 409 });
+    if (err instanceof Error && err.message === "ORT_NOT_AGREED") return NextResponse.json({ error: "ORT vereist een vastgelegde klantafspraak en bevestiging op deze factuur." }, { status: 422 });
     if (err instanceof z.ZodError) {
-      return NextResponse.json({ error: err.errors }, { status: 422 });
+      return NextResponse.json({ error: err.issues }, { status: 422 });
     }
     return NextResponse.json({ error: "Factuur bijwerken mislukt" }, { status: 500 });
   }
@@ -144,8 +130,9 @@ export async function PATCH(
 
 export async function DELETE(
   _req: NextRequest,
-  { params }: { params: { id: string } }
+  { params: promisedParams }: { params: Promise<{ id: string }> }
 ) {
+  const params = await promisedParams;
   const user = await requireUserOrUnauthorized();
   if (user instanceof Response) return user;
 

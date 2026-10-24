@@ -20,10 +20,23 @@ model Client {
   vatNumber String?
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
+  shiftRates Json?
+  ortAgreed Boolean @default(false)
   invoices  Invoice[]
 
   @@index([userId])
   @@map("clients")
+}
+
+model BillingAccount {
+  userId          String   @id
+  customerId      String?  @unique
+  subscriptionId  String?  @unique
+  freeInvoiceUsed Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@map("billing_accounts")
 }
 
 model CompanySettings {
@@ -58,6 +71,7 @@ model Invoice {
   reminderSentAt DateTime?
   reminderCount  Int           @default(0)
   notes          String?
+  ortAgreed      Boolean       @default(false)
   vatRate        Float         @default(21)
   subtotal       Float         @default(0)
   vatAmount      Float         @default(0)
@@ -81,6 +95,9 @@ model InvoiceItem {
   unitPrice   Float
   unit        String?
   lineTotal   Float
+  serviceType String?
+  ortPerc     Float    @default(0)
+  ortBedrag   Float    @default(0)
   sortOrder   Int      @default(0)
 
   @@map("invoice_items")
@@ -99,4 +116,87 @@ enum ItemType {
   M2
   MATERIAL
   FIXED
+}
+
+
+model InvoiceIssue {
+  id             String   @id @default(cuid())
+  userId         String
+  invoiceId      String
+  subscriptionId String
+  periodStart    Int
+  periodEnd      Int
+  createdAt      DateTime @default(now())
+
+  @@unique([userId, invoiceId])
+  @@index([userId, subscriptionId, periodStart])
+  @@map("invoice_issues")
+}
+
+// Recovery data is additive. No password, TOTP secret or plaintext recovery code.
+model AccountRecovery {
+  userId       String   @id
+  status       String   @default("NONE")
+  codesIssuedAt DateTime?
+  grantHash    String?  @unique
+  startedAt    DateTime?
+  expiresAt    DateTime?
+  oldFactors   String[] @default([])
+  updatedAt    DateTime @updatedAt
+  @@map("account_recovery")
+}
+model RecoveryCode {
+  id        String   @id @default(cuid())
+  userId    String
+  codeHash  String
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+  @@unique([userId, codeHash])
+  @@index([userId])
+  @@map("recovery_codes")
+}
+model SecurityRateBucket {
+  key         String   @id
+  attempts    Int      @default(0)
+  windowStart DateTime
+  blockedUntil DateTime?
+  @@map("security_rate_buckets")
+}
+model SecurityEvent {
+  id        String   @id @default(cuid())
+  userId    String
+  kind      String
+  createdAt DateTime @default(now())
+  @@index([userId, createdAt])
+  @@map("security_events")
+}
+model SecurityNotice {
+  id        String   @id @default(cuid())
+  userId    String
+  email     String
+  kind      String
+  sentAt    DateTime?
+  createdAt DateTime @default(now())
+  attempts Int @default(0)
+  nextAttemptAt DateTime @default(now())
+  leaseToken String?
+  leaseUntil DateTime?
+  failedAt DateTime?
+  lastErrorCode String?
+  providerId String?
+  workflowRunId String?
+  dispatchLeaseUntil DateTime?
+  @@index([sentAt, createdAt])
+  @@index([sentAt, failedAt, nextAttemptAt])
+  @@map("security_notices")
+}
+model RecoverySupportRequest {
+  id        String   @id @default(cuid())
+  userId    String
+  contactEmail String
+  description String
+  status    String   @default("REVIEW_REQUIRED")
+  createdAt DateTime @default(now())
+  @@index([userId, createdAt])
+  @@map("recovery_support_requests")
 }

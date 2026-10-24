@@ -1,3 +1,4 @@
+import { normalizeShiftRates, SHIFT_TYPES, SHIFT_LABELS } from "@/lib/shift-rates";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { notFound } from "next/navigation";
@@ -29,7 +30,8 @@ function DetailRow({ label, value }: { label: string; value?: string | null }) {
   );
 }
 
-export default async function ClientDetailPage({ params }: { params: { id: string } }) {
+export default async function ClientDetailPage(props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const user = await requireUser();
   const client = await prisma.client.findFirst({
     where: { id: params.id, userId: user.uid },
@@ -95,6 +97,9 @@ export default async function ClientDetailPage({ params }: { params: { id: strin
               <DetailRow label="Adres" value={client.address} />
             </div>
           </dl>
+          <h3 className="mt-6 mb-3 font-semibold">Uurtarieven exclusief btw</h3>
+          <dl className="grid gap-3 sm:grid-cols-2">{SHIFT_TYPES.map(type => <DetailRow key={type} label={SHIFT_LABELS[type]} value={normalizeShiftRates(client.shiftRates)[type] == null ? "Niet ingesteld" : `${formatEuro(normalizeShiftRates(client.shiftRates)[type]!)} / uur`} />)}</dl>
+          <p className="mt-4 text-sm">ORT-afspraak: {client.ortAgreed ? "Ja, optioneel per factuur" : "Nee"}</p>
         </section>
 
         <aside className="card p-6">

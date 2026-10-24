@@ -1,5 +1,7 @@
 "use client";
 
+import ShiftRateFields from "@/components/ShiftRateFields";
+import { pricingFromForm } from "@/lib/shift-rates";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, X } from "lucide-react";
@@ -53,12 +55,13 @@ export default function NewClientModal() {
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!form.name.trim()) return toast.error("Naam is verplicht");
+    const pricing = pricingFromForm(new FormData(e.currentTarget as HTMLFormElement));
     setSaving(true);
     try {
       const res = await fetch("/api/clients", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ ...form, ...pricing }),
       });
 
       if (!res.ok) {
@@ -90,7 +93,7 @@ export default function NewClientModal() {
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#241a26]/50 p-4">
-          <div className="w-full max-w-md rounded-lg border border-[#e9deda] bg-white p-6 shadow-xl shadow-[#33243b]/10">
+          <div className="max-h-[90vh] overflow-y-auto w-full max-w-md rounded-lg border border-[#e9deda] bg-white p-6 shadow-xl shadow-[#33243b]/10">
             <div className="flex items-center justify-between mb-5">
               <h2 className="text-lg font-bold text-[#33243b]">Klant toevoegen</h2>
               <button onClick={() => setOpen(false)} className="text-[#92858d] hover:text-[#675b66]">
@@ -120,6 +123,7 @@ export default function NewClientModal() {
                 <label className="label">BTW-nummer</label>
                 <input className="input font-mono" placeholder="NL123456789B01" value={form.vatNumber} onChange={(e) => setField("vatNumber", e.target.value)} />
               </div>
+        <ShiftRateFields />
               <div className="flex gap-3 pt-2">
                 <button type="button" className="btn-secondary flex-1" onClick={() => setOpen(false)}>Annuleren</button>
                 <button type="submit" className="btn-primary flex-1" disabled={saving}>

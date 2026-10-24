@@ -105,7 +105,7 @@ export default function LandingPage() {
               </div>
               <div className="mt-12 flex flex-wrap gap-x-7 gap-y-3 border-t border-[#e9deda] pt-6 text-xs text-[#736c70]">
                 <span>Gemaakt voor Nederlandse ondernemers</span>
-                <span>Een account aanmaken kan zonder betaalgegevens</span>
+                <span>Gratis registreren en conceptfacturen opstellen. Verzenden, PDF en afdrukken met een betaald abonnement.</span>
               </div>
             </div>
 

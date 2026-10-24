@@ -1,8 +1,9 @@
 "use client";
 
+import { SHIFT_TYPES, SHIFT_LABELS, type ShiftType } from "@/lib/shift-rates";
 import { Trash2 } from "lucide-react";
 import { ITEM_TYPE_LABELS, type ItemType } from "@/types/invoice";
-import { defaultUnit, calcLineTotal } from "@/lib/calculations";
+import { defaultUnit, calcLineTotal, calcOrtAmount } from "@/lib/calculations";
 
 export interface DraftItem {
   id: string;
@@ -11,11 +12,15 @@ export interface DraftItem {
   quantity: number;
   unitPrice: number;
   unit: string;
+  serviceType: ShiftType;
+  rateMissing: boolean;
+  ortPerc: number;
 }
 
 interface Props {
   item: DraftItem;
   index: number;
+  ortEnabled: boolean;
   onChange: (id: string, field: keyof DraftItem, value: string | number) => void;
   onRemove: (id: string) => void;
 }
@@ -26,14 +31,16 @@ function formatEuro(n: number) {
   return new Intl.NumberFormat("nl-NL", { style: "currency", currency: "EUR" }).format(n);
 }
 
-export default function InvoiceItemRow({ item, index, onChange, onRemove }: Props) {
+export default function InvoiceItemRow({ item, index, ortEnabled, onChange, onRemove }: Props) {
   const lineTotal = calcLineTotal({
     type: item.type,
     description: item.description,
     quantity: item.quantity,
     unitPrice: item.unitPrice,
     unit: item.unit,
+    ortPerc: item.ortPerc,
   });
+  const ortAmount = calcOrtAmount({ ...item, ortPerc: ortEnabled ? item.ortPerc : 0 });
 
   const isFixed = item.type === "FIXED";
 
@@ -57,6 +64,7 @@ export default function InvoiceItemRow({ item, index, onChange, onRemove }: Prop
         </select>
       </td>
 
+      <td className="px-2 py-2 w-36">{item.type === "HOURS" ? <select aria-label={`Dienst regel ${index + 1}`} className="input text-xs" value={item.serviceType} onChange={e => onChange(item.id, "serviceType", e.target.value)}>{SHIFT_TYPES.map(type => <option key={type} value={type}>{SHIFT_LABELS[type]}</option>)}</select> : <span>—</span>}</td>
       <td className="px-2 py-2">
         <input
           className="input text-xs"
@@ -75,7 +83,7 @@ export default function InvoiceItemRow({ item, index, onChange, onRemove }: Prop
           value={isFixed ? "" : item.quantity}
           placeholder={isFixed ? "—" : "0"}
           readOnly={isFixed}
-          onChange={(e) => onChange(item.id, "quantity", parseFloat(e.target.value) || 0)}
+          onChange={(e) => onChange(item.id, "quantity", Math.min(100000, Math.max(0, Number(e.target.value) || 0)))}
         />
       </td>
 
@@ -97,15 +105,28 @@ export default function InvoiceItemRow({ item, index, onChange, onRemove }: Prop
             type="number"
             min="0"
             step="0.01"
-            value={item.unitPrice || ""}
+            value={item.rateMissing && item.type === "HOURS" ? "" : item.unitPrice}
             placeholder="0,00"
-            onChange={(e) => onChange(item.id, "unitPrice", parseFloat(e.target.value) || 0)}
+            onChange={(e) => onChange(item.id, "unitPrice", e.target.value === "" ? "" : Math.min(100000, Math.max(0, Number(e.target.value) || 0)))}
           />
         </div>
+        {item.type === "HOURS" && item.rateMissing && <p className="text-xs text-amber-800">Vul een uurtarief in</p>}
       </td>
 
+      {ortEnabled && <td className="px-2 py-2 w-24">
+        {item.type === "HOURS" ? (
+          <select className="input text-xs" aria-label="Onregelmatigheidstoeslag"
+            value={ortEnabled ? item.ortPerc : 0} onChange={(e) => onChange(item.id, "ortPerc", Number(e.target.value))}>
+            <option value={0}>Geen</option>
+            <option value={25}>25%</option>
+            <option value={50}>50%</option>
+            <option value={100}>100%</option>
+          </select>
+        ) : <span className="px-2 text-xs text-[#92858d]">—</span>}
+      </td>}
       <td className="px-3 py-2 w-28 text-right text-sm font-semibold text-[#493b49]">
-        {formatEuro(lineTotal)}
+        {formatEuro(lineTotal + ortAmount)}
+        {ortAmount > 0 && <span className="block text-xs font-normal text-[#9a624d]">Basis {formatEuro(lineTotal)} + ORT {item.ortPerc}%: {formatEuro(ortAmount)}</span>}
       </td>
 
       <td className="px-2 py-2 w-8">

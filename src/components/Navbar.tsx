@@ -9,6 +9,7 @@ const appLinks = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, exact: true },
   { href: "/invoices", label: "Facturen", icon: FileText },
   { href: "/clients", label: "Klanten", icon: Users },
+  { href: "/billing", label: "Abonnement", icon: FileText },
   { href: "/settings", label: "Instellingen", icon: Settings },
 ];
 
