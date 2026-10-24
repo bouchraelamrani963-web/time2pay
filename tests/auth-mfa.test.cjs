@@ -75,7 +75,7 @@ function fixture({ token = first, account = enrolled, required = false, revoked 
   const env = { TIME2PAY_REQUIRE_TOTP: String(required) };
   const actualPolicy = load(policyFile, {}, env);
   const stubs = {
-    '@/lib/account-recovery': { exchangeRecoverySession: async () => ({}), recoveryLocked: async () => false, deliverSecurityNotices: async () => {} },
+    '@/lib/account-recovery': { RecoveryError: class extends Error {}, exchangeRecoverySession: async () => ({}), recoveryLocked: async () => false, deliverSecurityNotices: async () => {} },
     './account-recovery': { recoveryLocked: async () => false },
     '@/lib/recovery-config': { RECOVERY_COOKIE: '__Host-time2pay_recovery', recoveryEnabled: () => false },
     'server-only': {}, 'next/server': { NextResponse },

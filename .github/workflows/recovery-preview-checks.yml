@@ -39,12 +39,11 @@ jobs:
       - run: npm ci --ignore-scripts
       - run: npx prisma generate
       - run: npx prisma db push --skip-generate
-      - run: npm run test:auth
-      - run: npm run test:recovery
-      - run: npm run test:billing
-      - run: npm run test:services
+      - run: node --test tests/*.test.cjs tests/*.test.mjs
       - run: npx tsc --noEmit
+        if: ${{ !cancelled() }}
       - run: npm run build
+        if: ${{ !cancelled() }}
   dependencies:
     runs-on: ubuntu-latest
     timeout-minutes: 10
