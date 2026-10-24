@@ -7,15 +7,15 @@ test.before(async()=>{if(!enabled)return;
  prisma=new(require('@prisma/client').PrismaClient)();await prisma.$connect();
 });
 test.after(async()=>{if(prisma)await prisma.$disconnect();});
-function fixture(){
+function fixture(options={}){
  const uid='qa-'+randomUUID(),calls=[];
  let user=identity(uid);
  const admin={getUser:async id=>{assert.equal(id,uid);return user;},
   setCustomUserClaims:async(id,claims)=>{assert.equal(id,uid);calls.push('claims');user={...user,customClaims:claims};},
   revokeRefreshTokens:async id=>{assert.equal(id,uid);calls.push('revoke');},
-  updateUser:async(id,data)=>{assert.equal(id,uid);calls.push('clear');user={...user,multiFactor:data.multiFactor};return user;}};
+  updateUser:async(id,data)=>{assert.equal(id,uid);calls.push('clear');if(options.failClear)throw Error('Simulated Firebase failure');user={...user,multiFactor:data.multiFactor};return user;}};
  const core=load('src/lib/account-recovery.ts',{'./prisma':{prisma},'./firebase-admin':{getAdminAuth:()=>admin},
-  './email':{getInvoiceEmailConfig:()=>({from:'test@invalid.example',testRecipient:'delivered@resend.dev',resend:{emails:{send:async()=>({error:null})}}})}});
+  './email':{getInvoiceEmailConfig:()=>({from:'test@invalid.example',testRecipient:'delivered@resend.dev',resend:{emails:{send:async message=>{assert.equal(message.to,'delivered@resend.dev');assert.ok(!/[A-F0-9]{4}(?:-[A-F0-9]{4}){7}/.test(message.text));return {error:null};}}}})}});
  return {uid,core,calls,user:()=>user,newFactor:()=>{user={...user,multiFactor:{enrolledFactors:[{factorId:'totp',uid:'new-factor'}]}};}};
 }
 async function initial(f){const result=await f.core.exchangeRecoverySession(token(f.uid),f.user());assert.equal(result.recoveryCodes.length,10);return result.recoveryCodes;}
@@ -71,4 +71,14 @@ test('PostgreSQL: support intake logs a request but cannot change factors or gra
  const f=fixture();const reference=await f.core.submitRecoverySupport(f.user(),'test@invalid.example','Synthetic lost-device test');
  assert.ok(reference);assert.equal(f.calls.length,0);assert.equal(f.user().multiFactor.enrolledFactors[0].uid,'old-factor');
  assert.equal((await prisma.recoverySupportRequest.findUnique({where:{id:reference}})).status,'REVIEW_REQUIRED');
+});
+
+test('PostgreSQL: Firebase reset failure leaves a durable application and provider recovery lock',{skip:!enabled},async()=>{
+ const f=fixture({failClear:true}),codes=await initial(f);
+ await assert.rejects(()=>f.core.beginRecovery(f.user(),codes[0]));
+ assert.equal(await f.core.recoveryLocked(f.uid),true);
+ assert.equal(f.user().customClaims.time2payRecoveryLocked,true);
+ assert.equal((await prisma.accountRecovery.findUnique({where:{userId:f.uid}})).status,'RESETTING');
+ assert.equal(await prisma.recoveryCode.count({where:{userId:f.uid,usedAt:{not:null}}}),1);
+ assert.equal(f.user().multiFactor.enrolledFactors[0].uid,'old-factor');
 });
