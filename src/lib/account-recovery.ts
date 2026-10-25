@@ -136,7 +136,9 @@ export async function exchangeRecoverySession(token: DecodedIdToken, account: Us
     if (state && state.status !== "NONE") {
       if (!account.multiFactor?.enrolledFactors.some(f => f.factorId === "totp")) throw new RecoveryError("mfa_setup_required");
       if (token.firebase?.sign_in_second_factor !== "totp") throw new RecoveryError("mfa_required");
-      if (!grant || !equalDigest(state.grantHash, recoveryDigest(recoverySecret(), "grant", grant)) ||
+      if (!state.expiresAt || state.expiresAt.getTime() <= Date.now()) throw new RecoveryError("recovery_expired");
+      if (!grant) throw new RecoveryError("recovery_session_missing");
+      if (!equalDigest(state.grantHash, recoveryDigest(recoverySecret(), "grant", grant)) ||
           !mayCompleteRecovery(token, account, state)) throw new RecoveryError("invalid_recovery");
       const recoveryCodes = await replaceCodes(tx, account.uid);
       await audit(tx, account.uid, "RECOVERY_COMPLETED", account.email!);
