@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireUserOrUnauthorized } from "@/lib/auth";
-import { getStripe, SANDBOX_ACCOUNT } from "@/lib/billing";
+import { getStripe } from "@/lib/billing";
+import { getBillingEnvironment, assertBillingOrigin } from "@/lib/billing-environment";
 import { prisma } from "@/lib/prisma";
 
 export const runtime = "nodejs";
@@ -11,8 +12,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Ongeldige aanvraag" }, { status: 403 });
   }
   try {
+    const configuration = getBillingEnvironment();
+    assertBillingOrigin(new URL(req.url), configuration.livemode);
     const stripe = getStripe();
-    if ((await stripe.accounts.retrieveCurrent()).id !== SANDBOX_ACCOUNT) throw new Error("Verkeerde sandbox");
+    if ((await stripe.accounts.retrieveCurrent()).id !== configuration.accountId) throw new Error("Verkeerde Stripe-account");
     const account = await prisma.billingAccount.findUnique({ where: { userId: user.uid } });
     if (!account?.customerId) return NextResponse.json({ error: "Nog geen facturatieaccount" }, { status: 404 });
     const session = await stripe.billingPortal.sessions.create({

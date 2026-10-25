@@ -3,15 +3,11 @@ import StripeClient from "stripe";
 import { NextResponse } from "next/server";
 import { prisma } from "./prisma";
 import { grantsPaidAccess } from "./billing-plans";
+import { getBillingEnvironment } from "./billing-environment";
 
-export const SANDBOX_ACCOUNT = "acct_1UTMA8ITnweMFGCg";
+export { SANDBOX_ACCOUNT } from "./billing-environment";
 export function getStripe() {
-  const key = process.env.STRIPE_TEST_RESTRICTED_KEY;
-  if (process.env.TIME2PAY_BILLING_MODE !== "test" || process.env.VERCEL_ENV === "production" ||
-      !key?.startsWith("rk_test_")) {
-    throw new Error("Stripe-testconfiguratie ontbreekt of is niet toegestaan op productie.");
-  }
-  return new StripeClient(key);
+  return new StripeClient(getBillingEnvironment().key);
 }
 
 export function paymentRequired() {
@@ -28,6 +24,7 @@ export async function getPaidEntitlement(userId: string) {
   const account = await prisma.billingAccount.findUnique({ where: { userId } });
   if (!account?.subscriptionId || !account.customerId) return null;
   try {
+    const configuration = getBillingEnvironment();
     const stripe = getStripe();
     const sub = await stripe.subscriptions.retrieve(account.subscriptionId, { expand: ["latest_invoice"] });
     const customerId = typeof sub.customer === "string" ? sub.customer : sub.customer.id;
@@ -39,10 +36,11 @@ export async function getPaidEntitlement(userId: string) {
       invoicePaid: !!invoice && typeof invoice !== "string" && invoice.status === "paid" && invoice.amount_paid > 0,
       priceId: item.price.id,
       periodEnd: item.current_period_end,
-    });
+    }, Date.now(), { livemode: configuration.livemode,
+      priceIds: Object.values(configuration.plans).map(plan => plan.priceId) });
     if (!valid) return null;
     return { subscriptionId: sub.id, periodStart: item.current_period_start,
-      periodEnd: item.current_period_end, starter: item.price.id === "price_1UTMKLITnweMFGCgJdeTu8jS" };
+      periodEnd: item.current_period_end, starter: item.price.id === configuration.plans.starter.priceId };
   } catch {
     return null;
   }
