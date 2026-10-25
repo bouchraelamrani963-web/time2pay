@@ -12,8 +12,8 @@ export function isBillingPlan(value: unknown): value is BillingPlan {
 export function grantsPaidAccess(input: {
   livemode: boolean; status: string; invoicePaid: boolean;
   priceId: string; periodEnd: number;
-}, now = Date.now()) {
-  return !input.livemode && input.status === "active" && input.invoicePaid &&
-    Object.values(BILLING_PLANS).some(plan => plan.priceId === input.priceId) &&
+}, now = Date.now(), policy = { livemode: false, priceIds: Object.values(BILLING_PLANS).map(plan => plan.priceId) as string[] }) {
+  return input.livemode === policy.livemode && input.status === "active" && input.invoicePaid &&
+    policy.priceIds.includes(input.priceId) &&
     input.periodEnd * 1000 > now;
 }

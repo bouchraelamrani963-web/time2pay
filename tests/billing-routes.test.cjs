@@ -66,7 +66,8 @@ test('checkout retries stay stable, but a new plan or canceled subscription gets
   const stubs = {
     '@/lib/invoice-issuance': { authorizeInvoiceIssue: async () => null },
     '@/lib/auth': { requireUserOrUnauthorized: async () => ({ uid: 'test-user' }) },
-    '@/lib/billing': { getStripe: () => stripe, hasPaidSubscription: async () => false, SANDBOX_ACCOUNT: 'sandbox' },
+    '@/lib/billing': { getStripe: () => stripe, hasPaidSubscription: async () => false },
+    '@/lib/billing-environment': { getBillingEnvironment: () => ({livemode:false,accountId:'sandbox',plans}), assertBillingOrigin: () => {} },
     '@/lib/billing-plans': { BILLING_PLANS: plans, isBillingPlan: key => Object.hasOwn(plans, key) },
     '@/lib/prisma': { prisma: { billingAccount: { createMany: async () => {},
       findUniqueOrThrow: async () => ({ customerId: 'cus_test' }) } } },

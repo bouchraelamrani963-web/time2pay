@@ -2,7 +2,8 @@ import { createHash } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { requireUserOrUnauthorized } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { getStripe, hasPaidSubscription, SANDBOX_ACCOUNT } from "@/lib/billing";
+import { getStripe, hasPaidSubscription } from "@/lib/billing";
+import { getBillingEnvironment, assertBillingOrigin } from "@/lib/billing-environment";
 import { BILLING_PLANS, isBillingPlan } from "@/lib/billing-plans";
 
 export const runtime = "nodejs";
@@ -15,19 +16,21 @@ export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => null);
   if (!isBillingPlan(body?.plan)) return NextResponse.json({ error: "Ongeldig abonnement" }, { status: 422 });
   const planKey = body.plan as keyof typeof BILLING_PLANS;
-  const plan = BILLING_PLANS[planKey];
   try {
+    const configuration = getBillingEnvironment();
+    const plan = configuration.plans[planKey];
+    assertBillingOrigin(new URL(req.url), configuration.livemode);
     const stripe = getStripe();
     const stripeAccount = await stripe.accounts.retrieveCurrent();
-    if (stripeAccount.id !== SANDBOX_ACCOUNT) throw new Error("Verkeerde sandbox");
+    if (stripeAccount.id !== configuration.accountId) throw new Error("Verkeerde Stripe-account");
     const price = await stripe.prices.retrieve(plan.priceId);
-    if (price.livemode || !price.active || price.currency !== "eur" || price.unit_amount !== plan.cents ||
+    if (price.livemode !== configuration.livemode || !price.active || price.currency !== "eur" || price.unit_amount !== plan.cents ||
         price.tax_behavior !== "inclusive" || price.recurring?.interval !== "month" || price.recurring.interval_count !== 1) {
       throw new Error("Prijscontrole mislukt");
     }
     const registrations = await stripe.tax.registrations.list({ status: "active", limit: 100 });
-    if (!registrations.data.some(reg => !reg.livemode && reg.country === "NL")) {
-      throw new Error("Nederlandse testregistratie ontbreekt");
+    if (!registrations.data.some(reg => reg.livemode === configuration.livemode && reg.country === "NL")) {
+      throw new Error("Nederlandse belastingregistratie ontbreekt");
     }
     if (await hasPaidSubscription(user.uid)) {
       return NextResponse.json({ error: "Je hebt al een betaald abonnement." }, { status: 409 });
@@ -75,6 +78,6 @@ export async function POST(req: NextRequest) {
     }, { idempotencyKey: `time2pay-checkout-${attemptKey}` });
     return NextResponse.json({ url: session.url });
   } catch {
-    return NextResponse.json({ error: "Betalen is nog niet beschikbaar. De testconfiguratie moet eerst worden gecontroleerd." }, { status: 503 });
+    return NextResponse.json({ error: "Betalen is nog niet beschikbaar. Probeer het later opnieuw." }, { status: 503 });
   }
 }
