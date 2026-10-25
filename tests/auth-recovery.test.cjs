@@ -48,7 +48,7 @@ test('password proof is obtained server-side from Firebase and binds the returne
  }
 });
 test('disabled recovery endpoints fail before password checks or data writes',async()=>{
- for(const endpoint of ['start','support','codes','backup']){
+ for(const endpoint of ['start','support','codes']){
   const core={assertRecoveryEnabled:()=>{throw Object.assign(Error('disabled'),{status:503});},takeRecoveryRate:()=>{throw Error('rate should not run');}};
   class RecoveryError extends Error {constructor(code,status=403){super(code);this.code=code;this.status=status;}}
   core.RecoveryError=RecoveryError;
@@ -84,4 +84,10 @@ test('logout rejects cross-origin revocation and revokes Firebase sessions on an
  assert.equal(calls.length,0);
  assert.equal((await route.DELETE(new Request('https://preview.example/api/auth/session',{method:'DELETE',headers:{origin:'https://preview.example'}}))).status,200);
  assert.deepEqual(calls,['revoke:owner','delete:session']);
+});
+
+test('retired backup authenticator endpoint cannot invoke Firebase or change account data',async()=>{
+ const route=load('src/app/api/auth/recovery/backup/route.ts');
+ const response=await route.POST(new Request('https://test.example/api/auth/recovery/backup',{method:'POST',body:'{}'}));
+ assert.equal(response.status,410);assert.match(response.headers.get('cache-control'),/no-store/);
 });
