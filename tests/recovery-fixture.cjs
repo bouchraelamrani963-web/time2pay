@@ -1,5 +1,7 @@
 const fs=require('node:fs'),vm=require('node:vm'),path=require('node:path'),ts=require('typescript');
-const env={VERCEL_ENV:'preview',TIME2PAY_RECOVERY_ENABLED:'true',TIME2PAY_RECOVERY_DATABASE_ID:'time2pay-stripe-test',
+const env={VERCEL_ENV:'preview',VERCEL_GIT_COMMIT_REF:'codex/time2pay-stripe-test',
+ DATABASE_URL:'postgresql://synthetic:synthetic@ep-purple-mode-bau3xsnx-pooler.c-8.eu-central-1.aws.neon.tech/neondb',
+ DIRECT_URL:'postgresql://synthetic:synthetic@ep-purple-mode-bau3xsnx.c-8.eu-central-1.aws.neon.tech/neondb',TIME2PAY_RECOVERY_ENABLED:'true',TIME2PAY_RECOVERY_DATABASE_ID:'time2pay-stripe-test',
  TIME2PAY_REQUIRE_TOTP:'true',TIME2PAY_TOTP_SETUP_ENABLED:'true',TIME2PAY_TOTP_TEST_PROJECT_ID:'time2pay-preview',
  FIREBASE_PROJECT_ID:'time2pay-preview',NEXT_PUBLIC_FIREBASE_PROJECT_ID:'time2pay-preview',
  NEXT_PUBLIC_FIREBASE_API_KEY:'public-test-key',TIME2PAY_RECOVERY_HASH_SECRET:'ci-test-only-public-value-not-for-real-users-123456789'};

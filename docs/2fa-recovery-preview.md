@@ -61,3 +61,13 @@ References checked 24 October 2026:
 - https://firebase.google.com/docs/auth/admin/manage-mfa-users
 - https://docs.cloud.google.com/identity-platform/docs/reference/rest/v1/accounts/signInWithPassword
 - https://firebase.google.com/docs/reference/admin/node/firebase-admin.auth.decodedidtoken
+
+## Preview evidence — 25 October 2026
+
+PR7 was merged only into codex/time2pay-stripe-test (912f608); main/Production unchanged. CI run 40107393088 passed 75 tests, full zero-advisory audit, TypeScript, build and an actual disposable PostgreSQL dump/restore. Provider boundaries in those tests remain mocked.
+
+The exact additive issuance/recovery/outbox SQL was rehearsed on Neon test-project red-block-41592881, branch br-royal-pine-bauhzwy9, then applied to its sandbox branch br-floral-mountain-ba0yj69i. Snapshot snap-divine-queen-baptfqrs retains the prior state until 31 October 2026 15:45 UTC; the rehearsal branch expires at the same time. Row counts and full-row fingerprints remained identical for all five original tables: 2 clients, 2 invoices, 3 invoice items, 2 billing accounts, 0 company settings. This is test data preservation, not a production restore proof. Existing manually applied migrations still require a deliberate Prisma baseline before production rollout.
+
+The first deployed Next16/Firebase14 Preview exposed an upstream jwks-rsa require(ESM) compatibility failure. A scoped jose5 override and a regression test running without experimental require(ESM) preserve real JWKS signature validation, including rejection of a forged token. The complete dependency audit remains zero. Runtime re-verification must succeed before enabling recovery.
+
+Recovery now checks the actual pooled/direct URL host and database against the independently inspected test Neon endpoint, plus the exact sandbox Git branch. A copied database label alone cannot enable recovery on another database. No production secret is retrieved or modified.
