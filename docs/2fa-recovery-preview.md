@@ -16,7 +16,7 @@ A password plus unused code consumes that code atomically under a PostgreSQL acc
 
 A Secure HttpOnly SameSite=Strict __Host cookie carries a random, hashed, 15-minute, single-use enrollment grant. Normal app sessions remain denied throughout recovery. Completion requires that cookie, a new fresh Firebase password+TOTP login, the signed factor identifier matching an actually enrolled new factor, and the correct account. All old codes and grants are invalidated and ten new codes shown once. Old factor IDs cannot finalize recovery. Never delete pending recovery records or bypass locks to troubleshoot.
 
-An added reserve authenticator uses the existing Firebase enrollment API after fresh password+TOTP authentication. No secret is exported from Firebase to create a duplicate factor. UI checks and confirms the new app, records a notice and revokes sessions. Verify both distinct factors end to end; a provider limit/unsupported configuration must be reported without weakening authentication.
+The owner removed reserve-authenticator enrollment from scope on 25 October 2026 after Firebase refused another TOTP factor on the real test account. The UI now offers one authenticator plus ten recovery codes. The retired backup endpoint returns 410 without reading credentials or mutating Firebase/database state. Existing enrolled factors are not automatically removed. Reserve enrollment is no longer a release requirement; real recovery-code replacement and session revocation remain required.
 
 ## Abuse controls and notices
 
@@ -71,3 +71,5 @@ The exact additive issuance/recovery/outbox SQL was rehearsed on Neon test-proje
 The first deployed Next16/Firebase14 Preview exposed an upstream jwks-rsa require(ESM) compatibility failure. A scoped jose5 override and a regression test running without experimental require(ESM) preserve real JWKS signature validation, including rejection of a forged token. The complete dependency audit remains zero. Runtime re-verification must succeed before enabling recovery.
 
 Recovery now checks the actual pooled/direct URL host and database against the independently inspected test Neon endpoint, plus the exact sandbox Git branch. A copied database label alone cannot enable recovery on another database. No production secret is retrieved or modified.
+
+Owner scope correction: all earlier reserve-authenticator checklist items are superseded by the single-authenticator decision above. Do not ask the owner to enroll a reserve app.
