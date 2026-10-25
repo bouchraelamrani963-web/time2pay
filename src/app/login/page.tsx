@@ -13,6 +13,7 @@ import {
 } from "firebase/auth";
 import { getFirebaseAuth } from "@/lib/firebase-client";
 import { startSession, SessionError } from "@/lib/auth-client-session";
+import { publicAuthErrorCode } from "@/lib/auth-error-code";
 import { safeNextPath } from "@/lib/auth-navigation";
 
 const inputClass = "block w-full rounded-md border border-[#e1d5d2] bg-[#fefdfb] px-4 py-3 text-sm text-[#33243b] focus:border-[#9a624d] focus:ring-2 focus:ring-[#9a624d]/15";
@@ -26,7 +27,10 @@ function friendlyError(error: unknown) {
   if (code === "auth/network-request-failed") return "Geen verbinding. Controleer je internet en probeer opnieuw.";
   if (["auth/operation-not-allowed", "auth/unsupported-first-factor"].includes(code)) return "De authenticator-koppeling is nog niet beschikbaar. Neem contact op met de beheerder.";
   if (error instanceof SessionError) return error.message;
-  return "Inloggen is niet gelukt. Controleer je gegevens en probeer opnieuw.";
+  const publicCode = publicAuthErrorCode(error);
+  return publicCode
+    ? `De beveiligingsstap is niet gelukt (${publicCode}). Je account blijft beveiligd. Geef alleen deze foutmelding door, nooit je codes.`
+    : "Inloggen is niet gelukt. Controleer je gegevens en probeer opnieuw.";
 }
 
 type Step = "password" | "code" | "verify-email" | "enroll" | "recoverycodes";
