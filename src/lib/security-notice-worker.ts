@@ -23,6 +23,9 @@ export async function attemptSecurityNotice(id: string): Promise<NoticeAttempt> 
   }
   let providerId: string | undefined;
   try {
+    // Fault injection is restricted to an explicit synthetic notice in the isolated Preview.
+    // Ordinary security notices always use the normal transport on their first attempt.
+    if (notice.kind === "PREVIEW_RETRY_CHECK" && notice.attempts === 1) throw new Error("preview_retry_probe");
     const { resend, from, testRecipient } = getInvoiceEmailConfig();
     // Abort the actual HTTP request; no password, factor secret or recovery code is sent.
     const response = await fetch("https://api.resend.com/emails", {

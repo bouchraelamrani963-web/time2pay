@@ -56,3 +56,11 @@ test('internal sweep requires a strong server bearer secret',async()=>{
  for(const header of ['', 'Bearer wrong'])assert.equal((await route.GET(new Request('https://preview.example/api/internal/security-notices',{headers:{authorization:header}}))).status,401);
  assert.equal(calls,0);assert.equal((await route.GET(new Request('https://preview.example/api/internal/security-notices',{headers:{authorization:'Bearer '+'s'.repeat(40)}}))).status,200);assert.equal(calls,1);
 });
+
+test('isolated Preview fault injection fails once, then sends the synthetic notice through the real transport boundary',async()=>{
+ const f=fixture();f.notice.kind='PREVIEW_RETRY_CHECK';
+ const first=await f.worker.attemptSecurityNotice(f.notice.id);
+ assert.equal(first.done,false);assert.equal(f.notice.attempts,1);assert.equal(f.sent(),0);assert.equal(f.notice.lastErrorCode,'delivery_failed');
+ f.notice.nextAttemptAt=new Date(0);await f.worker.attemptSecurityNotice(f.notice.id);
+ assert.equal(f.notice.attempts,2);assert.equal(f.sent(),1);assert.ok(f.notice.sentAt);
+});

@@ -88,7 +88,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true, ...recoveryResult }, { headers: { "Cache-Control": "no-store, private" } });
   } catch (error) {
     if (error instanceof RecoveryError) return NextResponse.json({ error: error.code,
-      message: error.code === "mfa_setup_required" ? "Stel eerst je nieuwe authenticator in." : "Voltooi je beveiligde accountherstel of log opnieuw in." },
+      message: ["recovery_expired", "recovery_session_missing"].includes(error.code) ? "Je herstelsessie is verlopen of niet meer beschikbaar. Start herstel opnieuw met een ongebruikte herstelcode." : error.code === "mfa_setup_required" ? "Stel eerst je nieuwe authenticator in." : "Voltooi je beveiligde accountherstel of log opnieuw in." },
       { status: error.status, headers: { "Cache-Control": "no-store, private" } });
     const info = safeErrorInfo(error);
     console.error("[auth/session POST]", info);

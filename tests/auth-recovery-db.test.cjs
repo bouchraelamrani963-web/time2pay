@@ -50,7 +50,7 @@ test('PostgreSQL: old sessions stay blocked; only a matching grant plus new TOTP
 test('PostgreSQL: expiry never unlocks access; an unused code can restart interrupted recovery',{skip:!enabled},async()=>{
  const f=fixture(),codes=await initial(f),grant=await f.core.beginRecovery(f.user(),codes[0]);
  f.newFactor();await prisma.accountRecovery.update({where:{userId:f.uid},data:{expiresAt:new Date(0)}});
- await assert.rejects(()=>f.core.exchangeRecoverySession(token(f.uid,'new-factor'),f.user(),grant));
+ await assert.rejects(()=>f.core.exchangeRecoverySession(token(f.uid,'new-factor'),f.user(),grant),error=>error.code==='recovery_expired');
  assert.equal(await f.core.recoveryLocked(f.uid),true);
  const replacement=await f.core.beginRecovery(f.user(),codes[1]);assert.notEqual(replacement,grant);
  assert.equal(await prisma.recoveryCode.count({where:{userId:f.uid,usedAt:{not:null}}}),2);

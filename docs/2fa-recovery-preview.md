@@ -73,3 +73,11 @@ The first deployed Next16/Firebase14 Preview exposed an upstream jwks-rsa requir
 Recovery now checks the actual pooled/direct URL host and database against the independently inspected test Neon endpoint, plus the exact sandbox Git branch. A copied database label alone cannot enable recovery on another database. No production secret is retrieved or modified.
 
 Owner scope correction: all earlier reserve-authenticator checklist items are superseded by the single-authenticator decision above. Do not ask the owner to enroll a reserve app.
+
+## Recovery acceptance and retry probe — 25 October 2026
+
+Real isolated Firebase recovery completed at 09:02 UTC: password + unused recovery code accepted, old sessions revoked by the existing reset path, a new QR/TOTP authenticator enrolled and fresh password/TOTP login returned to Dashboard. Database state is NONE, grant and expiry cleared; all previous code hashes were replaced by ten unused hashes. RECOVERY_STARTED and RECOVERY_COMPLETED notices ran through Workflow and were accepted by the mail provider without errors. A separate proof that an independently retained old session is denied remains required; do not equate the database completion record with that proof. Old-code replay and print/download acceptance remain separate checks.
+
+An earlier recovery expired after 15 minutes during diagnosis. Session exchange now returns a specific expiry/missing-session message and retains all locks. A new unused code can restart via the normal password-proof path; no manual unlock was performed.
+
+/security/preview-checks and /api/auth/recovery/notice-check provide a synthetic fault-injection probe, restricted by the existing exact sandbox branch/Firebase/Neon checks and an authenticated MFA application session. POST uses same-origin bounded JSON and persistent per-user limits. It emits only PREVIEW_RETRY_CHECK to the fixed Resend sink. Only that explicit synthetic kind fails on attempt 1; ordinary notices are unaffected. The normal Workflow timer/lease/backoff and provider transport must accept attempt 2. Status reads enforce owner + kind filters and expose no email, provider payload or credentials. These routes are unavailable in Production. This is controlled transport failure injection, not a claim that the external provider had an outage. Actual deployed results must be recorded after the run.
