@@ -1,6 +1,7 @@
 import { authorizeInvoiceIssue } from "@/lib/invoice-issuance";
 import { NextRequest, NextResponse } from "next/server";
-import { hasPaidSubscription, paymentRequired } from "@/lib/billing";
+import { paymentRequired } from "@/lib/billing";
+import { hasInvoiceAccess } from "@/lib/invoice-access";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireUserOrUnauthorized } from "@/lib/auth";
@@ -64,7 +65,7 @@ export async function PATCH(
     if (data.items?.some(item => item.type !== "HOURS" && item.ortPerc !== 0)) {
       return NextResponse.json({ error: "ORT is alleen toegestaan voor uren." }, { status: 422 });
     }
-    if (data.status && data.status !== "DRAFT" && !await hasPaidSubscription(user.uid)) return paymentRequired();
+    if (data.status && data.status !== "DRAFT" && !await hasInvoiceAccess(user.uid)) return paymentRequired();
 
     if (data.status && data.status !== "DRAFT" && data.status !== "CANCELLED") {
       const denied = await authorizeInvoiceIssue(user.uid, params.id);

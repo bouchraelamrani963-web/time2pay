@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { BILLING_PLANS, type BillingPlan } from "@/lib/billing-plans";
 
-export default function BillingPlans({ paid, hasCustomer }: { paid: boolean; hasCustomer: boolean }) {
+export default function BillingPlans({ paid, hasCustomer, trialActive = false }: { paid: boolean; hasCustomer: boolean; trialActive?: boolean }) {
   const [busy, setBusy] = useState<BillingPlan | "portal" | null>(null);
   const [error, setError] = useState("");
   async function checkout(plan: BillingPlan) {
@@ -42,8 +42,8 @@ export default function BillingPlans({ paid, hasCustomer }: { paid: boolean; has
           <h2 className="text-xl font-semibold">{plan.name}</h2>
           <p className="text-3xl font-semibold">€{plan.cents / 100}<span className="text-sm font-normal"> / maand</span></p>
           <p className="text-sm">{key === "starter" ? "30 definitieve facturen per abonnementsperiode. " : ""}Inclusief btw. Maandelijks automatisch verlengd.</p>
-          <button className="btn-primary" disabled={paid || busy !== null} onClick={() => checkout(key)}>
-            {paid ? "Je hebt al een abonnement" : busy === key ? "Openen…" : `Kies ${plan.name}`}
+          <button className="btn-primary" disabled={paid || trialActive || busy !== null} onClick={() => checkout(key)}>
+            {paid ? "Je hebt al een abonnement" : trialActive ? "Beschikbaar na je gratis periode" : busy === key ? "Openen…" : `Kies ${plan.name}`}
           </button>
         </div>)}
     </div>

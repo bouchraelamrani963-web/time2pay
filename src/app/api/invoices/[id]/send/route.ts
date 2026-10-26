@@ -1,7 +1,8 @@
 import { buildInvoiceHtml, buildInvoiceText } from "@/lib/invoice-email-content";
 import { authorizeInvoiceIssue } from "@/lib/invoice-issuance";
 import { NextResponse } from "next/server";
-import { hasPaidSubscription, paymentRequired } from "@/lib/billing";
+import { paymentRequired } from "@/lib/billing";
+import { hasInvoiceAccess } from "@/lib/invoice-access";
 import { prisma } from "@/lib/prisma";
 import { requireUserOrUnauthorized } from "@/lib/auth";
 import { EmailConfigurationError, getInvoiceEmailConfig } from "@/lib/email";
@@ -18,7 +19,7 @@ export async function POST(
   const params = await promisedParams;
   const user = await requireUserOrUnauthorized();
   if (user instanceof Response) return user;
-  if (!await hasPaidSubscription(user.uid)) return paymentRequired();
+  if (!await hasInvoiceAccess(user.uid)) return paymentRequired();
   const denied = await authorizeInvoiceIssue(user.uid, params.id);
   if (denied) return denied;
 

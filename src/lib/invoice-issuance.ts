@@ -1,12 +1,13 @@
 import "server-only";
 import { NextResponse } from "next/server";
 import { prisma } from "./prisma";
-import { getPaidEntitlement, paymentRequired } from "./billing";
+import { paymentRequired } from "./billing";
+import { getInvoiceEntitlement } from "./invoice-access";
 
 // Count distinct invoices at their first definitive action, never draft creation.
 // A failed provider send conservatively retains its reservation; retrying is free.
 export async function authorizeInvoiceIssue(userId: string, invoiceId: string) {
-  const entitlement = await getPaidEntitlement(userId);
+  const entitlement = await getInvoiceEntitlement(userId);
   if (!entitlement) return paymentRequired();
   return prisma.$transaction(async tx => {
     // Shared account lock prevents the 30th and 31st simultaneous issue both passing.

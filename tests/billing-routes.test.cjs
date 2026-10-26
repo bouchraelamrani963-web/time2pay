@@ -13,7 +13,8 @@ function loadRoute(filename, user, paid) {
   const stubs = {
     '@/lib/invoice-issuance': { authorizeInvoiceIssue: async () => null },
     '@/lib/auth': { requireUserOrUnauthorized: async () => user },
-    '@/lib/billing': { hasPaidSubscription: async () => paid,
+    '@/lib/invoice-access': { hasInvoiceAccess: async () => paid },
+    '@/lib/billing': {
       paymentRequired: () => NextResponse.json({ code: 'SUBSCRIPTION_REQUIRED' }, { status: 402 }) },
     '@/lib/prisma': { prisma: fail },
     '@/lib/invoice-email-content': {}, '@/lib/email': {}, '@/lib/invoice-pdf': {}, '@/lib/calculations': {}, '@/lib/invoice-status': {},
@@ -67,6 +68,7 @@ test('checkout retries stay stable, but a new plan or canceled subscription gets
     '@/lib/invoice-issuance': { authorizeInvoiceIssue: async () => null },
     '@/lib/auth': { requireUserOrUnauthorized: async () => ({ uid: 'test-user' }) },
     '@/lib/billing': { getStripe: () => stripe, hasPaidSubscription: async () => false },
+    '@/lib/registration-trial': { getRegistrationTrial: async () => null },
     '@/lib/billing-environment': { getBillingEnvironment: () => ({livemode:false,accountId:'sandbox',plans}), assertBillingOrigin: () => {} },
     '@/lib/billing-plans': { BILLING_PLANS: plans, isBillingPlan: key => Object.hasOwn(plans, key) },
     '@/lib/prisma': { prisma: { billingAccount: { createMany: async () => {},
