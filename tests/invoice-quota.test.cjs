@@ -23,8 +23,8 @@ function fixture() {
   }
  };
  const prisma={$transaction:fn=>{const run=tail.then(()=>fn(tx));tail=run.catch(()=>{});return run;}};
- const route=load('src/lib/invoice-issuance.ts',{'server-only':{},'next/server':{NextResponse},'./prisma':{prisma},'./billing':{
- getPaidEntitlement:async()=>entitlement,paymentRequired:()=>NextResponse.json({code:'SUBSCRIPTION_REQUIRED'},{status:402})}});
+ const route=load('src/lib/invoice-issuance.ts',{'server-only':{},'next/server':{NextResponse},'./prisma':{prisma},'./invoice-access':{getInvoiceEntitlement:async()=>entitlement},'./billing':{
+ paymentRequired:()=>NextResponse.json({code:'SUBSCRIPTION_REQUIRED'},{status:402})}});
  return {issue:route.authorizeInvoiceIssue,ledger,set:v=>entitlement=v,period:()=>({...entitlement})};
 }
 test('simultaneous first issues: 30 pass and invoice 31 is denied',async()=>{
@@ -53,4 +53,16 @@ test('free users can create multiple drafts without consulting Stripe or billing
  '@/lib/shift-rates':pricing,'@/lib/calculations':calc,'@/lib/invoice-status':{}});
  for(let i=0;i<2;i++) assert.equal((await r.POST(new Request('https://test.example/api/invoices',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({clientId:'client',dueDate:'2026-11-01',items:[{type:'HOURS',description:'Test',quantity:1,unitPrice:10}]})}))).status,201);
  assert.equal(created,2);
+});
+test('trial finalizations are unlimited, owned, idempotent and do not consume the later Starter allowance',async()=>{
+ const f=fixture();f.set({subscriptionId:'trial:owner',periodStart:1,periodEnd:100,starter:false});
+ assert.equal((await f.issue('other','private')).status,404);
+ const r=await Promise.all(Array.from({length:35},(_,i)=>f.issue('owner','trial'+i)));
+ assert.ok(r.every(x=>x===null));assert.equal(f.ledger.length,35);
+ await f.issue('owner','trial0');assert.equal(f.ledger.length,35);
+ f.set(null);assert.equal((await f.issue('owner','trial0')).status,402);
+ f.set({subscriptionId:'sub_paid',periodStart:100,periodEnd:200,starter:true});
+ const paid=await Promise.all(Array.from({length:31},(_,i)=>f.issue('owner','paid'+i)));
+ assert.equal(paid.filter(x=>x===null).length,30);assert.equal(paid.filter(x=>x?.status===409).length,1);
+ assert.equal(await f.issue('owner','trial0'),null);assert.equal(f.ledger.length,65);
 });

@@ -38,7 +38,8 @@ test('fractional hours and half-cent rounding are exact, VAT includes ORT once',
 });
 function postFixture(clientAgreed=true) {
  let written;
- const route=load('src/app/api/invoices/route.ts',{'@/lib/auth':{requireUserOrUnauthorized:async()=>({uid:'owner'})},'@/lib/billing':{hasPaidSubscription:async()=>true},'@/lib/prisma':{prisma:{client:{findFirst:async({where})=>where.id==='private'?null:{id:where.id,ortAgreed:clientAgreed}},$transaction:async fn=>fn({invoice:{create:async({data})=>{written=data;return{id:'invoice',...data};}}})}}});
+ const route=load('src/app/api/invoices/route.ts',{'@/lib/auth':{requireUserOrUnauthorized:async()=>({uid:'owner'})},'@/lib/billing': { paymentRequired: () => { throw Error('Unexpected subscription denial'); } },
+        '@/lib/invoice-access':{hasInvoiceAccess:async()=>true},'@/lib/prisma':{prisma:{client:{findFirst:async({where})=>where.id==='private'?null:{id:where.id,ortAgreed:clientAgreed}},$transaction:async fn=>fn({invoice:{create:async({data})=>{written=data;return{id:'invoice',...data};}}})}}});
  return {route,written:()=>written};
 }
 const request=data=>new Request('https://test.example/api/invoices',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({clientId:'client',dueDate:'2026-11-01',vatRate:21,items:[line()],...data})});
@@ -63,7 +64,8 @@ test('PATCH recalculates VAT-only changes, preserves existing VAT on item edits,
  let current={id:'invoice',clientId:'client',status:'DRAFT',ortAgreed:false,vatRate:9,items:[line('WEEKEND')]},write;
  let issued=false;
  const tx={$executeRaw:async()=>{},invoiceIssue:{findUnique:async()=>issued?{invoiceId:"invoice"}:null},invoice:{findFirst:async()=>current,updateMany:async({data})=>{write=data;return{count:1};}},client:{findFirst:async()=>({id:'client',ortAgreed:true})},invoiceItem:{deleteMany:async()=>{},createMany:async()=>{}}};
- const route=load('src/app/api/invoices/[id]/route.ts',{'@/lib/auth':{requireUserOrUnauthorized:async()=>({uid:'owner'})},'@/lib/prisma':{prisma:{invoice:{findFirst:async()=>({id:'invoice'})},$transaction:fn=>fn(tx)}},'@/lib/billing':{hasPaidSubscription:async()=>true},'@/lib/invoice-issuance':{authorizeInvoiceIssue:async()=>null}});
+ const route=load('src/app/api/invoices/[id]/route.ts',{'@/lib/auth':{requireUserOrUnauthorized:async()=>({uid:'owner'})},'@/lib/prisma':{prisma:{invoice:{findFirst:async()=>({id:'invoice'})},$transaction:fn=>fn(tx)}},'@/lib/billing': { paymentRequired: () => { throw Error('Unexpected subscription denial'); } },
+        '@/lib/invoice-access':{hasInvoiceAccess:async()=>true},'@/lib/invoice-issuance':{authorizeInvoiceIssue:async()=>null}});
  const patch=data=>route.PATCH(new Request('https://test.example/api/invoices/invoice',{method:'PATCH',headers:{'content-type':'application/json'},body:JSON.stringify(data)}),{params:{id:'invoice'}});
  assert.equal((await patch({vatRate:21})).status,200);assert.equal(write.total,580.8);
  assert.equal((await patch({items:[line('EVENING')]})).status,200);assert.equal(write.vatRate,9);assert.equal(write.total,436);

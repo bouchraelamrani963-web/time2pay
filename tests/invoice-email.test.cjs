@@ -51,7 +51,8 @@ for (const kind of ['send', 'remind']) {
         '@/lib/invoice-email-content': load('src/lib/invoice-email-content.ts', { './shift-rates': load('src/lib/shift-rates.ts', {}) }),
         '@/lib/invoice-issuance': { authorizeInvoiceIssue: async () => null },
         '@/lib/auth': { requireUserOrUnauthorized: async () => ({ uid: 'owner', name: 'Owner' }) },
-        '@/lib/billing': { hasPaidSubscription: async () => true },
+        '@/lib/billing': { paymentRequired: () => { throw Error('Unexpected subscription denial'); } },
+        '@/lib/invoice-access': { hasInvoiceAccess: async () => true },
         '@/lib/prisma': { prisma: { invoice: {
           findFirst: async ({ where }) => { assert.equal(where.userId, 'owner'); return invoice; },
           updateMany: async data => { assert.ok(message); writes.push(data); return { count: 1 }; },

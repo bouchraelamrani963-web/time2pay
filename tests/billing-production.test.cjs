@@ -61,6 +61,7 @@ test('disabled live checkout and portal stop before Stripe or database side effe
   let sideEffects=0;
   const route=load(`src/app/api/billing/${file}/route.ts`,{
    '@/lib/auth':{requireUserOrUnauthorized:async()=>({uid:'synthetic'})},
+   '@/lib/registration-trial':{getRegistrationTrial:async()=>null},
    '@/lib/billing':{getStripe:()=>{sideEffects++;throw Error('must not reach Stripe');}},
    '@/lib/billing-environment':{...config,getBillingEnvironment:()=>config.resolveBillingEnvironment({...production,TIME2PAY_LIVE_PAYMENTS_ENABLED:undefined})},
    '@/lib/billing-plans':plans,'@/lib/prisma':{prisma:new Proxy({},{get(){sideEffects++;throw Error('must not reach database');}})}
@@ -82,6 +83,7 @@ function checkoutFixture(overrides={}) {
    assert.ok(Object.values(selected.plans).some(p=>p.priceId===body.line_items[0].price));return {url:'https://checkout.stripe.com/synthetic'};}}}};
  const route=load('src/app/api/billing/checkout/route.ts',{'@/lib/auth':{requireUserOrUnauthorized:async()=>({uid:'synthetic'})},
   '@/lib/billing-environment':{...config,getBillingEnvironment:()=>selected},'@/lib/billing-plans':plans,
+  '@/lib/registration-trial':{getRegistrationTrial:async()=>null},
   '@/lib/billing':{getStripe:()=>stripe,hasPaidSubscription:async()=>false},
   '@/lib/prisma':{prisma:{billingAccount:{createMany:async()=>{stored++;},findUniqueOrThrow:async()=>({customerId:'cus_synthetic'})}}}});
  return {created:()=>created,stored:()=>stored,send:(plan='starter',origin='https://time2pay.nl')=>route.POST(new Request(origin+'/api/billing/checkout',

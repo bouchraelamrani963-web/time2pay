@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { getStripe, hasPaidSubscription } from "@/lib/billing";
 import { getBillingEnvironment, assertBillingOrigin } from "@/lib/billing-environment";
 import { BILLING_PLANS, isBillingPlan } from "@/lib/billing-plans";
+import { getRegistrationTrial } from "@/lib/registration-trial";
 
 export const runtime = "nodejs";
 export async function POST(req: NextRequest) {
@@ -17,6 +18,9 @@ export async function POST(req: NextRequest) {
   if (!isBillingPlan(body?.plan)) return NextResponse.json({ error: "Ongeldig abonnement" }, { status: 422 });
   const planKey = body.plan as keyof typeof BILLING_PLANS;
   try {
+    if (await getRegistrationTrial(user.uid)) {
+      return NextResponse.json({ code: "TRIAL_ACTIVE", error: "Je gebruikt Time2Pay nog gratis. Kies na je gratis periode zelf een abonnement; er wordt niets automatisch afgeschreven." }, { status: 409 });
+    }
     const configuration = getBillingEnvironment();
     const plan = configuration.plans[planKey];
     assertBillingOrigin(new URL(req.url), configuration.livemode);

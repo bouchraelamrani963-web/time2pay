@@ -100,8 +100,8 @@ test('PostgreSQL: real advisory locks admit exactly 30 Starter issues and preser
  const invoices=await Promise.all(Array.from({length:32},()=>prisma.invoice.create({data:{userId,clientId:client.id,number:'CI-'+randomUUID(),dueDate:new Date()}})));
  let entitlement={starter:true,subscriptionId:'sub_fixture',periodStart:100,periodEnd:200};
  const {NextResponse}=require('next/server');
- const module=load('src/lib/invoice-issuance.ts',{'./prisma':{prisma},'./billing':{
-  getPaidEntitlement:async()=>entitlement,paymentRequired:()=>NextResponse.json({code:'SUBSCRIPTION_REQUIRED'},{status:402})}});
+ const module=load('src/lib/invoice-issuance.ts',{'./prisma':{prisma},'./invoice-access':{getInvoiceEntitlement:async()=>entitlement},'./billing':{
+  paymentRequired:()=>NextResponse.json({code:'SUBSCRIPTION_REQUIRED'},{status:402})}});
  const results=await Promise.all(invoices.slice(0,31).map(i=>module.authorizeInvoiceIssue(userId,i.id)));
  assert.equal(results.filter(r=>r===null).length,30);assert.equal(results.filter(r=>r?.status===409).length,1);
  const issued=await prisma.invoiceIssue.findFirst({where:{userId}});

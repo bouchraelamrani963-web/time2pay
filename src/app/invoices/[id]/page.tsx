@@ -1,4 +1,4 @@
-import { hasPaidSubscription } from "@/lib/billing";
+import { hasInvoiceAccess } from "@/lib/invoice-access";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { notFound } from "next/navigation";
@@ -11,7 +11,7 @@ import type { Invoice } from "@/types/invoice";
 export default async function InvoiceDetailPage(props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
   const user = await requireUser();
-  const canExport = await hasPaidSubscription(user.uid);
+  const canExport = await hasInvoiceAccess(user.uid);
   const raw = await prisma.invoice.findFirst({
     where: { id: params.id, userId: user.uid },
     include: { client: true, items: { orderBy: { sortOrder: "asc" } } },
