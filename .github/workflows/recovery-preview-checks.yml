@@ -87,6 +87,9 @@ jobs:
           npx prisma db execute --schema prisma/schema.prisma --file prisma/migrations/20261024090000_billing_issuance/migration.sql
           npx prisma db execute --schema prisma/schema.prisma --file prisma/migrations/20261024160000_auth_recovery/migration.sql
           npx prisma db execute --schema prisma/schema.prisma --file prisma/migrations/20261024180000_security_notice_retry/migration.sql
+          node tests/notice-window-migration.cjs seed
+          npx prisma db execute --schema prisma/schema.prisma --file prisma/migrations/20261026170000_notice_attempt_window/migration.sql
+          node tests/notice-window-migration.cjs assert
           npx prisma migrate diff --from-url "$DATABASE_URL" --to-schema-datamodel prisma/schema.prisma --exit-code
           node tests/migration-preservation.cjs assert
           docker exec "${{ job.services.postgres.id }}" pg_dump -U recovery_ci -d time2pay_recovery_ci --clean --if-exists > /tmp/time2pay-ci-backup.sql

@@ -83,8 +83,8 @@ test('PostgreSQL: Firebase reset failure leaves a durable application and provid
  assert.equal(f.user().multiFactor.enrolledFactors[0].uid,'old-factor');
 });
 
-test('PostgreSQL: concurrent notice workers accept a single lease and retain durable acceptance evidence',{skip:!enabled},async()=>{
- const notice=await prisma.securityNotice.create({data:{userId:'qa-notice-'+randomUUID(),email:'private@invalid.example',kind:'RECOVERY_STARTED'}});
+test('PostgreSQL: concurrent workers send an old unattempted notice once and retain the first-attempt window',{skip:!enabled},async()=>{
+ const notice=await prisma.securityNotice.create({data:{userId:'qa-notice-'+randomUUID(),email:'private@invalid.example',kind:'RECOVERY_STARTED',createdAt:new Date(Date.now()-25*3600000)}});
  let calls=0;
  const worker=load('src/lib/security-notice-worker.ts',{'./prisma':{prisma},
   './email':{getInvoiceEmailConfig:()=>({resend:{key:'synthetic'},from:'test@invalid.example',testRecipient:'delivered@resend.dev'})},
@@ -93,6 +93,10 @@ test('PostgreSQL: concurrent notice workers accept a single lease and retain dur
  await Promise.all(Array.from({length:12},()=>worker.attemptSecurityNotice(notice.id)));
  assert.equal(calls,1);const stored=await prisma.securityNotice.findUnique({where:{id:notice.id}});
  assert.equal(stored.attempts,1);assert.ok(stored.sentAt);assert.equal(stored.providerId,'synthetic-provider-id');
+ assert.ok(stored.firstAttemptAt);assert.ok(stored.firstAttemptAt>stored.createdAt);
+ const start=stored.firstAttemptAt.toISOString();
+ await worker.attemptSecurityNotice(notice.id);
+ assert.equal(calls,1);assert.equal((await prisma.securityNotice.findUnique({where:{id:notice.id}})).firstAttemptAt.toISOString(),start);
 });
 test('PostgreSQL: real advisory locks admit exactly 30 Starter issues and preserve repeat/period behavior',{skip:!enabled},async()=>{
  const userId='qa-quota-'+randomUUID();
