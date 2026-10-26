@@ -111,3 +111,30 @@ test('PostgreSQL: real advisory locks admit exactly 30 Starter issues and preser
  assert.equal(await module.authorizeInvoiceIssue(userId,invoices[31].id),null);
  entitlement=null;assert.equal((await module.authorizeInvoiceIssue(userId,issued.invoiceId)).status,402);
 });
+
+test('PostgreSQL: production-mode recovery rotates codes and retains locks while rollout is off',{skip:!enabled},async()=>{
+ const {productionRecoveryEnv}=require('./production-recovery-fixture.cjs');
+ const uid='qa-production-'+randomUUID(),calls=[];let account=identity(uid);
+ const admin={getUser:async()=>account,
+  setCustomUserClaims:async(id,claims)=>{account={...account,customClaims:claims};calls.push('claims');},
+  revokeRefreshTokens:async()=>calls.push('revoke'),
+  updateUser:async(id,data)=>{account={...account,multiFactor:data.multiFactor};calls.push('factors');return account;}};
+ const stubs={'./prisma':{prisma},'./firebase-admin':{getAdminAuth:()=>admin},
+  './security-notice-dispatch':{dispatchSecurityNotices:async()=>0}};
+ const core=load('src/lib/account-recovery.ts',stubs,productionRecoveryEnv);
+ const codes=(await core.exchangeRecoverySession(token(uid),account)).recoveryCodes;
+ assert.equal(codes.length,10);
+ const grant=await core.beginRecovery(account,codes[0]);assert.ok(grant);assert.ok(calls.includes('revoke'));
+ const disabled=load('src/lib/account-recovery.ts',stubs,{...productionRecoveryEnv,TIME2PAY_RECOVERY_ENABLED:'false'});
+ assert.equal(await disabled.recoveryLocked(uid),true);
+ // Database lock must suffice even if a provider claim is absent during repair.
+ await assert.rejects(()=>disabled.exchangeRecoverySession(token(uid),{...account,customClaims:{}}),e=>e.code==='recovery_unavailable');
+ account={...account,multiFactor:{enrolledFactors:[{factorId:'totp',uid:'new-production-fixture-factor'}]}};
+ const completed=await core.exchangeRecoverySession(token(uid,'new-production-fixture-factor'),account,grant);
+ assert.equal(completed.recovered,true);assert.equal(completed.recoveryCodes.length,10);
+ assert.equal(await core.recoveryLocked(uid),false);
+ await assert.rejects(()=>core.beginRecovery(account,codes[0]));
+ const stored=await prisma.recoveryCode.findMany({where:{userId:uid}});
+ assert.equal(stored.length,10);assert.ok(stored.every(c=>c.codeHash.length===64&&!c.usedAt));
+ assert.ok(!JSON.stringify(stored).includes(completed.recoveryCodes[0]));
+});

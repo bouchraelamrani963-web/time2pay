@@ -37,6 +37,14 @@ function getFirebasePrivateKey(): string {
 }
 
 function getAdminApp(): App {
+  // A Production build must never authenticate against copied Preview settings.
+  if (process.env.VERCEL_ENV === "production" && (
+      process.env.FIREBASE_PROJECT_ID !== "time2pay-c5c5c" ||
+      process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID !== "time2pay-c5c5c" ||
+      !process.env.FIREBASE_CLIENT_EMAIL?.endsWith("@time2pay-c5c5c.iam.gserviceaccount.com") ||
+      process.env.TIME2PAY_TOTP_TEST_PROJECT_ID || process.env.FIREBASE_TEST_SERVICE_ACCOUNT_JSON)) {
+    throw new Error("De Firebase-productieconfiguratie is ongeldig.");
+  }
   if (adminApp) return adminApp;
 
   const testProject = process.env.TIME2PAY_TOTP_TEST_PROJECT_ID;

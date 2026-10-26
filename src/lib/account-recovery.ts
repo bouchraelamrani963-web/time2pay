@@ -4,7 +4,7 @@ import type { Prisma } from "@prisma/client";
 import { randomBytes } from "node:crypto";
 import { prisma } from "./prisma";
 import { getAdminAuth } from "./firebase-admin";
-import { recoveryEnabled, recoverySecret } from "./recovery-config";
+import { recoveryEnabled, recoverySecret, recoveryLocksRequired } from "./recovery-config";
 import { createRecoveryCodes, equalDigest, normalizeRecoveryCode, recoveryDigest } from "./recovery-crypto";
 import { mayCompleteRecovery, signedTotpFactor } from "./recovery-policy";
 
@@ -15,7 +15,7 @@ export function assertRecoveryEnabled() {
   if (!recoveryEnabled()) throw new RecoveryError("recovery_unavailable", 503);
 }
 export async function recoveryLocked(userId: string) {
-  if (!recoveryEnabled()) return false;
+  if (!recoveryLocksRequired()) return false;
   const state = await prisma.accountRecovery.findUnique({ where: { userId } });
   return !!state && state.status !== "NONE";
 }
@@ -127,7 +127,7 @@ export async function beginRecovery(account: UserRecord, inputCode: string) {
 }
 export async function exchangeRecoverySession(token: DecodedIdToken, account: UserRecord, grant?: string): Promise<{ recoveryCodes?: string[]; recovered?: boolean }> {
   if (!recoveryEnabled()) {
-    if (account.customClaims?.time2payRecoveryLocked) throw new RecoveryError("recovery_unavailable", 503);
+    if (account.customClaims?.time2payRecoveryLocked || await recoveryLocked(account.uid)) throw new RecoveryError("recovery_unavailable", 503);
     return {};
   }
   return prisma.$transaction(async tx => {

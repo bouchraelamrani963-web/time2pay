@@ -2,7 +2,7 @@ import "server-only";
 import { randomUUID } from "node:crypto";
 import { prisma } from "./prisma";
 import { getInvoiceEmailConfig } from "./email";
-import { recoveryEnabled } from "./recovery-config";
+import { recoveryEnabled, previewRecoveryEnabled } from "./recovery-config";
 import { NOTICE_MAX_AGE_MS, noticeRetryAt } from "./security-notice-policy";
 
 export type NoticeAttempt = { done: true } | { done: false; retryAt: string };
@@ -25,7 +25,7 @@ export async function attemptSecurityNotice(id: string): Promise<NoticeAttempt> 
   try {
     // Fault injection is restricted to an explicit synthetic notice in the isolated Preview.
     // Ordinary security notices always use the normal transport on their first attempt.
-    if (notice.kind === "PREVIEW_RETRY_CHECK" && notice.attempts === 1) throw new Error("preview_retry_probe");
+    if (previewRecoveryEnabled() && notice.kind === "PREVIEW_RETRY_CHECK" && notice.attempts === 1) throw new Error("preview_retry_probe");
     const { resend, from, testRecipient } = getInvoiceEmailConfig();
     // Abort the actual HTTP request; no password, factor secret or recovery code is sent.
     const response = await fetch("https://api.resend.com/emails", {

@@ -1,11 +1,11 @@
 import { NextRequest } from "next/server";
 import { requireUserOrUnauthorized } from "@/lib/auth";
-import { recoveryEnabled } from "@/lib/recovery-config";
+import { previewRecoveryEnabled } from "@/lib/recovery-config";
 import { readRecoveryBody, recoveryFailure, recoveryJson } from "@/lib/recovery-http";
 import { takeRecoveryRate, deliverSecurityNotices } from "@/lib/account-recovery";
 import { prisma } from "@/lib/prisma";
 export const runtime = "nodejs";
-function enabled() { return recoveryEnabled() && process.env.TIME2PAY_SECURITY_NOTICES_ENABLED === "true"; }
+function enabled() { return previewRecoveryEnabled() && process.env.TIME2PAY_SECURITY_NOTICES_ENABLED === "true"; }
 export async function POST(req: NextRequest) {
   if (!enabled()) return recoveryJson({ error: "unavailable" }, 404);
   try {
