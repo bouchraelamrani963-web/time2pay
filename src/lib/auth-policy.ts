@@ -1,7 +1,7 @@
 import type { DecodedIdToken, UserRecord } from "firebase-admin/auth";
 
 export function getMfaConfiguration() {
-  const required = process.env.TIME2PAY_REQUIRE_TOTP === "true";
+  const required = process.env.VERCEL_ENV === "production" || process.env.TIME2PAY_REQUIRE_TOTP === "true";
   const isolatedProject = process.env.TIME2PAY_TOTP_TEST_PROJECT_ID;
   const setupEnabled = process.env.TIME2PAY_TOTP_SETUP_ENABLED === "true" && (
     process.env.VERCEL_ENV === "production" || Boolean(

@@ -11,7 +11,7 @@ test('ten unique 128-bit recovery codes; normalization and hashes are purpose/us
  assert.equal(crypto.equalDigest(a,a),true);assert.equal(crypto.equalDigest(null,a),false);
  assert.throws(()=>crypto.recoveryDigest('short','code','test'));
 });
-test('recovery refuses Production, shared auth, missing secrets and missing explicit test database marker',()=>{
+test('Preview recovery refuses copied Production flags, shared auth and missing secrets',()=>{
  const file='src/lib/recovery-config.ts';assert.equal(load(file,{},env).recoveryEnabled(),true);
  for(const change of [{DATABASE_URL:'postgresql://synthetic:synthetic@production.invalid/neondb'},{DIRECT_URL:''},{VERCEL_GIT_COMMIT_REF:'main'},{VERCEL_ENV:'production'},{TIME2PAY_RECOVERY_ENABLED:'false'},{FIREBASE_PROJECT_ID:'time2pay-c5c5c'},
   {NEXT_PUBLIC_FIREBASE_PROJECT_ID:'other'},{TIME2PAY_REQUIRE_TOTP:'false'},{TIME2PAY_RECOVERY_HASH_SECRET:''},{TIME2PAY_RECOVERY_DATABASE_ID:''}])
