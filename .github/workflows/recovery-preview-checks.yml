@@ -6,6 +6,7 @@ on:
       - "src/**"
       - "prisma/**"
       - "tests/**"
+      - "scripts/**"
       - "package*.json"
       - "next.config.mjs"
       - "vercel.json"
@@ -13,6 +14,41 @@ on:
 permissions:
   contents: read
 jobs:
+  migration-chain:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: recovery_ci
+          POSTGRES_PASSWORD: disposable_ci_only
+          POSTGRES_DB: time2pay_recovery_ci
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U recovery_ci -d time2pay_recovery_ci"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL: postgresql://recovery_ci:disposable_ci_only@127.0.0.1:5432/time2pay_recovery_ci
+      DIRECT_URL: postgresql://recovery_ci:disposable_ci_only@127.0.0.1:5432/time2pay_recovery_ci
+      TIME2PAY_RECOVERY_DB_TEST: "true"
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: "24.x"
+      - run: npm ci --ignore-scripts
+      - run: npx prisma generate
+      - name: Verify the entire versioned migration chain, without db push
+        run: |
+          npx prisma migrate deploy
+          npx prisma migrate status
+          npx prisma migrate diff --from-url "$DATABASE_URL" --to-schema-datamodel prisma/schema.prisma --exit-code
+          node tests/migration-preservation.cjs seed
+          npx prisma migrate deploy
+          node tests/migration-preservation.cjs assert
   recovery:
     runs-on: ubuntu-latest
     timeout-minutes: 15
