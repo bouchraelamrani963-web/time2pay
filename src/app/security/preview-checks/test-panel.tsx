@@ -28,6 +28,7 @@ export default function PreviewNoticeCheck() {
   return <main className="mx-auto max-w-xl space-y-4 p-6">
     <h1 className="text-2xl font-semibold">Preview: beveiligingsmelding testen</h1>
     <p>Deze proef veroorzaakt één gecontroleerde verzendfout. De achtergrondtaak hoort de testmelding na ongeveer één minuut automatisch opnieuw te proberen en naar de testontvanger te sturen.</p>
+    <p>De testmelding krijgt een fictieve wachttijd van 25 uur. Zo controleren we dat een vertraagde melding nog kan worden verstuurd.</p>
     <button disabled={busy || !!id} onClick={start} className="rounded border p-3">Start herhaalproef</button>
     <p role="status">{result ? result.accepted ? `Geslaagd: verzenddienst heeft de melding geaccepteerd na ${result.attempts} pogingen.` : result.failed ? "Proef mislukt: handmatige controle nodig." : result.retryScheduled ? `Verzendfout vastgelegd; automatische herhaling gepland. Pogingen: ${result.attempts}.` : `Proef loopt. Pogingen: ${result.attempts}.` : ""}</p>
     {error && <p role="alert">{error}</p>}
