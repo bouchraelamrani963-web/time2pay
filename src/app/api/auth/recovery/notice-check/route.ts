@@ -15,6 +15,9 @@ export async function POST(req: NextRequest) {
     await takeRecoveryRate("notice-check", user.uid, 3, 3600);
     const notice = await prisma.securityNotice.create({ data: {
       userId: user.uid, email: "delivered@resend.dev", kind: "PREVIEW_RETRY_CHECK",
+      // Reproduce a notice discovered by the fallback sweep after a long queue
+      // delay. This synthetic timestamp is restricted to the isolated probe.
+      createdAt: new Date(Date.now() - 25 * 60 * 60 * 1000),
     } });
     await deliverSecurityNotices(user.uid);
     return recoveryJson({ id: notice.id });

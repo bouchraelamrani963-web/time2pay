@@ -7,7 +7,11 @@ function setup(user,config=configured){let created=0,dispatched=0;const lookups=
  const route=load(path,{'@/lib/auth':{requireUserOrUnauthorized:async()=>user},
   '@/lib/recovery-http':{readRecoveryBody:async()=>({}),recoveryJson:(body,status=200)=>Response.json(body,{status}),recoveryFailure:()=>Response.json({error:'denied'},{status:403})},
   '@/lib/account-recovery':{takeRecoveryRate:async()=>{},deliverSecurityNotices:async uid=>{assert.equal(uid,'owner');dispatched++;}},
-  '@/lib/prisma':{prisma:{securityNotice:{create:async({data})=>{assert.deepEqual(JSON.parse(JSON.stringify(data)),{userId:'owner',email:'delivered@resend.dev',kind:'PREVIEW_RETRY_CHECK'});created++;return{id:'opaque'};},findFirst:async query=>{lookups.push(query);return null;}}}}},config);
+  '@/lib/prisma':{prisma:{securityNotice:{create:async({data})=>{
+   const {createdAt,...identity}=data;
+   assert.deepEqual(JSON.parse(JSON.stringify(identity)),{userId:'owner',email:'delivered@resend.dev',kind:'PREVIEW_RETRY_CHECK'});
+   assert.ok(Math.abs(Date.now()-createdAt.getTime()-25*3600000)<5000);
+   created++;return{id:'opaque'};},findFirst:async query=>{lookups.push(query);return null;}}}}},config);
  return {route,counts:()=>({created,dispatched}),lookups};}
 test('notice probe is absent outside explicitly isolated Preview',async()=>{
  for(const change of [{VERCEL_ENV:'production'},{TIME2PAY_SECURITY_NOTICES_ENABLED:'false'},{VERCEL_GIT_COMMIT_REF:'other'}]){

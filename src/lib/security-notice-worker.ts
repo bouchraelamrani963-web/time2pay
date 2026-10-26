@@ -12,10 +12,19 @@ export async function attemptSecurityNotice(id: string): Promise<NoticeAttempt> 
   const claimed = await prisma.securityNotice.updateMany({ where: { id, sentAt: null, failedAt: null,
     nextAttemptAt: { lte: now }, OR: [{ leaseUntil: null }, { leaseUntil: { lte: now } }] },
     data: { leaseToken, leaseUntil: new Date(now.getTime() + 120000), attempts: { increment: 1 } } });
+  // Only the winning first-attempt lease establishes the durable send window.
+  // A daily sweep may discover an older notice which has never reached a worker.
+  if (claimed.count) {
+    await prisma.securityNotice.updateMany({ where: { id, leaseToken, attempts: 1, firstAttemptAt: null },
+      data: { firstAttemptAt: now } });
+  }
   const notice = await prisma.securityNotice.findUnique({ where: { id } });
   if (!notice || notice.sentAt || notice.failedAt) return { done: true };
   if (!claimed.count) return { done: false, retryAt: new Date(Math.max(notice.nextAttemptAt.getTime(), notice.leaseUntil?.getTime() ?? 0, now.getTime() + 1000)).toISOString() };
-  if (now.getTime() - notice.createdAt.getTime() >= NOTICE_MAX_AGE_MS) {
+  // A missing timestamp on an already attempted legacy/crashed notice must not
+  // reopen its window. The migration backfills the same conservative fallback.
+  const windowStart = notice.firstAttemptAt ?? notice.createdAt;
+  if (now.getTime() - windowStart.getTime() >= NOTICE_MAX_AGE_MS) {
     await prisma.securityNotice.updateMany({ where: { id, leaseToken }, data: {
       failedAt: now, lastErrorCode: "delivery_window_expired", leaseToken: null, leaseUntil: null } });
     console.error("security_notice_manual_review", id);
@@ -40,7 +49,7 @@ export async function attemptSecurityNotice(id: string): Promise<NoticeAttempt> 
     if (!response.ok || typeof data?.id !== "string") throw new Error("provider_rejected");
     providerId = data.id;
   } catch {
-    const retry = noticeRetryAt(notice.attempts, notice.createdAt, new Date());
+    const retry = noticeRetryAt(notice.attempts, windowStart, new Date());
     await prisma.securityNotice.updateMany({ where: { id, leaseToken }, data: {
       leaseToken: null, leaseUntil: null, lastErrorCode: "delivery_failed",
       ...(retry ? { nextAttemptAt: retry } : { failedAt: new Date() }),

@@ -3,10 +3,12 @@ const {load,env}=require('./recovery-fixture.cjs');
 const configured={...env,TIME2PAY_SECURITY_NOTICES_ENABLED:'true'};
 function fixture(provider){
  const notice={id:'opaque-notice',userId:'synthetic',email:'private@example.invalid',kind:'RECOVERY_STARTED',createdAt:new Date(),
-  attempts:0,nextAttemptAt:new Date(0),leaseUntil:null,leaseToken:null,sentAt:null,failedAt:null};
+  attempts:0,firstAttemptAt:null,nextAttemptAt:new Date(0),leaseUntil:null,leaseToken:null,sentAt:null,failedAt:null};
  let sent=0;const requests=[];
  const db={findUnique:async()=>({...notice}),updateMany:async({where,data})=>{
   if(where.leaseToken&&where.leaseToken!==notice.leaseToken)return {count:0};
+  if(where.attempts!==undefined&&where.attempts!==notice.attempts)return {count:0};
+  if(Object.hasOwn(where,'firstAttemptAt')&&where.firstAttemptAt!==notice.firstAttemptAt)return {count:0};
   if(Object.hasOwn(where,'sentAt')&&(notice.sentAt||notice.failedAt))return {count:0};
   if(where.nextAttemptAt&&notice.nextAttemptAt>where.nextAttemptAt.lte)return {count:0};
   if(where.OR&&notice.leaseUntil&&notice.leaseUntil>where.OR[1].leaseUntil.lte)return {count:0};
@@ -37,7 +39,24 @@ test('exhausted and expired notices stop safely and remain available for manual 
  const f=fixture(()=>Promise.reject(Error('Unavailable')));f.notice.attempts=6;
  assert.equal((await f.worker.attemptSecurityNotice(f.notice.id)).done,true);assert.ok(f.notice.failedAt);assert.equal(f.sent(),1);
  const old=fixture();old.notice.createdAt=new Date(Date.now()-24*3600000);
+ old.notice.firstAttemptAt=old.notice.createdAt;old.notice.attempts=1;
  assert.equal((await old.worker.attemptSecurityNotice(old.notice.id)).done,true);assert.ok(old.notice.failedAt);assert.equal(old.sent(),0);
+});
+test('a notice waiting more than a daily sweep interval still gets its first send and retry window',async()=>{
+ let fail=true;const f=fixture(()=>fail?Promise.reject(Error('Unavailable')):{ok:true,json:async()=>({id:'accepted'})});
+ const eventDate=new Date(Date.now()-25*3600000);f.notice.createdAt=eventDate;
+ const first=await f.worker.attemptSecurityNotice(f.notice.id);
+ assert.equal(first.done,false);assert.equal(f.sent(),1);assert.equal(f.notice.failedAt,null);
+ assert.ok(f.notice.firstAttemptAt>eventDate);const start=f.notice.firstAttemptAt;
+ fail=false;f.notice.nextAttemptAt=new Date(0);await f.worker.attemptSecurityNotice(f.notice.id);
+ assert.equal(f.notice.firstAttemptAt,start);assert.ok(f.notice.sentAt);
+ assert.equal(f.requests[0].request.headers['Idempotency-Key'],f.requests[1].request.headers['Idempotency-Key']);
+ assert.ok(JSON.parse(f.requests[1].request.body).text.includes(eventDate.toISOString()));
+});
+test('an ambiguous legacy attempt without a start timestamp cannot reopen an expired send window',async()=>{
+ const f=fixture();f.notice.createdAt=new Date(Date.now()-25*3600000);f.notice.attempts=1;
+ await f.worker.attemptSecurityNotice(f.notice.id);
+ assert.equal(f.sent(),0);assert.ok(f.notice.failedAt);assert.equal(f.notice.lastErrorCode,'delivery_window_expired');
 });
 test('crashed worker lease expires before the same idempotent notice is sent again',async()=>{
  const f=fixture();f.notice.leaseUntil=new Date(Date.now()+60000);f.notice.leaseToken='crashed';

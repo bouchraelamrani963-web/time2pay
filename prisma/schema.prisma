@@ -178,6 +178,7 @@ model SecurityNotice {
   sentAt    DateTime?
   createdAt DateTime @default(now())
   attempts Int @default(0)
+  firstAttemptAt DateTime?
   nextAttemptAt DateTime @default(now())
   leaseToken String?
   leaseUntil DateTime?
