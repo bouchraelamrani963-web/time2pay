@@ -3,12 +3,13 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const vm = require('node:vm');
 const ts = require('typescript');
+const { NextRequest, NextResponse } = require('next/server');
 function load(file, stubs = {}, env = {}) {
   const module = { exports: {} };
   const output = ts.transpileModule(fs.readFileSync(file, 'utf8'), {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX },
   }).outputText;
-  vm.runInNewContext(output, { module, exports: module.exports, process: { env },
+  vm.runInNewContext(output, { module, exports: module.exports, process: { env }, URL,
     require: name => Object.hasOwn(stubs, name) ? stubs[name] : require(name),
   });
   return module.exports;
@@ -89,4 +90,13 @@ test('disabled environments never render the password-reset form', () => {
   }, { ...production, VERCEL_ENV: 'preview' }).default;
   assert.equal(nodes(Page()).some(n => n.type === 'reset-form'), false);
   assert.ok(text(Page()).includes('niet beschikbaar'));
+});
+test('logged-out users can reach only the exact reset route while app pages remain protected', () => {
+  const { proxy } = load('src/proxy.ts', { 'next/server': { NextResponse } });
+  assert.equal(proxy(new NextRequest('https://test.invalid/forgot-password')).status, 200);
+  for (const path of ['/dashboard', '/security', '/forgot-password-extra']) {
+    const response = proxy(new NextRequest('https://test.invalid' + path));
+    assert.equal(response.status, 307);
+    assert.equal(new URL(response.headers.get('location')).pathname, '/login');
+  }
 });
