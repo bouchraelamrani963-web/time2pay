@@ -19,8 +19,11 @@ import { safeNextPath } from "@/lib/auth-navigation";
 const inputClass = "block w-full rounded-md border border-[#e1d5d2] bg-[#fefdfb] px-4 py-3 text-sm text-[#33243b] focus:border-[#9a624d] focus:ring-2 focus:ring-[#9a624d]/15";
 const buttonClass = "w-full rounded-md bg-[#543749] px-5 py-3 text-sm font-semibold text-white hover:bg-[#3e2937] disabled:opacity-60";
 
-function friendlyError(error: unknown) {
+function friendlyError(error: unknown, duringPasswordSignIn = false) {
   const code = typeof error === "object" && error !== null && "code" in error ? String(error.code) : "";
+  if (duringPasswordSignIn && ["auth/invalid-credential", "auth/invalid-login-credentials", "auth/user-not-found", "auth/wrong-password"].includes(code)) {
+    return "Inloggen is niet gelukt. Controleer je e-mailadres en wachtwoord voor dit Time2Pay-account.";
+  }
   if (["auth/invalid-verification-code", "auth/invalid-totp-code"].includes(code)) return "Deze code klopt niet of is verlopen. Gebruik de nieuwste code uit je authenticator-app.";
   if (["auth/code-expired", "auth/invalid-multi-factor-session", "auth/session-expired", "auth/requires-recent-login"].includes(code)) return "Deze inlogpoging is verlopen. Kies opnieuw beginnen en log weer in.";
   if (code === "auth/too-many-requests") return "Te veel pogingen. Wacht even en probeer het opnieuw.";
@@ -98,10 +101,12 @@ export default function LoginPage() {
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setError(null); setNotice(null); setBusy(true);
+    let duringPasswordSignIn = step === "password";
     try {
       if (step === "password") {
         if (!email.trim() || !password) throw new SessionError("missing", "Vul je e-mailadres en wachtwoord in.");
         const credential = await signInWithEmailAndPassword(getFirebaseAuth(), email.trim(), password);
+        duringPasswordSignIn = false;
         setPassword("");
         if (wantsSetup && !multiFactor(credential.user).enrolledFactors.some(f => f.factorId === "totp")) {
           await prepareEnrollment(credential.user);
@@ -129,7 +134,7 @@ export default function LoginPage() {
         setPassword("");
         if (factor) { setResolver(nextResolver); setFactorId(factor.uid); setCode(""); setStep("code"); }
         else setError("Dit account gebruikt een andere beveiligingsmethode. Neem contact op met de beheerder.");
-      } else setError(friendlyError(err));
+      } else setError(friendlyError(err, duringPasswordSignIn));
     } finally { setBusy(false); }
   }
 
