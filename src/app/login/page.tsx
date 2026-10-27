@@ -182,6 +182,7 @@ export default function LoginPage() {
             {step === "password" && <>
               <div><label htmlFor="email" className="mb-2 block text-sm">E-mailadres</label><input id="email" type="email" autoComplete="email" required className={inputClass} value={email} onChange={e => setEmail(e.target.value)} /></div>
               <div><label htmlFor="password" className="mb-2 block text-sm">Wachtwoord</label><input id="password" type="password" autoComplete="current-password" required className={inputClass} value={password} onChange={e => setPassword(e.target.value)} /></div>
+              <p className="text-sm"><Link href="/forgot-password" className="text-[#543749] underline">Wachtwoord vergeten?</Link></p>
             </>}
             {step === "verify-email" && <div className="space-y-4 text-sm">
               <p>Bevestig eerst {pendingUser?.email}. Daarna kun je je authenticator koppelen.</p>
