@@ -71,12 +71,13 @@ async function run(env = process.env) {
     console.log('T2P_PREVIEW_RESET_USER_CREATED');
     const initial = await auth.signInWithEmailAndPassword(sdk, email, oldPassword);
     assert.equal(initial.user.uid, uid); // Also checks the actual client API key's project binding.
-    await auth.sendEmailVerification(initial.user);
-    console.log('T2P_PREVIEW_VERIFICATION_MAIL_ACCEPTED');
     // Admin-generated links stay in memory. This tests the real handler, not inbox delivery.
+    // First test link generation separately, so a failed Admin request sends no email.
     console.log('T2P_PREVIEW_VERIFICATION_LINK_REQUESTED');
     const verificationLink = await admin.generateEmailVerificationLink(email);
     console.log('T2P_PREVIEW_VERIFICATION_LINK_GENERATED');
+    await auth.sendEmailVerification(initial.user);
+    console.log('T2P_PREVIEW_VERIFICATION_MAIL_ACCEPTED');
     await auth.applyActionCode(sdk, actionCode(verificationLink));
     await auth.reload(initial.user);
     assert.equal(initial.user.emailVerified, true);
@@ -88,9 +89,9 @@ async function run(env = process.env) {
     assert.equal(before.length, 1);
     await auth.signOut(sdk);
     console.log('T2P_PREVIEW_TOTP_ENROLLED');
+    const resetCode = actionCode(await admin.generatePasswordResetLink(email));
     await auth.sendPasswordResetEmail(sdk, email);
     console.log('T2P_PREVIEW_RESET_MAIL_ACCEPTED');
-    const resetCode = actionCode(await admin.generatePasswordResetLink(email));
     assert.equal(await auth.verifyPasswordResetCode(sdk, resetCode), email);
     await auth.confirmPasswordReset(sdk, resetCode, newPassword);
     await assert.rejects(auth.verifyPasswordResetCode(sdk, resetCode), error =>
@@ -142,6 +143,19 @@ if (require.main === module) run().catch(error => {
   }
   if (message.includes('firebaseauth.users.sendEmail')) {
     console.error('T2P_PREVIEW_PROVIDER_DIAGNOSTIC', 'SEND_EMAIL_PERMISSION');
+  }
+  if (message.includes('Unable to create the email action link')) {
+    console.error('T2P_PREVIEW_PROVIDER_DIAGNOSTIC', 'MISSING_OOB_LINK');
+  }
+  // Newer Admin SDKs expose a response object. Log its structure, never its data.
+  const response = error.httpResponse;
+  if (response && typeof response === 'object') {
+    console.error('T2P_PREVIEW_PROVIDER_RESPONSE_SHAPE', JSON.stringify({
+      status: Number.isInteger(response.status) ? response.status : null,
+      hasData: !!response.data,
+      hasOobLink: typeof response.data?.oobLink === 'string',
+      hasError: !!response.data?.error,
+    }));
   }
   process.exitCode = 1;
 });
