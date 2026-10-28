@@ -35,9 +35,14 @@ function totp(secret, now = Date.now()) {
   return ((digest.readUInt32BE(offset) & 0x7fffffff) % 1000000).toString().padStart(6, '0');
 }
 
-async function freshCode(secret) {
-  const remaining = 30000 - Date.now() % 30000;
-  if (remaining < 4000) await new Promise(resolve => setTimeout(resolve, remaining + 500));
+async function freshCode(secret, afterCounter) {
+  const now = Date.now();
+  const counter = Math.floor(now / 30000);
+  // Do not reuse the enrollment time window as a later sign-in proof.
+  // Wait once for a fresh authenticator code; never retry a rejected code.
+  const target = afterCounter !== undefined && counter <= afterCounter
+    ? (afterCounter + 1) * 30000 : (30000 - now % 30000 < 4000 ? (counter + 1) * 30000 : now);
+  if (target > now) await new Promise(resolve => setTimeout(resolve, target - now + 500));
   return totp(secret);
 }
 
@@ -86,7 +91,9 @@ async function run(env = process.env) {
     console.log('T2P_PREVIEW_EMAIL_VERIFIED');
     const mfa = auth.multiFactor(initial.user);
     const secret = await auth.TotpMultiFactorGenerator.generateSecret(await mfa.getSession());
-    await mfa.enroll(auth.TotpMultiFactorGenerator.assertionForEnrollment(secret, await freshCode(secret.secretKey)), 'Rehearsal authenticator');
+    const enrollmentCode = await freshCode(secret.secretKey);
+    const enrollmentCounter = Math.floor(Date.now() / 30000);
+    await mfa.enroll(auth.TotpMultiFactorGenerator.assertionForEnrollment(secret, enrollmentCode), 'Rehearsal authenticator');
     const before = (await admin.getUser(uid)).multiFactor.enrolledFactors.map(f => f.uid);
     assert.equal(before.length, 1);
     await auth.signOut(sdk);
@@ -107,7 +114,8 @@ async function run(env = process.env) {
     assert.ok(challenge, 'New password must still require TOTP');
     const resolver = auth.getMultiFactorResolver(sdk, challenge);
     const factor = resolver.hints.find(f => f.factorId === 'totp'); assert.ok(factor);
-    const signedIn = await resolver.resolveSignIn(auth.TotpMultiFactorGenerator.assertionForSignIn(factor.uid, await freshCode(secret.secretKey)));
+    console.log('T2P_PREVIEW_TOTP_FRESH_WINDOW_REQUESTED');
+    const signedIn = await resolver.resolveSignIn(auth.TotpMultiFactorGenerator.assertionForSignIn(factor.uid, await freshCode(secret.secretKey, enrollmentCounter)));
     assert.equal(signedIn.user.uid, uid);
     console.log('T2P_PREVIEW_NEW_PASSWORD_AND_TOTP_OK');
     const token = await signedIn.user.getIdToken(true);
