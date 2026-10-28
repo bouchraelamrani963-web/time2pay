@@ -1,4 +1,6 @@
-// Explicit integration rehearsal. Never run during a normal build or in Production.
+// Explicit ACTION-HANDLER integration rehearsal, not an inbox/delivery test.
+// Never run during a normal build or in Production. Client mail requests are
+// tested separately; this script must not retry a rate-limited mail transport.
 // Only a newly created synthetic user may be modified or deleted by this script.
 const assert = require('node:assert/strict');
 const { randomBytes, createHmac } = require('node:crypto');
@@ -72,12 +74,12 @@ async function run(env = process.env) {
     const initial = await auth.signInWithEmailAndPassword(sdk, email, oldPassword);
     assert.equal(initial.user.uid, uid); // Also checks the actual client API key's project binding.
     // Admin-generated links stay in memory. This tests the real handler, not inbox delivery.
-    // First test link generation separately, so a failed Admin request sends no email.
+    // Official Admin links let this disposable harness exercise action handlers
+    // without repeatedly sending mail to a test sink. This is NOT delivery proof.
+    console.log('T2P_PREVIEW_MAIL_DELIVERY_NOT_TESTED');
     console.log('T2P_PREVIEW_VERIFICATION_LINK_REQUESTED');
     const verificationLink = await admin.generateEmailVerificationLink(email);
     console.log('T2P_PREVIEW_VERIFICATION_LINK_GENERATED');
-    await auth.sendEmailVerification(initial.user);
-    console.log('T2P_PREVIEW_VERIFICATION_MAIL_ACCEPTED');
     await auth.applyActionCode(sdk, actionCode(verificationLink));
     await auth.reload(initial.user);
     assert.equal(initial.user.emailVerified, true);
@@ -90,8 +92,6 @@ async function run(env = process.env) {
     await auth.signOut(sdk);
     console.log('T2P_PREVIEW_TOTP_ENROLLED');
     const resetCode = actionCode(await admin.generatePasswordResetLink(email));
-    await auth.sendPasswordResetEmail(sdk, email);
-    console.log('T2P_PREVIEW_RESET_MAIL_ACCEPTED');
     assert.equal(await auth.verifyPasswordResetCode(sdk, resetCode), email);
     await auth.confirmPasswordReset(sdk, resetCode, newPassword);
     await assert.rejects(auth.verifyPasswordResetCode(sdk, resetCode), error =>
@@ -128,7 +128,7 @@ async function run(env = process.env) {
       await client.deleteApp(clientApp); await deleteApp(adminApp);
     }
   }
-  console.log('T2P_PREVIEW_PASSWORD_RESET_REHEARSAL_OK');
+  console.log('T2P_PREVIEW_PASSWORD_RESET_ACTION_REHEARSAL_OK');
 }
 
 module.exports = { checkEnvironment, totp };
