@@ -6,6 +6,7 @@ import type { NextRequest } from "next/server";
  *   "/"           -> public (marketing landing page, no auth)
  *   "/login"      -> public
  *   "/register"   -> public
+ *   "/forgot-password" -> public, environment-gated by the page
  *   "/api/auth/*" -> public (Firebase session exchange endpoints)
  *   "/api/*"      -> handled by route-level auth and returns JSON 401
  *
@@ -19,6 +20,7 @@ export function proxy(request: NextRequest) {
     pathname === "/" ||
     pathname === "/login" ||
     pathname === "/register" ||
+    pathname === "/forgot-password" ||
     pathname === "/recover" ||
     pathname.startsWith("/.well-known/workflow/") ||
     pathname.startsWith("/api/")

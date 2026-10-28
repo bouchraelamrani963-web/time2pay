@@ -101,6 +101,8 @@ jobs:
         if: ${{ !cancelled() }}
       - run: npm run build
         if: ${{ !cancelled() }}
+      - name: Check security headers on the built HTTP application
+        run: node tests/security-headers-http.cjs
   dependencies:
     runs-on: ubuntu-latest
     timeout-minutes: 10
