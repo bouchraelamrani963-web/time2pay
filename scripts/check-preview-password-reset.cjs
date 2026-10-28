@@ -74,7 +74,10 @@ async function run(env = process.env) {
     await auth.sendEmailVerification(initial.user);
     console.log('T2P_PREVIEW_VERIFICATION_MAIL_ACCEPTED');
     // Admin-generated links stay in memory. This tests the real handler, not inbox delivery.
-    await auth.applyActionCode(sdk, actionCode(await admin.generateEmailVerificationLink(email)));
+    console.log('T2P_PREVIEW_VERIFICATION_LINK_REQUESTED');
+    const verificationLink = await admin.generateEmailVerificationLink(email);
+    console.log('T2P_PREVIEW_VERIFICATION_LINK_GENERATED');
+    await auth.applyActionCode(sdk, actionCode(verificationLink));
     await auth.reload(initial.user);
     assert.equal(initial.user.emailVerified, true);
     console.log('T2P_PREVIEW_EMAIL_VERIFIED');
@@ -131,5 +134,14 @@ module.exports = { checkEnvironment, totp };
 if (require.main === module) run().catch(error => {
   // Never print passwords, action links, TOTP secrets, tokens, credentials or provider payloads.
   console.error('T2P_PREVIEW_PASSWORD_RESET_REHEARSAL_FAILED', error.code || error.name || 'UNKNOWN');
+  // Only fixed, allowlisted diagnostic labels; never log a raw provider message.
+  const message = String(error.message || '');
+  for (const label of ['PERMISSION_DENIED', 'INSUFFICIENT_PERMISSION', 'SERVICE_DISABLED',
+    'CONFIGURATION_NOT_FOUND', 'API_KEY_INVALID', 'TOO_MANY_ATTEMPTS_TRY_LATER']) {
+    if (message.includes(label)) console.error('T2P_PREVIEW_PROVIDER_DIAGNOSTIC', label);
+  }
+  if (message.includes('firebaseauth.users.sendEmail')) {
+    console.error('T2P_PREVIEW_PROVIDER_DIAGNOSTIC', 'SEND_EMAIL_PERMISSION');
+  }
   process.exitCode = 1;
 });
