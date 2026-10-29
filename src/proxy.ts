@@ -6,19 +6,23 @@ import type { NextRequest } from "next/server";
  *   "/"           -> public (marketing landing page, no auth)
  *   "/login"      -> public
  *   "/register"   -> public
+ *   "/forgot-password" -> public, environment-gated by the page
  *   "/api/auth/*" -> public (Firebase session exchange endpoints)
  *   "/api/*"      -> handled by route-level auth and returns JSON 401
  *
  *   "/dashboard"  -> protected (requires session cookie)
  *   app pages      -> protected
  */
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   if (
     pathname === "/" ||
     pathname === "/login" ||
     pathname === "/register" ||
+    pathname === "/forgot-password" ||
+    pathname === "/recover" ||
+    pathname.startsWith("/.well-known/workflow/") ||
     pathname.startsWith("/api/")
   ) {
     return NextResponse.next();
@@ -36,6 +40,6 @@ export function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|.well-known/workflow/|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
   ],
 };

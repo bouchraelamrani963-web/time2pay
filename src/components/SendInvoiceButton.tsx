@@ -7,6 +7,7 @@ import toast from "react-hot-toast";
 import type { InvoiceStatus } from "@/types/invoice";
 
 type SendInvoiceButtonProps = {
+  canExport: boolean;
   invoiceId: string;
   clientEmail?: string | null;
   status: InvoiceStatus;
@@ -26,13 +27,14 @@ async function readResponse(response: Response): Promise<SendInvoiceResponse> {
   }
 }
 
-export default function SendInvoiceButton({ invoiceId, clientEmail, status }: SendInvoiceButtonProps) {
+export default function SendInvoiceButton({ invoiceId, clientEmail, status, canExport }: SendInvoiceButtonProps) {
   const router = useRouter();
   const [isSending, setIsSending] = useState(false);
   const buttonLabel = status === "DRAFT" ? "Factuur versturen" : "Opnieuw versturen";
 
   async function sendInvoice() {
     if (isSending) return;
+    if (!canExport) return router.push("/billing");
 
     setIsSending(true);
     try {
@@ -42,6 +44,7 @@ export default function SendInvoiceButton({ invoiceId, clientEmail, status }: Se
       });
       const body = await readResponse(response);
 
+      if (response.status === 402) return router.push("/billing");
       if (!response.ok) {
         throw new Error(body.message || body.error || "Factuur versturen mislukt.");
       }

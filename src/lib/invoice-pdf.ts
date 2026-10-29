@@ -1,9 +1,14 @@
+import { shiftLabel } from "./shift-rates";
+
 export type PdfInvoiceItem = {
   type: string;
   description: string;
   quantity: number;
   unitPrice: number;
   lineTotal: number;
+  serviceType?: string | null;
+  ortPerc?: number;
+  ortBedrag?: number;
   unit: string | null;
 };
 
@@ -44,12 +49,13 @@ const PAGE_WIDTH = 595;
 const PAGE_HEIGHT = 842;
 const MARGIN = 48;
 const BOTTOM_MARGIN = 54;
-const BLUE = "0.149 0.388 0.922";
-const DARK = "0.067 0.094 0.153";
-const MUTED = "0.294 0.345 0.416";
-const LIGHT_TEXT = "0.588 0.620 0.678";
-const BORDER = "0.878 0.906 0.941";
-const SOFT_BG = "0.973 0.976 0.980";
+const AUBERGINE = "0.329 0.216 0.286";
+const COPPER = "0.702 0.518 0.427";
+const DARK = "0.200 0.141 0.231";
+const MUTED = "0.447 0.404 0.443";
+const LIGHT_TEXT = "0.537 0.490 0.514";
+const BORDER = "0.914 0.871 0.855";
+const SOFT_BG = "0.984 0.973 0.961";
 
 const itemTypeLabels: Record<string, string> = {
   HOURS: "Uren",
@@ -69,6 +75,7 @@ const numberFormatter = new Intl.NumberFormat("nl-NL", {
 });
 
 const dateFormatter = new Intl.DateTimeFormat("nl-NL", {
+  timeZone: "Europe/Amsterdam",
   day: "2-digit",
   month: "long",
   year: "numeric",
@@ -179,8 +186,9 @@ function newPage(pages: PdfPage[]) {
 }
 
 function drawPageTop(page: PdfPage, invoiceNumber: string, pageNumber: number) {
-  drawText(page, "Time", MARGIN, PAGE_HEIGHT - 52, { size: 22, font: "F2", color: BLUE });
-  drawText(page, "2Pay", MARGIN + 50, PAGE_HEIGHT - 52, { size: 22, font: "F2", color: DARK });
+  drawText(page, "Time", MARGIN, PAGE_HEIGHT - 52, { size: 22, font: "F2", color: AUBERGINE });
+  drawText(page, "2", MARGIN + 50, PAGE_HEIGHT - 52, { size: 22, font: "F2", color: COPPER });
+  drawText(page, "Pay", MARGIN + 63, PAGE_HEIGHT - 52, { size: 22, font: "F2", color: AUBERGINE });
   drawText(page, `Factuur ${invoiceNumber}`, PAGE_WIDTH - MARGIN, PAGE_HEIGHT - 52, {
     size: 12,
     font: "F2",
@@ -193,7 +201,7 @@ function drawPageTop(page: PdfPage, invoiceNumber: string, pageNumber: number) {
       align: "right",
     });
   }
-  drawLine(page, MARGIN, PAGE_HEIGHT - 82, PAGE_WIDTH - MARGIN, PAGE_HEIGHT - 82);
+  drawLine(page, MARGIN, PAGE_HEIGHT - 82, PAGE_WIDTH - MARGIN, PAGE_HEIGHT - 82, COPPER, 1);
 }
 
 function drawSectionTitle(page: PdfPage, title: string, x: number, y: number) {
@@ -341,8 +349,8 @@ function renderInvoicePdf(invoice: PdfInvoice, senderName: string, companySettin
 
   for (const item of invoice.items) {
     const typeLabel = itemTypeLabels[item.type] || item.type;
-    const descriptionLines = wrapText(item.description, 225, 10);
-    const rowHeight = Math.max(28, descriptionLines.length * 13 + 14);
+    const descriptionLines = wrapText([shiftLabel(item.serviceType), item.description].filter(Boolean).join(" - "), 225, 10);
+    const rowHeight = Math.max(28, descriptionLines.length * 13 + 14 + ((item.ortBedrag ?? 0) > 0 ? 14 : 0));
     ensureSpace(rowHeight + 8, true);
 
     const topY = y;
@@ -352,7 +360,10 @@ function renderInvoicePdf(invoice: PdfInvoice, senderName: string, companySettin
     });
     drawText(page, formatQuantity(item), 390, topY, { size: 10, color: MUTED, align: "right" });
     drawText(page, formatEuro(item.unitPrice), 460, topY, { size: 10, color: MUTED, align: "right" });
-    drawText(page, formatEuro(item.lineTotal), 547, topY, { size: 10, font: "F2", align: "right" });
+    drawText(page, formatEuro(item.lineTotal + (item.ortBedrag ?? 0)), 547, topY, { size: 10, font: "F2", align: "right" });
+    if ((item.ortBedrag ?? 0) > 0) {
+      drawText(page, `Basis ${formatEuro(item.lineTotal)} + ORT ${item.ortPerc ?? 0}%: ${formatEuro(item.ortBedrag ?? 0)}`, 128, topY - 13 * descriptionLines.length, { size: 9, color: MUTED });
+    }
 
     y -= rowHeight;
     drawLine(page, MARGIN, y + 7, PAGE_WIDTH - MARGIN, y + 7, "0.933 0.945 0.961", 0.6);
@@ -361,12 +372,21 @@ function renderInvoicePdf(invoice: PdfInvoice, senderName: string, companySettin
 
   const notes = invoice.notes?.trim();
   const hasPaymentInfo = Boolean(companySettings?.iban?.trim());
-  ensureSpace(112 + (hasPaymentInfo ? 74 : 0) + (notes ? 74 : 0));
+  const ortAmount = invoice.items.reduce((sum, item) => sum + (item.ortBedrag ?? 0), 0);
+  ensureSpace((ortAmount > 0 ? 148 : 112) + (hasPaymentInfo ? 74 : 0) + (notes ? 74 : 0));
   y -= 14;
 
   const totalsX = 332;
   const totalsLabelX = totalsX;
   const totalsValueX = PAGE_WIDTH - MARGIN;
+  if (ortAmount > 0) {
+    drawText(page, "Basisbedrag", totalsLabelX, y, { size: 10, color: MUTED });
+    drawText(page, formatEuro(invoice.subtotal - ortAmount), totalsValueX, y, { size: 10, align: "right" });
+    y -= 18;
+    drawText(page, "ORT", totalsLabelX, y, { size: 10, color: MUTED });
+    drawText(page, formatEuro(ortAmount), totalsValueX, y, { size: 10, align: "right" });
+    y -= 18;
+  }
   drawText(page, "Subtotaal", totalsLabelX, y, { size: 10, color: MUTED });
   drawText(page, formatEuro(invoice.subtotal), totalsValueX, y, { size: 10, align: "right" });
   y -= 18;

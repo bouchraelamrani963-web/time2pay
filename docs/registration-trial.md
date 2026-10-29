@@ -1,0 +1,19 @@
+# Launch offer and registration trial
+
+Time2Pay is free for everyone during the first three calendar months from the actual launch. Every new Firebase account also receives at least 30 elapsed days from its original Firebase Admin `metadata.creationTime`. The later applicable end date wins; the periods are not added together. A signup near the end of the launch offer still gets a full 30 days. After the launch window, new registrations continue to receive 30 days.
+
+Set `TIME2PAY_LAUNCHED_AT` once to the actual successful launch time in canonical UTC ISO format (`YYYY-MM-DDTHH:mm:ss.sssZ`). Three calendar months are added in UTC, with month-end clamping, rather than 90 days. Do not fill this with today's date, a Preview deployment timestamp or a process start time. Do not reset it on redeployment or rollback. A missing or malformed timestamp grants no launch offer, while the 30-day registration offer still works when enabled. A future launch timestamp does not grant launch access early. Disable the offer flag if a faulty launch configuration needs repair; never silently move the launch date.
+
+Login, factor recovery and billing record creation cannot restart either period. Existing accounts get access during the active launch window, including accounts registered over 30 days earlier. Registration and launch timestamps must remain server-controlled. This creates no Stripe trial or subscription.
+
+Set the server-only `TIME2PAY_REGISTRATION_TRIAL_ENABLED=true` in the isolated `codex/time2pay-stripe-test` Preview first. The default is disabled. Production opt-in belongs to the separately validated release; do not copy Preview credentials or enable live payments. Registration and landing copy use the same server flag as authorization.
+
+During an active trial, authenticated users may issue, email, download and print invoices. The existing Firebase verified-email/TOTP/session checks and ownership checks remain required. No card, customer, Stripe trial or automatic renewal is created. Checkout is blocked while the trial is active. Existing paid subscriptions retain their existing plan and invoice limits; enabling this feature does not cancel or alter them.
+
+At expiry, drafts remain available; definitive actions require a separately purchased active paid subscription. No automatic payment or automatic paid subscription starts. Starter stays EUR 9/month with 30 first-issued invoices per subscription period; Pro EUR 19 and Business EUR 39 remain unchanged.
+
+Finalizations use the existing invoice issue ledger with `trial:<Firebase UID>` as a non-Stripe period identifier. This is never saved as a Stripe subscription ID. Previously issued trial invoices remain locked, repeated actions are idempotent, and trial issues do not consume the later Starter period's allowance. No schema migration or existing-record rewrite is necessary.
+
+Verification: `node --test tests/*.test.cjs tests/*.test.mjs`, `npx tsc --noEmit`, `npm run build`, `npm audit --audit-level=low`. CI exercises PostgreSQL advisory locks and migration/restore preservation on a disposable database. Use a clearly synthetic launch timestamp only in the isolated Preview branch; never copy it to Production. Before enabling production, practically verify a fresh unpaid test account in the isolated Preview: registration/TOTP, combined trial expiry display, invoice issue/PDF/email/print, and denied premature checkout. Date boundary tests use synthetic timestamps; do not alter real account registration timestamps or production clocks.
+
+Disabling the flag removes trial authorization and trial advertising while leaving drafts and paid access intact; invoice records and issue history remain preserved. Reverting the application must retain the existing recovery/session protections. All previous production-release security, backup, identity verification and explicit live-payment approval gates still apply.

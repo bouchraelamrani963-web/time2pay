@@ -56,3 +56,11 @@
   nav, .no-print { display:none !important; }
   .card { box-shadow:none; }
 }
+
+@media print {
+  body:has(.invoice-preview-locked) * { visibility: hidden !important; }
+  body:has(.invoice-preview-locked) .locked-print-message {
+    display: block !important; visibility: visible !important;
+    position: fixed; top: 2cm; left: 2cm; right: 2cm;
+  }
+}

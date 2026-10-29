@@ -18,11 +18,12 @@ function formatReminderCount(count: number) {
   return `${count} herinnering${count === 1 ? "" : "en"}`;
 }
 
-export default async function InvoicesPage({
-  searchParams,
-}: {
-  searchParams: { status?: string; clientId?: string };
-}) {
+export default async function InvoicesPage(
+  props: {
+    searchParams: Promise<{ status?: string; clientId?: string }>;
+  }
+) {
+  const searchParams = await props.searchParams;
   const user = await requireUser();
   const statuses: (InvoiceStatus | "all")[] = ["all", "DRAFT", "SENT", "PAID", "OVERDUE"];
   const requestedStatus = searchParams.status as InvoiceStatus | undefined;

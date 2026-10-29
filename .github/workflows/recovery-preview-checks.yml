@@ -1,0 +1,119 @@
+name: Recovery draft checks
+on:
+  pull_request:
+    branches: [codex/time2pay-stripe-test]
+    paths:
+      - "src/**"
+      - "prisma/**"
+      - "tests/**"
+      - "scripts/**"
+      - "package*.json"
+      - "next.config.mjs"
+      - "vercel.json"
+      - ".github/workflows/recovery-preview-checks.yml"
+permissions:
+  contents: read
+jobs:
+  migration-chain:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: recovery_ci
+          POSTGRES_PASSWORD: disposable_ci_only
+          POSTGRES_DB: time2pay_recovery_ci
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U recovery_ci -d time2pay_recovery_ci"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL: postgresql://recovery_ci:disposable_ci_only@127.0.0.1:5432/time2pay_recovery_ci
+      DIRECT_URL: postgresql://recovery_ci:disposable_ci_only@127.0.0.1:5432/time2pay_recovery_ci
+      TIME2PAY_RECOVERY_DB_TEST: "true"
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: "24.x"
+      - run: npm ci --ignore-scripts
+      - run: npx prisma generate
+      - name: Verify the entire versioned migration chain, without db push
+        run: |
+          npx prisma migrate deploy
+          npx prisma migrate status
+          npx prisma migrate diff --from-url "$DATABASE_URL" --to-schema-datamodel prisma/schema.prisma --exit-code
+          node tests/migration-preservation.cjs seed
+          npx prisma migrate deploy
+          node tests/migration-preservation.cjs assert
+  recovery:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: recovery_ci
+          POSTGRES_PASSWORD: disposable_ci_only
+          POSTGRES_DB: time2pay_recovery_ci
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U recovery_ci -d time2pay_recovery_ci"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL: postgresql://recovery_ci:disposable_ci_only@127.0.0.1:5432/time2pay_recovery_ci
+      DIRECT_URL: postgresql://recovery_ci:disposable_ci_only@127.0.0.1:5432/time2pay_recovery_ci
+      TIME2PAY_RECOVERY_DB_TEST: "true"
+      TIME2PAY_RECOVERY_ENABLED: "false"
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: "24.x"
+      - run: node --version
+      - run: npm ci --ignore-scripts
+      - run: npx prisma generate
+      - name: Rehearse additive recovery migration on disposable database
+        run: |
+          node -e 'const fs=require("node:fs");const schema=fs.readFileSync("prisma/schema.prisma","utf8");const parts=schema.split("// Recovery data is additive.");if(parts.length!==2)throw Error("Baseline marker missing");fs.writeFileSync("prisma/recovery-ci-baseline.prisma",parts[0].replace(/model InvoiceIssue \{[\s\S]*?\n\}/,""));'
+          npx prisma db push --schema prisma/recovery-ci-baseline.prisma --skip-generate
+          node tests/migration-preservation.cjs seed
+          npx prisma db execute --schema prisma/schema.prisma --file prisma/migrations/20261024090000_billing_issuance/migration.sql
+          npx prisma db execute --schema prisma/schema.prisma --file prisma/migrations/20261024160000_auth_recovery/migration.sql
+          npx prisma db execute --schema prisma/schema.prisma --file prisma/migrations/20261024180000_security_notice_retry/migration.sql
+          node tests/notice-window-migration.cjs seed
+          npx prisma db execute --schema prisma/schema.prisma --file prisma/migrations/20261026170000_notice_attempt_window/migration.sql
+          node tests/notice-window-migration.cjs assert
+          npx prisma db execute --schema prisma/schema.prisma --file prisma/migrations/20261029100000_billing_webhook_notices/migration.sql
+          npx prisma migrate diff --from-url "$DATABASE_URL" --to-schema-datamodel prisma/schema.prisma --exit-code
+          node tests/migration-preservation.cjs assert
+          docker exec "${{ job.services.postgres.id }}" pg_dump -U recovery_ci -d time2pay_recovery_ci --clean --if-exists > /tmp/time2pay-ci-backup.sql
+          node tests/migration-preservation.cjs disturb
+          docker exec -i "${{ job.services.postgres.id }}" psql -U recovery_ci -d time2pay_recovery_ci -v ON_ERROR_STOP=1 < /tmp/time2pay-ci-backup.sql > /tmp/time2pay-restore.log
+          node tests/migration-preservation.cjs assert
+      - run: node --test tests/*.test.cjs tests/*.test.mjs
+      - run: npx tsc --noEmit
+        if: ${{ !cancelled() }}
+      - run: npm run build
+        if: ${{ !cancelled() }}
+      - name: Check security headers on the built HTTP application
+        run: node tests/security-headers-http.cjs
+  dependencies:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: "24.x"
+      - run: npm ci --ignore-scripts
+      - run: npm audit --audit-level=low
+

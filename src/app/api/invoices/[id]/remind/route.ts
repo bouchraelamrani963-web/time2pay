@@ -1,4 +1,7 @@
+import { authorizeInvoiceIssue } from "@/lib/invoice-issuance";
 import { NextResponse } from "next/server";
+import { paymentRequired } from "@/lib/billing";
+import { hasInvoiceAccess } from "@/lib/invoice-access";
 import { prisma } from "@/lib/prisma";
 import { requireUserOrUnauthorized } from "@/lib/auth";
 import { EmailConfigurationError, getInvoiceEmailConfig } from "@/lib/email";
@@ -14,6 +17,7 @@ const currencyFormatter = new Intl.NumberFormat("nl-NL", {
 });
 
 const dateFormatter = new Intl.DateTimeFormat("nl-NL", {
+  timeZone: "Europe/Amsterdam",
   day: "2-digit",
   month: "long",
   year: "numeric",
@@ -36,13 +40,13 @@ function buildReminderHtml(params: {
   senderName: string;
 }) {
   return `
-    <div style="margin: 0; padding: 0; background: #f8fafc; font-family: Arial, sans-serif; color: #111827;">
+    <div style="margin: 0; padding: 0; background: #FBF8F5; font-family: Arial, sans-serif; color: #33243B;">
       <div style="max-width: 680px; margin: 0 auto; padding: 32px 16px;">
-        <div style="background: #ffffff; border: 1px solid #e5e7eb; border-radius: 16px; overflow: hidden;">
-          <div style="padding: 28px 32px; border-bottom: 1px solid #e5e7eb;">
-            <div style="font-size: 22px; font-weight: 700; color: #2563eb;">Time2Pay</div>
+        <div style="background: #ffffff; border: 1px solid #E9DEDA; border-radius: 16px; overflow: hidden;">
+          <div style="padding: 28px 32px; border-bottom: 1px solid #E9DEDA;">
+            <div style="font-size: 22px; font-weight: 700; letter-spacing: -0.7px; color: #543749;">Time<span style="color: #B3846D;">2</span>Pay</div>
             <h1 style="margin: 24px 0 8px; font-size: 24px; line-height: 1.3;">Betalingsherinnering factuur ${escapeHtml(params.invoiceNumber)}</h1>
-            <p style="margin: 0; color: #4b5563; line-height: 1.6;">
+            <p style="margin: 0; color: #726771; line-height: 1.6;">
               Beste ${escapeHtml(params.clientName)}, volgens onze administratie staat onderstaande factuur nog open.
               Wil je deze alsnog betalen?
             </p>
@@ -52,29 +56,29 @@ function buildReminderHtml(params: {
             <table style="width: 100%; border-collapse: collapse; margin-bottom: 28px;">
               <tbody>
                 <tr>
-                  <td style="padding: 8px 0; color: #6b7280;">Klant</td>
+                  <td style="padding: 8px 0; color: #897D83;">Klant</td>
                   <td style="padding: 8px 0; text-align: right; font-weight: 600;">${escapeHtml(params.clientName)}</td>
                 </tr>
                 <tr>
-                  <td style="padding: 8px 0; color: #6b7280;">Factuurnummer</td>
+                  <td style="padding: 8px 0; color: #897D83;">Factuurnummer</td>
                   <td style="padding: 8px 0; text-align: right; font-weight: 600;">${escapeHtml(params.invoiceNumber)}</td>
                 </tr>
                 <tr>
-                  <td style="padding: 8px 0; color: #6b7280;">Vervaldatum</td>
+                  <td style="padding: 8px 0; color: #897D83;">Vervaldatum</td>
                   <td style="padding: 8px 0; text-align: right; font-weight: 600;">${escapeHtml(dateFormatter.format(params.dueDate))}</td>
                 </tr>
                 <tr>
-                  <td style="padding: 8px 0; color: #6b7280;">Openstaand bedrag</td>
+                  <td style="padding: 8px 0; color: #897D83;">Openstaand bedrag</td>
                   <td style="padding: 8px 0; text-align: right; font-size: 20px; font-weight: 700;">${escapeHtml(currencyFormatter.format(params.total))}</td>
                 </tr>
                 <tr>
-                  <td style="padding: 8px 0; color: #6b7280;">Afzender</td>
+                  <td style="padding: 8px 0; color: #897D83;">Afzender</td>
                   <td style="padding: 8px 0; text-align: right; font-weight: 600;">${escapeHtml(params.senderName)}</td>
                 </tr>
               </tbody>
             </table>
 
-            <p style="margin: 0; color: #4b5563; line-height: 1.6;">
+            <p style="margin: 0; color: #726771; line-height: 1.6;">
               De factuur is voor de zekerheid opnieuw toegevoegd als PDF-bijlage.
             </p>
           </div>
@@ -108,9 +112,13 @@ function buildReminderText(params: {
   ].join("\n");
 }
 
-export async function POST(_request: Request, { params }: { params: { id: string } }) {
+export async function POST(_request: Request, { params: promisedParams }: { params: Promise<{ id: string }> }) {
+  const params = await promisedParams;
   const user = await requireUserOrUnauthorized();
   if (user instanceof Response) return user;
+  if (!await hasInvoiceAccess(user.uid)) return paymentRequired();
+  const denied = await authorizeInvoiceIssue(user.uid, params.id);
+  if (denied) return denied;
 
   const sendKey = `${user.uid}:${params.id}`;
   if (activeInvoiceReminders.has(sendKey)) {
@@ -156,7 +164,8 @@ export async function POST(_request: Request, { params }: { params: { id: string
       );
     }
 
-    const { resend, from } = getInvoiceEmailConfig();
+    const { resend, from, testRecipient } = getInvoiceEmailConfig();
+    const actualRecipient = testRecipient || recipientEmail;
     const companySettings = await prisma.companySettings.findUnique({
       where: { userId: user.uid },
     });
@@ -174,8 +183,8 @@ export async function POST(_request: Request, { params }: { params: { id: string
 
     const { error } = await resend.emails.send({
       from,
-      to: recipientEmail,
-      subject: `Betalingsherinnering factuur ${invoice.number}`,
+      to: actualRecipient,
+      subject: `${testRecipient ? "[TEST] " : ""}Betalingsherinnering factuur ${invoice.number}`,
       html: buildReminderHtml(reminderParams),
       text: buildReminderText(reminderParams),
       attachments: [
@@ -237,7 +246,7 @@ export async function POST(_request: Request, { params }: { params: { id: string
     return NextResponse.json({
       success: true,
       message: "Betalingsherinnering verstuurd.",
-      sentTo: recipientEmail,
+      sentTo: actualRecipient,
       invoice: updatedInvoice,
     });
   } catch (error) {

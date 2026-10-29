@@ -58,7 +58,7 @@ export async function PUT(req: Request) {
     return NextResponse.json(settings);
   } catch (err) {
     if (err instanceof z.ZodError) {
-      return NextResponse.json({ error: err.errors }, { status: 422 });
+      return NextResponse.json({ error: err.issues }, { status: 422 });
     }
 
     return NextResponse.json({ error: "Bedrijfsgegevens opslaan mislukt" }, { status: 500 });

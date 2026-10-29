@@ -71,7 +71,7 @@ const pricingPlans = [
   },
 ];
 
-export default function LandingPage() {
+export default function LandingPage({ trialEnabled = false, launchOffer = false }: { trialEnabled?: boolean; launchOffer?: boolean }) {
   return (
     <div className="min-h-screen bg-[#fbf8f5] text-[#342b39]">
       <main>
@@ -105,7 +105,7 @@ export default function LandingPage() {
               </div>
               <div className="mt-12 flex flex-wrap gap-x-7 gap-y-3 border-t border-[#e9deda] pt-6 text-xs text-[#736c70]">
                 <span>Gemaakt voor Nederlandse ondernemers</span>
-                <span>Een account aanmaken kan zonder betaalgegevens</span>
+                <span>{trialEnabled && launchOffer ? "De eerste drie maanden vanaf livegang gratis, met minimaal 30 dagen gratis per registratie. Geen betaalgegevens en geen automatische afschrijving." : trialEnabled ? "30 dagen gratis vanaf registratie, inclusief verzenden, PDF en afdrukken. Geen betaalgegevens en geen automatische afschrijving." : "Gratis registreren en conceptfacturen opstellen. Verzenden, PDF en afdrukken met een betaald abonnement."}</span>
               </div>
             </div>
 
