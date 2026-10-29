@@ -49,3 +49,16 @@ export async function getPaidEntitlement(userId: string) {
 export async function hasPaidSubscription(userId: string) {
   return !!await getPaidEntitlement(userId);
 }
+
+// Display only; permissions never depend on this value or a webhook cache.
+export async function getBillingStatus(userId: string): Promise<string | null> {
+  const account = await prisma.billingAccount.findUnique({ where: { userId } });
+  if (!account?.subscriptionId || !account.customerId) return null;
+  try {
+    const sub = await getStripe().subscriptions.retrieve(account.subscriptionId);
+    const customerId = typeof sub.customer === "string" ? sub.customer : sub.customer.id;
+    if (sub.livemode !== getBillingEnvironment().livemode || customerId !== account.customerId) return null;
+    return sub.status;
+  } catch { return null; }
+}
+

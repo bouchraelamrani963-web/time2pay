@@ -118,10 +118,14 @@ test('live Starter entitlement selects its live price for quota; Business does n
 function webhookFixture(overrides={}) {
  const selected=config.resolveBillingEnvironment(production),sdk=new Stripe('rk_test_synthetic');
  let updates=0;const stripe={webhooks:sdk.webhooks,accounts:{retrieveCurrent:async()=>({id:overrides.accountId||selected.accountId})},
- subscriptions:{retrieve:async()=>({livemode:true,customer:'cus_synthetic',metadata:{time2payUserId:'synthetic'},
+ subscriptions:{retrieve:async()=>({id:'sub_synthetic',livemode:true,customer:'cus_synthetic',metadata:{time2payUserId:'synthetic'},
  items:{data:[{price:{id:overrides.priceId||selected.plans.starter.priceId}}]}})}};
+ const tx={$executeRaw:async()=>{},billingWebhookEvent:{findUnique:async()=>null,create:async()=>{}},
+  billingAccount:{findUnique:async()=>({userId:'synthetic',customerId:'cus_synthetic',subscriptionId:null}),update:async()=>{updates++;}}};
+ const processor=load('src/lib/billing-webhook.ts',{'server-only':{}});
  const route=load('src/app/api/billing/webhook/route.ts',{'@/lib/billing':{getStripe:()=>stripe},
- '@/lib/billing-environment':{getBillingEnvironment:()=>selected},'@/lib/prisma':{prisma:{billingAccount:{updateMany:async()=>{updates++;}}}}});
+ '@/lib/billing-webhook':processor,'@/lib/billing-notice-dispatch':{dispatchBillingNotices:async()=>0},
+ '@/lib/billing-environment':{getBillingEnvironment:()=>selected},'@/lib/prisma':{prisma:{$transaction:async fn=>fn(tx)}}});
  const event={id:'evt_synthetic',object:'event',type:'checkout.session.completed',livemode:true,
  data:{object:{mode:'subscription',payment_status:'paid',customer:'cus_synthetic',subscription:'sub_synthetic',
  metadata:{time2payUserId:'synthetic'},client_reference_id:'synthetic'}}};
@@ -143,7 +147,8 @@ test('signed webhook from wrong account or unallowlisted price cannot update own
  const otherAccount=webhookFixture({accountId:'acct_otherSynthetic'});
  assert.equal((await otherAccount.send()).status,400);assert.equal(otherAccount.updates(),0);
  const otherPrice=webhookFixture({priceId:'price_otherSynthetic'});
- assert.equal((await otherPrice.send()).status,200);assert.equal(otherPrice.updates(),0);
+ assert.equal((await otherPrice.send()).status,500);assert.equal(otherPrice.updates(),0);
  const unpaid=webhookFixture();unpaid.event.data.object.payment_status='unpaid';
  assert.equal((await unpaid.send()).status,200);assert.equal(unpaid.updates(),0);
 });
+

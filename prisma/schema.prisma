@@ -201,3 +201,40 @@ model RecoverySupportRequest {
   @@index([userId, createdAt])
   @@map("recovery_support_requests")
 }
+
+
+// Minimal receipt only: no raw webhook body, secrets, email or card details.
+model BillingWebhookEvent {
+  accountId String
+  eventId String
+  eventType String
+  processedAt DateTime @default(now())
+  @@id([accountId, eventId])
+  @@map("billing_webhook_events")
+}
+
+model BillingNotice {
+  id String @id @default(cuid())
+  key String @unique
+  userId String
+  customerId String
+  subscriptionId String
+  invoiceId String
+  kind String
+  createdAt DateTime @default(now())
+  sentAt DateTime?
+  suppressedAt DateTime?
+  failedAt DateTime?
+  attempts Int @default(0)
+  firstAttemptAt DateTime?
+  nextAttemptAt DateTime @default(now())
+  leaseToken String?
+  leaseUntil DateTime?
+  lastErrorCode String?
+  providerId String?
+  workflowRunId String?
+  dispatchLeaseUntil DateTime?
+  @@index([sentAt, failedAt, suppressedAt, nextAttemptAt])
+  @@map("billing_notices")
+}
+

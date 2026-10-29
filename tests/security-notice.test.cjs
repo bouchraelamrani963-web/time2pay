@@ -71,6 +71,7 @@ test('durable workflow sleeps until the stored retry date without serializing ac
 });
 test('internal sweep requires a strong server bearer secret',async()=>{
  let calls=0;const route=load('src/app/api/internal/security-notices/route.ts',{
+  '@/lib/billing-notice-dispatch':{dispatchBillingNotices:async()=>{throw Error('Disabled billing dispatcher called');}},
   '@/lib/security-notice-dispatch':{dispatchSecurityNotices:async()=>{calls++;return 1;}}},{...configured,CRON_SECRET:'s'.repeat(40)});
  for(const header of ['', 'Bearer wrong'])assert.equal((await route.GET(new Request('https://preview.example/api/internal/security-notices',{headers:{authorization:header}}))).status,401);
  assert.equal(calls,0);assert.equal((await route.GET(new Request('https://preview.example/api/internal/security-notices',{headers:{authorization:'Bearer '+'s'.repeat(40)}}))).status,200);assert.equal(calls,1);
@@ -83,3 +84,4 @@ test('isolated Preview fault injection fails once, then sends the synthetic noti
  f.notice.nextAttemptAt=new Date(0);await f.worker.attemptSecurityNotice(f.notice.id);
  assert.equal(f.notice.attempts,2);assert.equal(f.sent(),1);assert.ok(f.notice.sentAt);
 });
+

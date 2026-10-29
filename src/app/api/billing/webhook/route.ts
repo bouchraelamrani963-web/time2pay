@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import type Stripe from "stripe";
 import { getStripe } from "@/lib/billing";
 import { prisma } from "@/lib/prisma";
+import { processBillingEvent } from "@/lib/billing-webhook";
+import { dispatchBillingNotices } from "@/lib/billing-notice-dispatch";
 import { getBillingEnvironment } from "@/lib/billing-environment";
 
 export const runtime = "nodejs";
@@ -22,26 +24,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Ongeldige webhook" }, { status: 400 });
   }
   try {
-    if (event.type === "checkout.session.completed" || event.type === "checkout.session.async_payment_succeeded") {
-      const session = event.data.object;
-      if (session.mode === "subscription" && session.payment_status === "paid" &&
-          typeof session.customer === "string" && typeof session.subscription === "string") {
-        const subscription = await stripe.subscriptions.retrieve(session.subscription);
-        const customerId = typeof subscription.customer === "string" ? subscription.customer : subscription.customer.id;
-        const userId = session.metadata?.time2payUserId;
-        const item = subscription.items.data[0];
-        if (subscription.livemode === configuration.livemode && userId && customerId === session.customer &&
-            session.client_reference_id === userId && subscription.metadata.time2payUserId === userId &&
-            subscription.items.data.length === 1 && Object.values(configuration.plans).some(plan => plan.priceId === item?.price.id)) {
-          // Customer mapping was created by our authenticated checkout endpoint.
-          // Never grant access based on a customer ID supplied by the browser.
-          await prisma.billingAccount.updateMany({ where: { userId, customerId },
-            data: { subscriptionId: subscription.id } });
-        }
-      }
-    }
-    // Renewals, failures and cancellations are checked against current Stripe
-    // state on every protected operation, so event reordering cannot regrant access.
+    await processBillingEvent(event, stripe, prisma, configuration);
+    await dispatchBillingNotices();
     return NextResponse.json({ received: true });
   } catch {
     return NextResponse.json({ error: "Webhook verwerken mislukt" }, { status: 500 });
