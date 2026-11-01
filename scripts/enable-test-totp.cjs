@@ -1,13 +1,12 @@
 // Run only with the separate test project's credentials supplied securely as env.
 // Never print credentials, run for live, or commit environment files.
-const { cert, initializeApp } = require('firebase-admin/app');
-const { getAuth } = require('firebase-admin/auth');
 async function main() {
   if (process.env.TIME2PAY_CONFIGURE_TEST_TOTP !== "true") return;
   const projectId = process.env.FIREBASE_PROJECT_ID;
   if (!projectId || projectId === 'time2pay-c5c5c' ||
       projectId !== process.env.TIME2PAY_TOTP_TEST_PROJECT_ID ||
-      process.env.VERCEL_ENV === 'production') {
+      process.env.VERCEL_ENV !== 'preview' ||
+      process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID !== projectId) {
     throw Error('Only the explicitly isolated Time2Pay test project is allowed.');
   }
   const credentials = JSON.parse(process.env.FIREBASE_TEST_SERVICE_ACCOUNT_JSON || 'null');
@@ -16,6 +15,8 @@ async function main() {
       !credentials.client_email.endsWith(`@${projectId}.iam.gserviceaccount.com`)) {
     throw Error('Test credentials are required.');
   }
+  const { cert, initializeApp } = require('firebase-admin/app');
+  const { getAuth } = require('firebase-admin/auth');
   const app = initializeApp({ credential: cert(credentials) }, 'time2pay-totp-config');
   const manager = getAuth(app).projectConfigManager();
   const before = await manager.getProjectConfig();

@@ -1,3 +1,13 @@
 {
-  "crons": [{ "path": "/api/internal/security-notices", "schedule": "0 4 * * *" }]
+  "crons": [
+    {
+      "path": "/api/internal/security-notices",
+      "schedule": "0 4 * * *"
+    }
+  ],
+  "git": {
+    "deploymentEnabled": {
+      "security/time2pay-deps-20261101": false
+    }
+  }
 }
