@@ -7,7 +7,8 @@
   ],
   "git": {
     "deploymentEnabled": {
-      "security/time2pay-deps-20261101": false
+      "security/time2pay-deps-20261101": false,
+      "diagnostics/time2pay-prod-readonly-20261102": false
     }
   }
 }
