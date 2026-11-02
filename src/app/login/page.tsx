@@ -164,7 +164,7 @@ export default function LoginPage() {
     }
   }
 
-  if (step === "recoverycodes") return <main className="mx-auto max-w-xl px-5 py-12"><RecoveryCodes codes={recoveryCodes} onDone={() => { setRecoveryCodes([]); router.replace(nextPath); router.refresh(); }} /></main>;
+  if (step === "recoverycodes") return <main className="mx-auto max-w-xl px-5 py-12"><RecoveryCodes codes={recoveryCodes} onDone={() => { window.location.replace(nextPath); }} /></main>;
 
   const factors = resolver?.hints.filter(h => h.factorId === TotpMultiFactorGenerator.FACTOR_ID) ?? [];
   return (
