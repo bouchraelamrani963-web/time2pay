@@ -3,7 +3,7 @@ const moduleQa={exports:{}};
 vm.runInNewContext(ts.transpileModule(fs.readFileSync('src/lib/isolated-qa.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText,{module:moduleQa,exports:moduleQa.exports,URL,Date,Error});
 const {assertIsolatedQa,isolatedQaCredential}=moduleQa.exports;
 const now=Date.parse('2026-11-04T11:00:00Z');
-const env={TIME2PAY_ISOLATED_QA:'true',NEXT_PUBLIC_TIME2PAY_ISOLATED_QA:'true',FIREBASE_PROJECT_ID:'time2pay-isolated-qa-20261030',NEXT_PUBLIC_FIREBASE_PROJECT_ID:'time2pay-isolated-qa-20261030',TIME2PAY_TOTP_TEST_PROJECT_ID:'time2pay-isolated-qa-20261030',TIME2PAY_REQUIRE_TOTP:'true',TIME2PAY_TOTP_SETUP_ENABLED:'true',TIME2PAY_CONFIGURE_TEST_TOTP:'false',TIME2PAY_REGISTRATION_TRIAL_ENABLED:'true',TIME2PAY_LIVE_PAYMENTS_ENABLED:'false',TIME2PAY_RECOVERY_ENABLED:'false',TIME2PAY_SECURITY_NOTICES_ENABLED:'false',DATABASE_URL:'postgresql://qa_runner:synthetic@127.0.0.1:55432/time2pay_auth_qa',DIRECT_URL:'postgresql://qa_runner:synthetic@127.0.0.1:55432/time2pay_auth_qa',TIME2PAY_QA_ACCESS_TOKEN:'synthetic-not-a-token',TIME2PAY_QA_ACCESS_TOKEN_EXPIRES_AT:new Date(now+1800000).toISOString()};
+const env={NEXT_PUBLIC_FIREBASE_APP_ID:'1:512756616652:web:a86323add1a508b5b3e169',NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN:'time2pay-isolated-qa-20261030.firebaseapp.com',TIME2PAY_ISOLATED_QA:'true',NEXT_PUBLIC_TIME2PAY_ISOLATED_QA:'true',FIREBASE_PROJECT_ID:'time2pay-isolated-qa-20261030',NEXT_PUBLIC_FIREBASE_PROJECT_ID:'time2pay-isolated-qa-20261030',TIME2PAY_TOTP_TEST_PROJECT_ID:'time2pay-isolated-qa-20261030',TIME2PAY_REQUIRE_TOTP:'true',TIME2PAY_TOTP_SETUP_ENABLED:'true',TIME2PAY_CONFIGURE_TEST_TOTP:'false',TIME2PAY_REGISTRATION_TRIAL_ENABLED:'true',TIME2PAY_LIVE_PAYMENTS_ENABLED:'false',TIME2PAY_RECOVERY_ENABLED:'false',TIME2PAY_SECURITY_NOTICES_ENABLED:'false',DATABASE_URL:'postgresql://qa_runner:synthetic@127.0.0.1:55432/time2pay_auth_qa',DIRECT_URL:'postgresql://qa_runner:synthetic@127.0.0.1:55432/time2pay_auth_qa',TIME2PAY_QA_ACCESS_TOKEN:'synthetic-not-a-token',TIME2PAY_QA_ACCESS_TOKEN_EXPIRES_AT:new Date(now+1800000).toISOString()};
 test('disabled QA profile leaves release configuration untouched',()=>assert.equal(assertIsolatedQa({}),null));
 test('complete isolated local QA config passes without a private key',()=>assert.equal(assertIsolatedQa(env,now,true).projectId,env.FIREBASE_PROJECT_ID));
 test('production, hosted deployment, wrong Firebase binding and missing MFA fail closed',()=>{
@@ -42,4 +42,12 @@ test('provider preflight is read-only, fixed-project and outputs no access token
  const result=await preflight(token,async(url,options)=>{calls.push({url,method:options.method??'GET'});return{ok:true,json:async()=>url.includes('/admin/v2/')?{name:'projects/time2pay-isolated-qa-20261030/config',signIn:{email:{enabled:true}},mfa:{providerConfigs:[{state:'ENABLED',totpProviderConfig:{adjacentIntervals:0}}]}}:{users:[]}}});
  assert.ok(calls.every(c=>c.method==='GET'&&c.url.includes('time2pay-isolated-qa-20261030')));assert.equal(result.userListEmpty,true);assert.equal(result.totpEnabled,true);assert.ok(!JSON.stringify(result).includes(token));
  await assert.rejects(()=>preflight(token,async()=>({ok:true,json:async()=>({name:'projects/production/config'})})),/QA_PROJECT_MISMATCH/);
+});
+
+test('QA launcher obtains the API key from the authoritative QA web app and rejects production config',async()=>{
+ const {qaWebConfig}=require('../qa/preflight.cjs');
+ const expected={projectId:env.FIREBASE_PROJECT_ID,appId:env.NEXT_PUBLIC_FIREBASE_APP_ID,authDomain:env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,apiKey:'synthetic-public-key'};
+ const actual=await qaWebConfig('synthetic',async url=>{assert.ok(url.includes('time2pay-isolated-qa-20261030'));return{ok:true,json:async()=>expected}});
+ assert.equal(actual.apiKey,expected.apiKey);
+ for(const change of [{projectId:'time2pay-c5c5c'},{appId:'other'},{authDomain:'production.invalid'},{apiKey:''}])await assert.rejects(()=>qaWebConfig('synthetic',async()=>({ok:true,json:async()=>({...expected,...change})})),/QA_WEB_CONFIG_MISMATCH/);
 });
