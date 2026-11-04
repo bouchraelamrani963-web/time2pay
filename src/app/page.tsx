@@ -1,3 +1,4 @@
+import { trialPresentation } from "@/lib/registration-trial-policy";
 import type { Metadata } from "next";
 import LandingPage from "@/components/LandingPage";
 import { registrationTrialEnabled, launchOfferAvailable } from "@/lib/registration-trial";
@@ -63,7 +64,7 @@ export default function Home() {
           __html: JSON.stringify(structuredData).replace(/</g, "\\u003c"),
         }}
       />
-      <LandingPage trialEnabled={registrationTrialEnabled()} launchOffer={launchOfferAvailable()} />
+      <LandingPage trialEnabled={registrationTrialEnabled()} launchOffer={launchOfferAvailable()} trialCopy={trialPresentation(registrationTrialEnabled(), process.env.TIME2PAY_LAUNCHED_AT)} />
     </>
   );
 }

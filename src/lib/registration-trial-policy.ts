@@ -37,3 +37,21 @@ export function freeTrial(creationTime: string | undefined, launchedAt: string |
     periodEnd: Math.floor(Math.max(registration?.periodEnd ?? 0, activeLaunch?.periodEnd ?? 0)),
   };
 }
+
+// Public copy uses the entitlement policy's clock; never hardcode campaign dates.
+export function trialPresentation(enabled: boolean, launchedAt?: string, now = Date.now()) {
+  const launch = launchTrialPeriod(launchedAt);
+  const active = enabled && launch && launch.periodStart * 1000 <= now && now < launch.periodEnd * 1000;
+  const format = (seconds: number) => new Intl.DateTimeFormat("nl-NL", {
+    timeZone: "Europe/Amsterdam", day: "numeric", month: "long", year: "numeric",
+    hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23",
+  }).format(new Date(seconds * 1000));
+  return {
+    headline: active ? "Probeer Time2Pay 3 maanden gratis." : enabled ? "Probeer Time2Pay 30 dagen gratis." : "Maak gratis een account aan.",
+    detail: active
+      ? `De introductieperiode loopt vanaf livegang op ${format(launch.periodStart)} tot ${format(launch.periodEnd)} (Nederlandse tijd). Je krijgt vanaf registratie minimaal 30 dagen gratis; de laatste einddatum geldt.`
+      : enabled ? "Je gratis periode begint bij het aanmaken van je account en duurt 30 dagen."
+      : "Registreren en conceptfacturen opstellen is gratis. Voor verzenden, definitieve PDF en afdrukken is een betaald abonnement nodig.",
+    after: enabled ? "Geen betaalgegevens nodig. Je proefperiode wordt niet automatisch een betaald abonnement. Na afloop kies je zelf een abonnement voor verzenden, definitieve PDF en afdrukken; concepten blijven gratis." : "Een betaald abonnement sluit je zelf afzonderlijk af.",
+  };
+}

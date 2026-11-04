@@ -1,4 +1,5 @@
 "use client";
+import { trialPresentation } from "@/lib/registration-trial-policy";
 
 import { useState } from "react";
 import Link from "next/link";
@@ -56,7 +57,7 @@ function mapFirebaseError(error: unknown): string {
   }
 }
 
-export default function RegisterForm({ trialEnabled, launchOffer = false }: { trialEnabled: boolean; launchOffer?: boolean }) {
+export default function RegisterForm({ trialEnabled, launchOffer = false, trialCopy = trialPresentation(trialEnabled) }: { trialEnabled: boolean; launchOffer?: boolean; trialCopy?: ReturnType<typeof trialPresentation> }) {
   const router = useRouter();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -116,11 +117,12 @@ export default function RegisterForm({ trialEnabled, launchOffer = false }: { tr
           <Link href="/" aria-label="Time2Pay – homepage" className="mb-8 inline-flex items-center justify-center"><BrandLogo size="auth" /></Link>
           <h1 className="text-3xl font-semibold tracking-[-0.03em] text-[#33243b]">Account aanmaken</h1>
           <p className="mt-2 text-sm text-[#776c74]">
-            {trialEnabled && launchOffer ? "Time2Pay is de eerste drie maanden vanaf livegang gratis. Iedere nieuwe registratie krijgt minimaal 30 dagen gratis; de laatste einddatum geldt. Inclusief verzenden, definitieve PDF en afdrukken. Geen betaalgegevens en geen automatische afschrijving." : trialEnabled ? "Iedere nieuwe registratie krijgt 30 dagen gratis gebruik, inclusief verzenden, definitieve PDF en afdrukken. Geen betaalgegevens nodig en geen automatische afschrijving. Daarna kies je zelf een abonnement; concepten blijven gratis." : "Registreer gratis, zonder betaalgegevens, en stel conceptfacturen op. Voor verzenden, PDF downloaden en afdrukken kies je een betaald abonnement."}
+            {trialCopy.headline} {trialCopy.detail} {trialCopy.after}
           </p>
         </div>
 
         <div className="border border-[#eadfda] bg-white p-8 shadow-[0_18px_45px_-38px_rgba(56,37,52,0.28)] sm:p-10">
+          <p className="mb-6 text-sm leading-6 text-[#62545d]">Na registratie bevestig je je e-mailadres en stel je tweestapsverificatie met een authenticator-app in. Daarna kun je naar je dashboard.</p>
           <form onSubmit={onSubmit} className="space-y-5">
             {error && (
               <div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
@@ -179,7 +181,7 @@ export default function RegisterForm({ trialEnabled, launchOffer = false }: { tr
             <button type="submit" disabled={submitting} className="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-md bg-[#543749] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#3e2937] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#543749] disabled:opacity-60">
               {submitting ? "Bezig met aanmaken..." : (
                 <>
-                  Registreren <ArrowRight size={16} />
+                  Gratis account aanmaken <ArrowRight size={16} />
                 </>
               )}
             </button>

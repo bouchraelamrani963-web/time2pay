@@ -1,3 +1,4 @@
+import { trialPresentation } from "@/lib/registration-trial-policy";
 import Link from "next/link";
 import BrandLogo from "./BrandLogo";
 import { ArrowRight, ArrowUpRight, Check } from "lucide-react";
@@ -57,7 +58,7 @@ const pricingPlans = [
     name: "Pro",
     price: "€ 19",
     description: "Voor zelfstandigen met een volle agenda.",
-    details: ["Onbeperkt facturen", "Onbeperkt klanten", "Betalingsherinneringen", "Omzet- en betaalinzichten"],
+    details: ["Betalingsherinneringen", "Omzet- en betaalinzichten"],
     href: "/register?plan=pro",
     action: "Kies Pro",
   },
@@ -65,13 +66,13 @@ const pricingPlans = [
     name: "Business",
     price: "€ 39",
     description: "Voor kleine teams en groeiende bedrijven.",
-    details: ["Meerdere gebruikers", "Uitgebreide rapportage", "Prioriteit support", "Hulp bij inrichting"],
+    details: ["Prioriteit support", "Hulp bij inrichting"],
     href: "/register?plan=business",
     action: "Kies Business",
   },
 ];
 
-export default function LandingPage({ trialEnabled = false, launchOffer = false }: { trialEnabled?: boolean; launchOffer?: boolean }) {
+export default function LandingPage({ trialEnabled = false, launchOffer = false, trialCopy = trialPresentation(trialEnabled) }: { trialEnabled?: boolean; launchOffer?: boolean; trialCopy?: ReturnType<typeof trialPresentation> }) {
   return (
     <div className="min-h-screen bg-[#fbf8f5] text-[#342b39]">
       <main>
@@ -91,10 +92,10 @@ export default function LandingPage({ trialEnabled = false, launchOffer = false 
               </p>
               <div className="mt-10 flex flex-wrap items-center gap-6">
                 <Link
-                  href="#pricing"
+                  href="/register"
                   className="inline-flex min-h-12 items-center justify-center gap-3 rounded-md bg-[#543749] px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#3e2937] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#543749]"
                 >
-                  Bekijk abonnementen <ArrowRight size={17} aria-hidden />
+                  Gratis account aanmaken <ArrowRight size={17} aria-hidden />
                 </Link>
                 <a
                   href="#how-it-works"
@@ -103,9 +104,10 @@ export default function LandingPage({ trialEnabled = false, launchOffer = false 
                   Bekijk hoe het werkt <ArrowUpRight size={16} aria-hidden />
                 </a>
               </div>
-              <div className="mt-12 flex flex-wrap gap-x-7 gap-y-3 border-t border-[#e9deda] pt-6 text-xs text-[#736c70]">
-                <span>Gemaakt voor Nederlandse ondernemers</span>
-                <span>{trialEnabled && launchOffer ? "De eerste drie maanden vanaf livegang gratis, met minimaal 30 dagen gratis per registratie. Geen betaalgegevens en geen automatische afschrijving." : trialEnabled ? "30 dagen gratis vanaf registratie, inclusief verzenden, PDF en afdrukken. Geen betaalgegevens en geen automatische afschrijving." : "Gratis registreren en conceptfacturen opstellen. Verzenden, PDF en afdrukken met een betaald abonnement."}</span>
+              <div className="mt-6 space-y-3 text-sm leading-7 text-[#62545d]">
+                <p className="font-semibold text-[#543749]">{trialCopy.headline}</p>
+                <p>{trialCopy.detail}</p>
+                <p>{trialCopy.after}</p>
               </div>
             </div>
 
@@ -226,6 +228,12 @@ export default function LandingPage({ trialEnabled = false, launchOffer = false 
               </div>
               <p className="max-w-xs text-sm leading-7 text-[#766a73]">Begin klein en kies de mogelijkheden die je nodig hebt.</p>
             </div>
+            <div className="mb-8 rounded-md border border-[#d5c2ba] bg-[#fbf8f5] p-6 text-sm leading-7">
+              <h3 className="text-lg font-semibold">{trialCopy.headline}</h3>
+              <p className="mt-2">{trialCopy.detail}</p>
+              <p className="mt-2">{trialCopy.after}</p>
+              <p className="mt-2">Een pakketknop maakt alleen een account aan en sluit geen abonnement af.</p>
+            </div>
             <div className="grid gap-4 lg:grid-cols-3">
               {pricingPlans.map((plan) => (
                 <div
@@ -259,7 +267,7 @@ export default function LandingPage({ trialEnabled = false, launchOffer = false 
                 </div>
               ))}
             </div>
-            <p className="mt-5 text-xs leading-6 text-[#87777d]">De abonnementen zijn in voorbereiding. Betalingen en pakketlimieten zijn nog niet geactiveerd.</p>
+            <p className="mt-5 text-xs leading-6 text-[#87777d]">Getoonde maandprijzen gelden voor een afzonderlijk af te sluiten betaald abonnement. Pakketkeuze bij registratie activeert geen betaling.</p>
           </div>
         </section>
 
@@ -272,8 +280,8 @@ export default function LandingPage({ trialEnabled = false, launchOffer = false 
               </h2>
               <p className="mt-4 text-sm leading-7 text-[#ecded7]">Maak een account aan en ontdek Time2Pay.</p>
             </div>
-            <Link href="#pricing" className="inline-flex min-h-12 shrink-0 items-center justify-center gap-3 rounded-md bg-[#fffaf6] px-7 py-3 text-sm font-semibold text-[#4a3042] transition-colors hover:bg-white">
-              Bekijk abonnementen <ArrowRight size={17} aria-hidden />
+            <Link href="/register" className="inline-flex min-h-12 shrink-0 items-center justify-center gap-3 rounded-md bg-[#fffaf6] px-7 py-3 text-sm font-semibold text-[#4a3042] transition-colors hover:bg-white">
+              Gratis account aanmaken <ArrowRight size={17} aria-hidden />
             </Link>
           </div>
         </section>
