@@ -10,7 +10,10 @@ const launched = '2026-11-02T10:47:06.983Z';
 test('launch copy displays configured Dutch dates and matches entitlement end',()=>{
  const now=Date.parse('2026-11-04T12:00:00Z');
  const copy=trialPresentation(true,launched,now);
- assert.equal(copy.headline,'Probeer Time2Pay 3 maanden gratis.');
+ assert.match(copy.headline,/Introductieactie: gratis tot 2 februari 2027/);
+ assert.doesNotMatch(copy.headline,/3 maanden/);
+ assert.match(copy.detail,/gegarandeerd minimaal 30 dagen/);
+ assert.match(copy.detail,/niet bij iedere registratie drie volledige maanden/);
  assert.match(copy.detail,/2 november 2026/);assert.match(copy.detail,/2 februari 2027/);assert.match(copy.detail,/11:47:06/);
  assert.equal(freeTrial(new Date(now).toISOString(),launched,now).periodEnd,Math.floor(launchTrialPeriod(launched).periodEnd));
  assert.match(copy.after,/niet automatisch/);

@@ -47,9 +47,9 @@ export function trialPresentation(enabled: boolean, launchedAt?: string, now = D
     hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23",
   }).format(new Date(seconds * 1000));
   return {
-    headline: active ? "Probeer Time2Pay 3 maanden gratis." : enabled ? "Probeer Time2Pay 30 dagen gratis." : "Maak gratis een account aan.",
+    headline: active ? `Introductieactie: gratis tot ${format(launch.periodEnd)} (Nederlandse tijd).` : enabled ? "Probeer Time2Pay 30 dagen gratis." : "Maak gratis een account aan.",
     detail: active
-      ? `De introductieperiode loopt vanaf livegang op ${format(launch.periodStart)} tot ${format(launch.periodEnd)} (Nederlandse tijd). Je krijgt vanaf registratie minimaal 30 dagen gratis; de laatste einddatum geldt.`
+      ? `De introductieperiode loopt vanaf livegang op ${format(launch.periodStart)} tot ${format(launch.periodEnd)} (Nederlandse tijd). Iedere registratie krijgt gegarandeerd minimaal 30 dagen gratis vanaf het aanmaken van het account. Je gratis toegang eindigt op de laatste van deze twee momenten. Je krijgt dus niet bij iedere registratie drie volledige maanden.`
       : enabled ? "Je gratis periode begint bij het aanmaken van je account en duurt 30 dagen."
       : "Registreren en conceptfacturen opstellen is gratis. Voor verzenden, definitieve PDF en afdrukken is een betaald abonnement nodig.",
     after: enabled ? "Geen betaalgegevens nodig. Je proefperiode wordt niet automatisch een betaald abonnement. Na afloop kies je zelf een abonnement voor verzenden, definitieve PDF en afdrukken; concepten blijven gratis." : "Een betaald abonnement sluit je zelf afzonderlijk af.",
