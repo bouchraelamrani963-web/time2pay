@@ -8,7 +8,8 @@
   "git": {
     "deploymentEnabled": {
       "security/time2pay-deps-20261101": false,
-      "improve/registration-trial-20261104": false
+      "improve/registration-trial-20261104": false,
+      "qa/pr22-keyless-20261104": false
     }
   }
 }

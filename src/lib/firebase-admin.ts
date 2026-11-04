@@ -1,3 +1,4 @@
+import { assertIsolatedQa, isolatedQaCredential } from "./isolated-qa";
 import "server-only";
 import { cert, getApps, initializeApp, type App } from "firebase-admin/app";
 import { getAuth, type Auth } from "firebase-admin/auth";
@@ -8,6 +9,10 @@ let adminApp: App | undefined;
 let adminAuth: Auth | undefined;
 
 export function getMissingFirebaseAdminEnv(): string[] {
+  if (process.env.TIME2PAY_ISOLATED_QA === "true") {
+    assertIsolatedQa(process.env, Date.now(), true);
+    return [];
+  }
   if (process.env.TIME2PAY_TOTP_TEST_PROJECT_ID) {
     return process.env.FIREBASE_TEST_SERVICE_ACCOUNT_JSON ? [] : ["FIREBASE_TEST_SERVICE_ACCOUNT_JSON"];
   }
@@ -37,6 +42,12 @@ function getFirebasePrivateKey(): string {
 }
 
 function getAdminApp(): App {
+  if (process.env.TIME2PAY_ISOLATED_QA === "true") {
+    const config = assertIsolatedQa(process.env, Date.now(), true)!;
+    if (!adminApp) adminApp = initializeApp({ projectId: config.projectId,
+      credential: isolatedQaCredential(process.env) }, "time2pay-pr22-keyless-qa");
+    return adminApp;
+  }
   // A Production build must never authenticate against copied Preview settings.
   if (process.env.VERCEL_ENV === "production" && (
       process.env.FIREBASE_PROJECT_ID !== "time2pay-c5c5c" ||
@@ -89,6 +100,7 @@ function getAdminApp(): App {
 }
 
 export function getAdminAuth(): Auth {
+  if (process.env.TIME2PAY_ISOLATED_QA === "true") assertIsolatedQa(process.env, Date.now(), true);
   if (!adminAuth) {
     adminAuth = getAuth(getAdminApp());
   }

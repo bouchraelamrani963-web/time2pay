@@ -1,7 +1,7 @@
 name: Recovery draft checks
 on:
   pull_request:
-    branches: [codex/time2pay-stripe-test, seo/time2pay-facturatie-20261103]
+    branches: [codex/time2pay-stripe-test, seo/time2pay-facturatie-20261103, improve/registration-trial-20261104]
     paths:
       - "src/**"
       - "prisma/**"

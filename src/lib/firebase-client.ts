@@ -32,6 +32,10 @@ function missingClientEnvVars(): string[] {
 }
 
 function assertFirebaseClientConfig() {
+  if (process.env.NEXT_PUBLIC_TIME2PAY_ISOLATED_QA === "true" &&
+      firebaseConfig.projectId !== "time2pay-isolated-qa-20261030") {
+    throw new Error("Isolated QA client configuration rejected");
+  }
   const missing = missingClientEnvVars();
   if (missing.length > 0) {
     const error = new Error(`Firebase client-configuratie ontbreekt: ${missing.join(", ")}`);

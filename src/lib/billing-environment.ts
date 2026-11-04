@@ -43,6 +43,7 @@ export function resolveBillingEnvironment(env: Environment, requireActivation = 
 }
 
 export function getBillingEnvironment() {
+  if (process.env.TIME2PAY_ISOLATED_QA === "true") throw new Error("Payments disabled in isolated QA");
   return resolveBillingEnvironment(process.env);
 }
 
