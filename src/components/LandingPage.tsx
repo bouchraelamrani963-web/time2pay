@@ -176,7 +176,7 @@ export default function LandingPage({ trialEnabled = false, launchOffer = false,
           </div>
         </section>
 
-        <section id="how-it-works" className="bg-white py-20 sm:py-28">
+        <section id="how-it-works" className="scroll-mt-40 bg-white py-20 sm:py-28">
           <div className="mx-auto max-w-[1240px] px-6 sm:px-8">
             <div className="grid gap-5 md:grid-cols-[0.8fr_1.2fr] md:gap-12">
               <div>
@@ -200,7 +200,7 @@ export default function LandingPage({ trialEnabled = false, launchOffer = false,
           </div>
         </section>
 
-        <section id="features" className="border-y border-[#e9deda] bg-[#fbf8f5] py-20 sm:py-28">
+        <section id="features" className="scroll-mt-40 border-y border-[#e9deda] bg-[#fbf8f5] py-20 sm:py-28">
           <div className="mx-auto max-w-[1240px] px-6 sm:px-8">
             <div className="mb-14 max-w-xl">
               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#9a624d]">De mogelijkheden</p>
@@ -219,7 +219,7 @@ export default function LandingPage({ trialEnabled = false, launchOffer = false,
           </div>
         </section>
 
-        <section id="pricing" className="bg-white py-20 sm:py-28">
+        <section id="pricing" className="scroll-mt-40 bg-white py-20 sm:py-28">
           <div className="mx-auto max-w-[1240px] px-6 sm:px-8">
             <div className="mb-12 flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
               <div>
