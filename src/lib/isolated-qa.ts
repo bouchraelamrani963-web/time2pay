@@ -10,6 +10,8 @@ export function assertIsolatedQa(env: Env, now = Date.now(), requireToken = fals
       env.NEXT_PUBLIC_TIME2PAY_ISOLATED_QA !== "true" ||
       env.FIREBASE_PROJECT_ID !== QA_FIREBASE_PROJECT ||
       env.NEXT_PUBLIC_FIREBASE_PROJECT_ID !== QA_FIREBASE_PROJECT ||
+      env.NEXT_PUBLIC_FIREBASE_APP_ID !== "1:512756616652:web:a86323add1a508b5b3e169" ||
+      env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN !== `${QA_FIREBASE_PROJECT}.firebaseapp.com` ||
       env.TIME2PAY_TOTP_TEST_PROJECT_ID !== QA_FIREBASE_PROJECT ||
       env.TIME2PAY_REQUIRE_TOTP !== "true" || env.TIME2PAY_TOTP_SETUP_ENABLED !== "true" ||
       env.TIME2PAY_CONFIGURE_TEST_TOTP !== "false" ||
