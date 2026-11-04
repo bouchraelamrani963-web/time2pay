@@ -17,5 +17,15 @@ async function preflight(accessToken, request=fetch) {
     userListEmpty:!users.users?.length&&!users.nextPageToken,
     externalConfigurationChanged:false};
 }
-module.exports={preflight};
+async function qaWebConfig(accessToken, request=fetch) {
+  const appId='1:512756616652:web:a86323add1a508b5b3e169';
+  const response=await request(`https://firebase.googleapis.com/v1beta1/projects/${PROJECT}/webApps/${encodeURIComponent(appId)}/config`,{
+    headers:{Authorization:`Bearer ${accessToken}`,'X-Goog-User-Project':PROJECT},signal:AbortSignal.timeout(15000)});
+  if(!response.ok)throw Error('QA_WEB_CONFIG_READ_FAILED');
+  const config=await response.json();
+  if(config.projectId!==PROJECT||config.appId!==appId||
+      config.authDomain!==`${PROJECT}.firebaseapp.com`||typeof config.apiKey!=='string'||!config.apiKey)throw Error('QA_WEB_CONFIG_MISMATCH');
+  return config;
+}
+module.exports={preflight,qaWebConfig};
 if(require.main===module){let input='';process.stdin.setEncoding('utf8');process.stdin.on('data',chunk=>{input+=chunk;if(input.length>32768)process.exit(1)});process.stdin.on('end',async()=>{try{const parsed=JSON.parse(input);input='';const result=await preflight(parsed.accessToken);delete parsed.accessToken;console.log(JSON.stringify(result));if(!result.emailPasswordEnabled||!result.totpEnabled||!result.userListEmpty)process.exitCode=2;}catch{console.error('QA preflight failed; no provider response or credential logged.');process.exitCode=1}});}
