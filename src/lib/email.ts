@@ -8,6 +8,7 @@ export class EmailConfigurationError extends Error {
 }
 
 export function getInvoiceEmailConfig() {
+  if (process.env.TIME2PAY_ISOLATED_QA === "true") throw new EmailConfigurationError("Customer communication disabled in isolated QA");
   const testMode = process.env.VERCEL_ENV !== "production";
   if (testMode && process.env.TIME2PAY_EMAIL_MODE !== "test") {
     throw new EmailConfigurationError("Testmail is nog niet ingesteld.");

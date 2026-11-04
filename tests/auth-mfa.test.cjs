@@ -12,7 +12,7 @@ function load(file, stubs = {}, env = {}) {
   }).outputText;
   vm.runInNewContext(output, { module, exports: module.exports,
     process: { env }, Date, Number, Boolean, URL, Response, console: { error() {} },
-    require: name => Object.hasOwn(stubs, name) ? stubs[name] : require(name),
+    require: name => Object.hasOwn(stubs, name) ? stubs[name] : name === "./isolated-qa" ? load("src/lib/isolated-qa.ts") : require(name),
   });
   return module.exports;
 }
