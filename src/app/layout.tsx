@@ -9,9 +9,9 @@ import { getSession } from "@/lib/auth";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Time2Pay — Nooit meer achter je geld aan",
+  title: "Time2Pay | Facturatie voor zelfstandigen",
   description:
-    "Time2Pay automatiseert facturen, herinneringen en betalingsoverzicht voor Nederlandse zzp'ers en vakmensen.",
+    "Je werk gedaan. Je factuur geregeld. Registreer uren, gebruik verschillende tarieven en maak professionele facturen met Time2Pay.",
   icons: { icon: "/brand/time2pay-icon.svg", shortcut: "/brand/time2pay-icon.svg" },
 };
 
