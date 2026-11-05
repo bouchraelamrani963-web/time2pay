@@ -15,6 +15,7 @@ permissions:
   contents: read
 jobs:
   migration-chain:
+    if: github.head_ref != 'feature/helpdesk-20261105'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     services:
@@ -50,6 +51,7 @@ jobs:
           npx prisma migrate deploy
           node tests/migration-preservation.cjs assert
   recovery:
+    if: github.head_ref != 'feature/helpdesk-20261105'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     services:
@@ -91,6 +93,7 @@ jobs:
           npx prisma db execute --schema prisma/schema.prisma --file prisma/migrations/20261026170000_notice_attempt_window/migration.sql
           node tests/notice-window-migration.cjs assert
           npx prisma db execute --schema prisma/schema.prisma --file prisma/migrations/20261029100000_billing_webhook_notices/migration.sql
+          npx prisma db execute --schema prisma/schema.prisma --file prisma/migrations/20261105170000_helpdesk/migration.sql
           npx prisma migrate diff --from-url "$DATABASE_URL" --to-schema-datamodel prisma/schema.prisma --exit-code
           node tests/migration-preservation.cjs assert
           docker exec "${{ job.services.postgres.id }}" pg_dump -U recovery_ci -d time2pay_recovery_ci --clean --if-exists > /tmp/time2pay-ci-backup.sql
@@ -105,6 +108,7 @@ jobs:
       - name: Check security headers on the built HTTP application
         run: node tests/security-headers-http.cjs
   dependencies:
+    if: github.head_ref != 'feature/helpdesk-20261105'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:

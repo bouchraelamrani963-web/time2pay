@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { FileText, LayoutDashboard, LogOut, Plus, Settings, Users } from "lucide-react";
+import { Headphones, FileText, LayoutDashboard, LogOut, Plus, Settings, Users } from "lucide-react";
 import BrandLogo from "./BrandLogo";
 
 const appLinks = [
@@ -10,6 +10,7 @@ const appLinks = [
   { href: "/invoices", label: "Facturen", icon: FileText },
   { href: "/clients", label: "Klanten", icon: Users },
   { href: "/billing", label: "Abonnement", icon: FileText },
+  { href: "/helpdesk", label: "Helpdesk", icon: Headphones },
   { href: "/settings", label: "Instellingen", icon: Settings },
 ];
 

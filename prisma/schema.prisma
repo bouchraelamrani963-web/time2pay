@@ -238,3 +238,62 @@ model BillingNotice {
   @@map("billing_notices")
 }
 
+
+// Helpdesk is additive. Roles are granted by an operator, never by customer APIs.
+model SupportAgent {
+  userId    String   @id
+  enabled   Boolean  @default(true)
+  createdAt DateTime @default(now())
+  @@map("support_agents")
+}
+
+model SupportTicket {
+  id            String          @id @default(cuid())
+  sequence      Int             @unique @default(autoincrement())
+  userId        String
+  customerName  String
+  customerEmail String
+  subject       String
+  category      SupportCategory
+  status        SupportStatus   @default(OPEN)
+  priority      SupportPriority @default(NORMAL)
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  messages      SupportMessage[]
+  @@index([userId, updatedAt])
+  @@index([status, priority, updatedAt])
+  @@map("support_tickets")
+}
+
+model SupportMessage {
+  id          String        @id @default(cuid())
+  ticketId    String
+  ticket      SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  authorId    String
+  fromSupport Boolean
+  body        String
+  createdAt   DateTime      @default(now())
+  @@index([ticketId, createdAt, id])
+  @@index([authorId, createdAt])
+  @@map("support_messages")
+}
+
+enum SupportStatus {
+  OPEN
+  IN_PROGRESS
+  WAITING_CUSTOMER
+  RESOLVED
+}
+enum SupportPriority {
+  LOW
+  NORMAL
+  HIGH
+}
+enum SupportCategory {
+  ACCOUNT
+  MFA
+  HOURS
+  INVOICE
+  BILLING
+  OTHER
+}
