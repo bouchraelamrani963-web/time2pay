@@ -5,6 +5,7 @@ import { requireUser } from "@/lib/auth";
 import { canUsePlatformAdmin } from "@/lib/admin/access";
 import { monthKey } from "@/lib/admin/billing-read";
 import { parseAdminQuery, readAdminData, type AdminCustomer, type AdminData } from "@/lib/admin/data";
+import AdminLogoutButton from "./AdminLogoutButton";
 import "./admin.css";
 
 export const dynamic = "force-dynamic";
@@ -12,7 +13,9 @@ export const maxDuration = 60;
 export const metadata = {
   title: "Beheercentrum | Time2Pay",
   robots: { index: false, follow: false },
-  referrer: "no-referrer",
+  // Preserve the Origin header for same-site logout while hiding this page
+  // as a referrer when following links to other sites.
+  referrer: "same-origin",
 };
 
 const navigation = [
@@ -170,7 +173,13 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
     <header className="admin-header">
       <a href="/dashboard" aria-label="Naar het Time2Pay-dashboard"><BrandLogo size="mini" /></a>
       <span className="admin-header-title">Beheercentrum</span>
-      <span className="admin-header-role"><LockKeyhole size={16} aria-hidden /> Beheerder</span>
+      <div className="admin-header-account">
+        <div className="admin-header-identity">
+          <span className="admin-header-role"><LockKeyhole size={15} aria-hidden /> Beheerder</span>
+          <span className="admin-header-email">{user.email ?? "E-mailadres niet beschikbaar"}</span>
+        </div>
+        <AdminLogoutButton />
+      </div>
     </header>
     <div className="admin-layout">
       <nav className="admin-nav" aria-label="Beheercentrum">
