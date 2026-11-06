@@ -1,3 +1,4 @@
+import { STARTER_INVOICE_LIMIT } from "@/lib/billing-plans";
 import { trialPresentation } from "@/lib/registration-trial-policy";
 import Link from "next/link";
 import LandingHero from "./LandingHero";
@@ -46,28 +47,36 @@ const features = [
   },
 ];
 
+const pricingFeatures = [
+  "Factureren per uur, m², materiaal of vaste prijs",
+  "Klantgegevens opslaan en hergebruiken",
+  "Facturen downloaden als PDF, afdrukken en e-mailen",
+  "Omzet en openstaande facturen bekijken",
+  "Betalingsherinneringen versturen",
+];
+
 const pricingPlans = [
   {
     name: "Starter",
     price: "€ 9",
-    description: "Voor wie eenvoudig wil beginnen.",
-    details: ["Tot 30 facturen per abonnementsperiode", "Basis klantbeheer", "PDF downloaden", "Dashboard overzicht"],
+    description: "Alle basisfuncties voor één gebruiker.",
+    invoiceLimit: `Maximaal ${STARTER_INVOICE_LIMIT} definitieve facturen per abonnementsperiode`,
     href: "/register?plan=starter",
     action: "Kies Starter",
   },
   {
     name: "Pro",
     price: "€ 19",
-    description: "Voor zelfstandigen met een volle agenda.",
-    details: ["Betalingsherinneringen", "Omzet- en betaalinzichten"],
+    description: "Alle Starter-functies voor één gebruiker, met meer factuurruimte.",
+    invoiceLimit: "Geen factuurlimiet per abonnementsperiode",
     href: "/register?plan=pro",
     action: "Kies Pro",
   },
   {
     name: "Business",
     price: "€ 39",
-    description: "Voor kleine teams en groeiende bedrijven.",
-    details: ["Prioriteit support", "Hulp bij inrichting"],
+    description: "Momenteel dezelfde functies en factuurruimte als Pro.",
+    invoiceLimit: "Geen factuurlimiet per abonnementsperiode",
     href: "/register?plan=business",
     action: "Kies Business",
   },
@@ -129,7 +138,7 @@ export default function LandingPage({ trialEnabled = false, launchOffer = false,
                 <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#9a624d]">Prijzen</p>
                 <h2 className="mt-5 text-3xl font-semibold tracking-[-0.035em] sm:text-4xl">Kies wat bij je past.</h2>
               </div>
-              <p className="max-w-xs text-sm leading-7 text-[#766a73]">Begin klein en kies de mogelijkheden die je nodig hebt.</p>
+              <p className="max-w-xs text-sm leading-7 text-[#766a73]">Alle pakketten bieden dezelfde factuurfuncties. Vergelijk hoeveel definitieve facturen je per periode kunt maken.</p>
             </div>
             <div className="mb-8 rounded-md border border-[#d5c2ba] bg-[#fbf8f5] p-6 text-sm leading-7">
               <h3 className="text-lg font-semibold">{trialCopy.headline}</h3>
@@ -146,13 +155,16 @@ export default function LandingPage({ trialEnabled = false, launchOffer = false,
                     : "flex flex-col border border-[#ebe0dd] bg-white p-7 sm:p-8"}
                 >
                   <h3 className="text-xl font-semibold">{plan.name}</h3>
-                  <p className="mt-2 min-h-[46px] text-sm leading-6 text-[#766a73]">{plan.description}</p>
-                  <div className="mt-7 flex items-end gap-2 border-b border-[#e9deda] pb-7">
+                  <p className="mt-2 text-sm leading-6 text-[#766a73] lg:min-h-12">{plan.description}</p>
+                  <div className="mt-5 flex items-end gap-2 border-b border-[#e9deda] pb-5 sm:mt-7 sm:pb-7">
                     <span className="text-4xl font-semibold tracking-[-0.04em]">{plan.price}</span>
                     <span className="pb-1 text-xs text-[#87777d]">per maand</span>
                   </div>
-                  <ul className="mt-7 flex-1 space-y-4 text-sm text-[#62545d]">
-                    {plan.details.map((detail) => (
+                  <p className="mt-5 flex items-center rounded-md border border-[#e9deda] px-3 py-2.5 text-sm font-semibold leading-6 text-[#543749] lg:min-h-[70px]">
+                    {plan.invoiceLimit}
+                  </p>
+                  <ul className="mt-5 flex-1 space-y-3 text-sm text-[#62545d]">
+                    {pricingFeatures.map((detail) => (
                       <li key={detail} className="flex items-start gap-3">
                         <Check size={16} className="mt-0.5 shrink-0 text-[#9a624d]" aria-hidden />
                         <span>{detail}</span>
@@ -170,7 +182,7 @@ export default function LandingPage({ trialEnabled = false, launchOffer = false,
                 </div>
               ))}
             </div>
-            <p className="mt-5 text-xs leading-6 text-[#87777d]">Getoonde maandprijzen gelden voor een afzonderlijk af te sluiten betaald abonnement. Pakketkeuze bij registratie activeert geen betaling.</p>
+            <p className="mt-5 text-xs leading-6 text-[#87777d]">Conceptfacturen tellen niet mee voor de Starter-limiet. Getoonde maandprijzen gelden voor een afzonderlijk af te sluiten betaald abonnement. Pakketkeuze bij registratie activeert geen betaling.</p>
           </div>
         </section>
 
