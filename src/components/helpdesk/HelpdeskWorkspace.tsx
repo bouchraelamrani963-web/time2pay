@@ -17,6 +17,7 @@ export default function HelpdeskWorkspace({ initial, staff = false, canManage = 
   const replyInFlight = useRef(false);
   const [article, setArticle] = useState<string | null>(null);
   const detailHeading = useRef<HTMLHeadingElement>(null), sequence = useRef(0);
+  const listSequence = useRef(0);
   const base = "/api/helpdesk/tickets";
   const view = staff ? "view=support&" : "";
   async function request<T>(url: string, method = "GET", body?: unknown, signal?: AbortSignal): Promise<T> {
@@ -25,18 +26,27 @@ export default function HelpdeskWorkspace({ initial, staff = false, canManage = 
     if (!response.ok) throw Error(data.error || "De aanvraag is niet gelukt. Probeer het opnieuw.");
     return data as T;
   }
-  async function reload(page = 1) {
+  async function reload(page = 1, showLoading = false, signal?: AbortSignal) {
+    // A response for an older page or filter must not overwrite the current list.
+    const current = ++listSequence.current;
+    if (showLoading) {
+      setLoading(true);
+      setError("");
+    }
     const params = new URLSearchParams({ page: String(page), q: search, status, priority });
-    setList(await request<TicketList>(`${base}?${view}${params}`));
+    try {
+      const data = await request<TicketList>(`${base}?${view}${params}`, "GET", undefined, signal);
+      if (current === listSequence.current && !signal?.aborted) setList(data);
+    } catch (e) {
+      if (current === listSequence.current && !signal?.aborted) throw e;
+    } finally {
+      if (current === listSequence.current && !signal?.aborted) setLoading(false);
+    }
   }
   useEffect(() => {
-    const controller = new AbortController(); let active = true;
-    setLoading(true); setError("");
-    const params = new URLSearchParams({ page: "1", q: search, status, priority });
-    request<TicketList>(`${base}?${view}${params}`, "GET", undefined, controller.signal)
-      .then(data => { if (active) setList(data); })
-      .catch(e => { if (active) setError(e.message); }).finally(() => { if (active) setLoading(false); });
-    return () => { active = false; controller.abort(); };
+    const controller = new AbortController();
+    void reload(1, true, controller.signal).catch(e => setError(e.message));
+    return () => controller.abort();
   // Filters are the request inputs; the API base and role are fixed for this mount.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search, status, priority, staff]);
@@ -96,7 +106,14 @@ export default function HelpdeskWorkspace({ initial, staff = false, canManage = 
   }
   const total = Object.values(list.counts).reduce((a, b) => a + b, 0);
   const open = total - list.counts.RESOLVED;
-  function switchTab(next: string) { if (replyInFlight.current) return; setTab(next); setDetail(null); setNewTicket(false); setError(""); setNotice(""); }
+  function loadTicketPage(page: number) {
+    void reload(page, true).catch(e => setError(e.message));
+  }
+  function switchTab(next: string) {
+    if (replyInFlight.current) return;
+    setTab(next); setDetail(null); setNewTicket(false); setError(""); setNotice("");
+    if (next === "tickets") loadTicketPage(list.page);
+  }
   const faq = <section className="hd-card hd-faq"><div className="hd-section-title"><BookOpen size={19} /><h2>Veelgestelde vragen</h2></div>
     {articles.filter(a => ["factureren", "abonnement", "tweestapsverificatie"].includes(a.id)).map(a => <button key={a.id} type="button" onClick={() => { switchTab("knowledge"); setArticle(a.id); }}>{a.title}<ChevronRight size={17} /></button>)}
     <button type="button" className="hd-all-articles" onClick={() => switchTab("knowledge")}>Alle helpartikelen bekijken <ArrowRight size={16} /></button></section>;
@@ -120,7 +137,7 @@ export default function HelpdeskWorkspace({ initial, staff = false, canManage = 
           <label className="label" htmlFor="hd-category">Categorie</label><select id="hd-category" name="category" className="input" required defaultValue=""><option value="" disabled>Kies een categorie</option>{Object.entries(categories).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select>
           <label className="label" htmlFor="hd-body">Omschrijving</label><textarea id="hd-body" name="body" className="input" rows={6} required minLength={10} maxLength={8000} placeholder="Beschrijf je vraag en wat je al hebt geprobeerd." aria-describedby="hd-body-hint" /><p id="hd-body-hint" className="hd-footnote">Maximaal 8.000 tekens. {warning}</p>
           <div className="hd-actions"><button type="button" className="btn-secondary" onClick={() => setNewTicket(false)} disabled={busy}>Annuleren</button><button className="btn-primary" disabled={busy}><Send size={16} />{busy ? "Versturen…" : "Aanvraag versturen"}</button></div></form></section> : detail ? <section className="hd-card hd-detail">
-          <button type="button" className="hd-back" disabled={busy} onClick={() => { ++sequence.current; setDetail(null); setNotice(""); }}><ArrowLeft size={16} />Alle aanvragen</button><div className="hd-ticket-title"><div><p className="hd-eyebrow">{detail.number} · {categories[detail.category]}</p><h2 ref={detailHeading} tabIndex={-1}>{detail.subject}</h2><p className="hd-footnote">{staff ? `${detail.customerName} · ${detail.customerEmail}` : `Aangemaakt ${date(detail.createdAt)}`}</p></div><span className={`hd-badge hd-status-${detail.status}`}>{statuses[detail.status]}</span></div>
+          <button type="button" className="hd-back" disabled={busy} onClick={() => { ++sequence.current; switchTab("tickets"); }}><ArrowLeft size={16} />Alle aanvragen</button><div className="hd-ticket-title"><div><p className="hd-eyebrow">{detail.number} · {categories[detail.category]}</p><h2 ref={detailHeading} tabIndex={-1}>{detail.subject}</h2><p className="hd-footnote">{staff ? `${detail.customerName} · ${detail.customerEmail}` : `Aangemaakt ${date(detail.createdAt)}`}</p></div><span className={`hd-badge hd-status-${detail.status}`}>{statuses[detail.status]}</span></div>
           {staff && <div className="hd-settings"><label>Status<select className="input" value={editStatus} onChange={e => setEditStatus(e.target.value as TicketStatus)} disabled={busy}>{Object.entries(statuses).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label><label>Prioriteit<select className="input" value={editPriority} onChange={e => setEditPriority(e.target.value as TicketPriority)} disabled={busy}>{Object.entries(priorities).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label><button type="button" className="btn-secondary" disabled={busy} onClick={saveSettings}>Opslaan</button></div>}
           <div className="hd-messages" aria-label="Gesprek">{detail.hasOlderMessages && <button type="button" className="hd-back" disabled={busy} onClick={older}>Oudere berichten laden</button>}{detail.messages.map(m => <article key={m.id} className={m.fromSupport ? "hd-message support" : "hd-message"}><div><strong>{m.fromSupport ? "Time2Pay Support" : staff ? detail.customerName : "Jij"}</strong><time dateTime={m.createdAt}>{date(m.createdAt)}</time></div><p>{m.body}</p></article>)}</div>
           <form className="hd-reply" onSubmit={sendReply} aria-busy={replySending}><label className="label" htmlFor="hd-reply">{staff ? "Antwoord aan klant" : "Je reactie"}</label><textarea id="hd-reply" className="input" disabled={replySending} value={reply} onChange={e => setReply(e.target.value)} rows={4} maxLength={8000} required aria-describedby="hd-reply-hint" placeholder="Schrijf je reactie…" /><p id="hd-reply-hint" className="hd-footnote">{warning}{!staff && detail.status === "RESOLVED" ? " Met je reactie wordt deze aanvraag heropend." : ""}</p>{replyNotice && <div role="status" aria-live="polite" className="hd-notice"><CheckCircle2 size={18} />{replyNotice}</div>}{replyError && <div role="alert" className="hd-alert">{replyError}</div>}<div className="hd-actions"><button className="btn-primary" disabled={busy || replySending || !reply.trim()}><Send size={16} />{replySending ? "Bezig met verzenden..." : staff ? "Antwoord versturen" : "Reactie versturen"}</button></div></form></section> : <>
@@ -129,7 +146,7 @@ export default function HelpdeskWorkspace({ initial, staff = false, canManage = 
             <form className="hd-filters" onSubmit={e => { e.preventDefault(); setSearch(q); }}><div className="hd-search"><Search size={17} /><input aria-label="Zoeken op ticketnummer, klant of onderwerp" placeholder={staff ? "Ticket, klant of onderwerp…" : "Zoek een aanvraag…"} value={q} maxLength={160} onChange={e => setQ(e.target.value)} /><button type="submit" aria-label="Zoeken"><ArrowRight size={17} /></button></div><select className="input" aria-label="Filter op status" value={status} onChange={e => setStatus(e.target.value)}><option value="">Alle statussen</option>{Object.entries(statuses).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select>{staff && <select className="input" aria-label="Filter op prioriteit" value={priority} onChange={e => setPriority(e.target.value)}><option value="">Alle prioriteiten</option>{Object.entries(priorities).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select>}</form>
             <div className="hd-card hd-ticket-list" aria-busy={loading}><div className={`hd-table-head ${staff ? "staff" : ""}`}><span>Aanvraag / onderwerp</span>{staff && <span>Klant</span>}<span>Status</span><span>Laatst bijgewerkt</span><span /></div>
               {loading ? <p className="hd-empty" role="status">Aanvragen laden…</p> : list.tickets.length === 0 ? <div className="hd-empty"><Ticket size={30} /><h3>{search || status || priority ? "Geen aanvragen gevonden" : "Je hebt nog geen aanvragen"}</h3><p>{search || status || priority ? "Pas je zoekopdracht of filters aan." : "Een vraag over Time2Pay? We helpen je graag."}</p></div> : list.tickets.map(t => <button type="button" key={t.id} className={`hd-ticket-row ${staff ? "staff" : ""}`} onClick={() => openTicket(t.id)} disabled={busy} aria-label={`${t.number}: ${t.subject}`}><span className="hd-row-subject"><small>{t.number} · {categories[t.category]}</small><strong>{t.subject}</strong>{staff && <em className={`hd-priority hd-priority-${t.priority}`}>{priorities[t.priority]}</em>}</span>{staff && <span className="hd-customer-name">{t.customerName}</span>}<span><span className={`hd-badge hd-status-${t.status}`}>{statuses[t.status]}</span></span><time dateTime={t.updatedAt}>{date(t.updatedAt)}</time><ChevronRight className="hd-row-chevron" size={17} /></button>)}
-            </div><div className="hd-pagination"><span>{list.total} {list.total === 1 ? "aanvraag" : "aanvragen"} · pagina {list.page}</span><div><button type="button" className="hd-icon-button" disabled={loading || list.page <= 1} onClick={async () => { setLoading(true); try { await reload(list.page - 1); } catch (e) { setError((e as Error).message); } finally { setLoading(false); } }} aria-label="Vorige pagina"><ArrowLeft size={17} /></button><button type="button" className="hd-icon-button" disabled={loading || list.page * 20 >= list.total} onClick={async () => { setLoading(true); try { await reload(list.page + 1); } catch (e) { setError((e as Error).message); } finally { setLoading(false); } }} aria-label="Volgende pagina"><ArrowRight size={17} /></button></div></div>
+            </div><div className="hd-pagination"><span>{list.total} {list.total === 1 ? "aanvraag" : "aanvragen"} · pagina {list.page}</span><div><button type="button" className="hd-icon-button" disabled={loading || list.page <= 1} onClick={() => loadTicketPage(list.page - 1)} aria-label="Vorige pagina"><ArrowLeft size={17} /></button><button type="button" className="hd-icon-button" disabled={loading || list.page * 20 >= list.total} onClick={() => loadTicketPage(list.page + 1)} aria-label="Volgende pagina"><ArrowRight size={17} /></button></div></div>
           </section>{!staff && faq}</div></>}
       </>}
       <footer className="hd-footer"><span>Time2Pay Helpdesk</span><span>Je werk gedaan. Je factuur geregeld.</span></footer>
