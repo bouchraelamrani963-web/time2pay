@@ -5,6 +5,7 @@ import Navbar from "@/components/Navbar";
 import LayoutMain from "@/components/LayoutMain";
 import { Toaster } from "react-hot-toast";
 import { getSession } from "@/lib/auth";
+import { canUsePlatformAdmin } from "@/lib/admin/access";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -17,11 +18,12 @@ export const metadata: Metadata = {
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const user = await getSession();
+  const canManagePlatform = user ? await canUsePlatformAdmin(user.uid) : false;
 
   return (
     <html lang="nl" className={inter.className}>
       <body>
-        <Navbar userEmail={user?.email ?? null} />
+        <Navbar userEmail={user?.email ?? null} canManagePlatform={canManagePlatform} />
         <LayoutMain>{children}</LayoutMain>
         <Toaster position="top-right" />
       </body>
