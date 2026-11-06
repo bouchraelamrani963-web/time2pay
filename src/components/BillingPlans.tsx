@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { BILLING_PLANS, type BillingPlan } from "@/lib/billing-plans";
+import { BILLING_PLANS, STARTER_INVOICE_LIMIT, type BillingPlan } from "@/lib/billing-plans";
 
 export default function BillingPlans({ paid, hasCustomer, trialActive = false }: { paid: boolean; hasCustomer: boolean; trialActive?: boolean }) {
   const [busy, setBusy] = useState<BillingPlan | "portal" | null>(null);
@@ -41,7 +41,12 @@ export default function BillingPlans({ paid, hasCustomer, trialActive = false }:
         <div className="card p-6 space-y-5" key={key}>
           <h2 className="text-xl font-semibold">{plan.name}</h2>
           <p className="text-3xl font-semibold">€{plan.cents / 100}<span className="text-sm font-normal"> / maand</span></p>
-          <p className="text-sm">{key === "starter" ? "30 definitieve facturen per abonnementsperiode. " : ""}Inclusief btw. Maandelijks automatisch verlengd.</p>
+          <p className="text-sm">
+            {key === "starter" ? `Maximaal ${STARTER_INVOICE_LIMIT} definitieve facturen per abonnementsperiode. `
+              : "Geen factuurlimiet per abonnementsperiode. "}
+            {key !== "business" ? "Eén gebruiker. " : ""}
+            Inclusief btw. Maandelijks automatisch verlengd.
+          </p>
           <button className="btn-primary" disabled={paid || trialActive || busy !== null} onClick={() => checkout(key)}>
             {paid ? "Je hebt al een abonnement" : trialActive ? "Beschikbaar na je gratis periode" : busy === key ? "Openen…" : `Kies ${plan.name}`}
           </button>

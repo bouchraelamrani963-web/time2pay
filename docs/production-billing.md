@@ -29,7 +29,7 @@ checks the selected account before creating a portal session. Webhooks verify
 the raw payload with the environment-specific signing secret, check account and
 mode, and require the existing authenticated customer/owner mapping and an
 allowlisted subscription price. Access always re-reads the subscription and paid
-invoice. Starter uses its environment's price ID for its 30-invoice period limit.
+invoice. Starter uses its environment's price ID for its 15-invoice period limit.
 
 ## Separate activation decision
 
