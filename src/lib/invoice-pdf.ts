@@ -30,6 +30,7 @@ export type PdfCompanySettings = {
   iban: string;
   email: string;
   phone: string | null;
+  pdfStyle?: "CLASSIC" | "NEUTRAL";
 };
 
 export type PdfInvoice = {
@@ -185,10 +186,14 @@ function newPage(pages: PdfPage[]) {
   return page;
 }
 
-function drawPageTop(page: PdfPage, invoiceNumber: string, pageNumber: number) {
-  drawText(page, "Time", MARGIN, PAGE_HEIGHT - 52, { size: 22, font: "F2", color: AUBERGINE });
-  drawText(page, "2", MARGIN + 50, PAGE_HEIGHT - 52, { size: 22, font: "F2", color: COPPER });
-  drawText(page, "Pay", MARGIN + 63, PAGE_HEIGHT - 52, { size: 22, font: "F2", color: AUBERGINE });
+function drawPageTop(page: PdfPage, invoiceNumber: string, pageNumber: number, style?: PdfCompanySettings["pdfStyle"]) {
+  if (style === "NEUTRAL") {
+    drawText(page, "FACTUUR", MARGIN, PAGE_HEIGHT - 52, { size: 19, font: "F2", color: DARK });
+  } else {
+    drawText(page, "Time", MARGIN, PAGE_HEIGHT - 52, { size: 22, font: "F2", color: AUBERGINE });
+    drawText(page, "2", MARGIN + 50, PAGE_HEIGHT - 52, { size: 22, font: "F2", color: COPPER });
+    drawText(page, "Pay", MARGIN + 63, PAGE_HEIGHT - 52, { size: 22, font: "F2", color: AUBERGINE });
+  }
   drawText(page, `Factuur ${invoiceNumber}`, PAGE_WIDTH - MARGIN, PAGE_HEIGHT - 52, {
     size: 12,
     font: "F2",
@@ -201,7 +206,7 @@ function drawPageTop(page: PdfPage, invoiceNumber: string, pageNumber: number) {
       align: "right",
     });
   }
-  drawLine(page, MARGIN, PAGE_HEIGHT - 82, PAGE_WIDTH - MARGIN, PAGE_HEIGHT - 82, COPPER, 1);
+  drawLine(page, MARGIN, PAGE_HEIGHT - 82, PAGE_WIDTH - MARGIN, PAGE_HEIGHT - 82, style === "NEUTRAL" ? BORDER : COPPER, 1);
 }
 
 function drawSectionTitle(page: PdfPage, title: string, x: number, y: number) {
@@ -317,7 +322,7 @@ function renderInvoicePdf(invoice: PdfInvoice, senderName: string, companySettin
     if (y - height >= BOTTOM_MARGIN) return;
     page = newPage(pages);
     pageNumber += 1;
-    drawPageTop(page, invoice.number, pageNumber);
+    drawPageTop(page, invoice.number, pageNumber, companySettings?.pdfStyle);
     y = PAGE_HEIGHT - 108;
     if (withTableHeader) {
       tableHeader(page, y);
@@ -325,7 +330,7 @@ function renderInvoicePdf(invoice: PdfInvoice, senderName: string, companySettin
     }
   };
 
-  drawPageTop(page, invoice.number, pageNumber);
+  drawPageTop(page, invoice.number, pageNumber, companySettings?.pdfStyle);
   drawText(page, invoice.number, PAGE_WIDTH - MARGIN, PAGE_HEIGHT - 112, { size: 20, font: "F2", align: "right" });
   drawText(page, `Factuurdatum: ${dateFormatter.format(invoice.issueDate)}`, PAGE_WIDTH - MARGIN, PAGE_HEIGHT - 135, {
     size: 10,
@@ -406,7 +411,8 @@ function renderInvoicePdf(invoice: PdfInvoice, senderName: string, companySettin
   }
 
   if (notes) {
-    ensureSpace(80);
+    const notesHeight = companySettings?.pdfStyle ? 42 + wrapText(notes, PAGE_WIDTH - MARGIN * 2 - 32, 10).length * 14 : 80;
+    ensureSpace(notesHeight);
     drawNoteBox(page, "Notities", notes, MARGIN, y, PAGE_WIDTH - MARGIN * 2);
   }
 

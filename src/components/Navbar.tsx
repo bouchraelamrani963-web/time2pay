@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Headphones, FileText, LayoutDashboard, LogOut, Plus, Settings, ShieldCheck, Users } from "lucide-react";
+import { Building2, Headphones, FileText, LayoutDashboard, LogOut, Plus, Settings, ShieldCheck, Users } from "lucide-react";
 import BrandLogo from "./BrandLogo";
 
 const appLinks = [
@@ -19,11 +19,13 @@ const publicPaths = ["/", "/login", "/register"];
 interface Props {
   userEmail?: string | null;
   canManagePlatform?: boolean;
+  showBusiness?: boolean;
 }
 
-export default function Navbar({ canManagePlatform = false }: Props = {}) {
+export default function Navbar({ canManagePlatform = false, showBusiness = false }: Props = {}) {
   const pathname = usePathname();
   const router = useRouter();
+  const links = showBusiness ? [...appLinks, { href: "/business", label: "Business", icon: Building2 }] : appLinks;
   const isPublicRoute = publicPaths.includes(pathname);
 
   async function handleLogout() {
@@ -59,7 +61,7 @@ export default function Navbar({ canManagePlatform = false }: Props = {}) {
         <div className="flex min-h-[76px] items-center justify-between gap-4">
           <Link href="/dashboard" aria-label="Time2Pay – dashboard" className="shrink-0"><BrandLogo size="nav" /></Link>
           <div className="hidden items-center gap-1 xl:flex">
-            {appLinks.map(({ href, label, icon: Icon, exact }) => {
+            {links.map(({ href, label, icon: Icon, exact }) => {
               const active = exact ? pathname === href : pathname.startsWith(href);
               return (
                 <Link key={href} href={href} aria-current={active ? "page" : undefined}
@@ -74,9 +76,9 @@ export default function Navbar({ canManagePlatform = false }: Props = {}) {
               className="hidden min-h-10 items-center rounded-md border border-[#e2d8d5] bg-white px-3 text-[#543749] hover:bg-[#fbf8f5] sm:inline-flex">
               <ShieldCheck size={17} aria-hidden />
             </a> : null}
-            <Link href="/invoices/new" aria-label="Nieuwe factuur" className="btn-primary shrink-0 whitespace-nowrap px-3 sm:px-5">
+            {pathname !== "/business" && <Link href="/invoices/new" aria-label="Nieuwe factuur" className="btn-primary shrink-0 whitespace-nowrap px-3 sm:px-5">
               <Plus size={16} aria-hidden /><span className="hidden sm:inline">Nieuwe factuur</span>
-            </Link>
+            </Link>}
             <button type="button" onClick={handleLogout} aria-label="Uitloggen"
               className="inline-flex min-h-10 items-center gap-2 rounded-md border border-[#e2d8d5] bg-white px-3 py-2 text-sm font-medium text-[#62555f] hover:bg-[#fbf8f5] sm:px-4">
               <LogOut size={16} aria-hidden /><span className="hidden sm:inline">Uitloggen</span>
@@ -84,7 +86,7 @@ export default function Navbar({ canManagePlatform = false }: Props = {}) {
           </div>
         </div>
         <div className="-mx-4 flex gap-1 overflow-x-auto border-t border-[#f0e7e4] px-4 py-2 sm:-mx-8 sm:px-8 xl:hidden" aria-label="Hoofdnavigatie">
-          {appLinks.map(({ href, label, icon: Icon, exact }) => {
+          {links.map(({ href, label, icon: Icon, exact }) => {
             const active = exact ? pathname === href : pathname.startsWith(href);
             return (
               <Link key={href} href={href} aria-current={active ? "page" : undefined}
