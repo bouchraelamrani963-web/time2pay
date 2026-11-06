@@ -59,26 +59,32 @@ const pricingPlans = [
   {
     name: "Starter",
     price: "€ 9",
-    description: "Alle basisfuncties voor één gebruiker.",
+    description: "Voor startende zelfstandigen.",
     invoiceLimit: `Maximaal ${STARTER_INVOICE_LIMIT} definitieve facturen per abonnementsperiode`,
+    users: "Eén gebruiker",
     href: "/register?plan=starter",
     action: "Kies Starter",
   },
   {
     name: "Pro",
     price: "€ 19",
-    description: "Alle Starter-functies voor één gebruiker, met meer factuurruimte.",
-    invoiceLimit: "Geen factuurlimiet per abonnementsperiode",
+    description: "Voor zelfstandigen die regelmatig factureren.",
+    invoiceLimit: "Onbeperkt factureren",
+    users: "Eén gebruiker",
     href: "/register?plan=pro",
     action: "Kies Pro",
   },
   {
     name: "Business",
     price: "€ 39",
-    description: "Momenteel dezelfde functies en factuurruimte als Pro.",
-    invoiceLimit: "Geen factuurlimiet per abonnementsperiode",
-    href: "/register?plan=business",
-    action: "Kies Business",
+    description: "Voor kleine bedrijven en teams.",
+    invoiceLimit: "Onbeperkt factureren",
+    planned: [
+      "Maximaal vijf gebruikers, inclusief eigenaar",
+      "Gedeelde bedrijfsadministratie",
+      "Rollen Eigenaar, Administratie en Medewerker",
+      "Alleen de eigenaar kan bedrijfsinstellingen en bankrekeninggegevens wijzigen",
+    ],
   },
 ];
 
@@ -138,13 +144,13 @@ export default function LandingPage({ trialEnabled = false, launchOffer = false,
                 <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#9a624d]">Prijzen</p>
                 <h2 className="mt-5 text-3xl font-semibold tracking-[-0.035em] sm:text-4xl">Kies wat bij je past.</h2>
               </div>
-              <p className="max-w-xs text-sm leading-7 text-[#766a73]">Alle pakketten bieden dezelfde factuurfuncties. Vergelijk hoeveel definitieve facturen je per periode kunt maken.</p>
+              <p className="max-w-xs text-sm leading-7 text-[#766a73]">Kies Starter of Pro om zelfstandig te factureren. Met Business kun je straks samen je administratie beheren.</p>
             </div>
             <div className="mb-8 rounded-md border border-[#d5c2ba] bg-[#fbf8f5] p-6 text-sm leading-7">
               <h3 className="text-lg font-semibold">{trialCopy.headline}</h3>
               <p className="mt-2">{trialCopy.detail}</p>
               <p className="mt-2">{trialCopy.after}</p>
-              <p className="mt-2">Een pakketknop maakt alleen een account aan en sluit geen abonnement af.</p>
+              <p className="mt-2">De knoppen bij Starter en Pro openen het registratieformulier.</p>
             </div>
             <div className="grid gap-4 lg:grid-cols-3">
               {pricingPlans.map((plan) => (
@@ -160,25 +166,40 @@ export default function LandingPage({ trialEnabled = false, launchOffer = false,
                     <span className="text-4xl font-semibold tracking-[-0.04em]">{plan.price}</span>
                     <span className="pb-1 text-xs text-[#87777d]">per maand</span>
                   </div>
-                  <p className="mt-5 flex items-center rounded-md border border-[#e9deda] px-3 py-2.5 text-sm font-semibold leading-6 text-[#543749] lg:min-h-[70px]">
-                    {plan.invoiceLimit}
-                  </p>
-                  <ul className="mt-5 flex-1 space-y-3 text-sm text-[#62545d]">
-                    {pricingFeatures.map((detail) => (
-                      <li key={detail} className="flex items-start gap-3">
-                        <Check size={16} className="mt-0.5 shrink-0 text-[#9a624d]" aria-hidden />
-                        <span>{detail}</span>
-                      </li>
-                    ))}
-                  </ul>
-                  <Link
+                  <div className="mt-5 flex flex-col justify-center rounded-md border border-[#e9deda] px-3 py-2.5 text-sm leading-6 text-[#543749] lg:min-h-[94px]">
+                    <p className="font-semibold">{plan.invoiceLimit}</p>
+                    {plan.users && <p>{plan.users}</p>}
+                  </div>
+                  <div className="mt-5 flex-1">
+                    <ul className="space-y-3 text-sm text-[#62545d]" aria-label="Basisfuncties">
+                      {pricingFeatures.map((detail) => (
+                        <li key={detail} className="flex items-start gap-3">
+                          <Check size={16} className="mt-0.5 shrink-0 text-[#9a624d]" aria-hidden />
+                          <span>{detail}</span>
+                        </li>
+                      ))}
+                    </ul>
+                    {plan.planned && (
+                      <div className="mt-5 rounded-md border border-[#e9deda] bg-[#fbf8f5] p-3 text-sm text-[#62545d]">
+                        <h4 className="font-semibold text-[#543749]">Teamfuncties in ontwikkeling</h4>
+                        <ul className="mt-2 list-disc space-y-1 pl-5 leading-6">
+                          {plan.planned.map((detail) => <li key={detail}>{detail}</li>)}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                  {plan.href ? <Link
                     href={plan.href}
                     className={plan.name === "Pro"
                       ? "mt-9 inline-flex min-h-11 items-center justify-between gap-3 rounded-md bg-[#543749] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#3e2937]"
                       : "mt-9 inline-flex min-h-11 items-center justify-between gap-3 rounded-md border border-[#d5c2ba] px-5 py-3 text-sm font-semibold text-[#543749] transition-colors hover:bg-[#fcf5f0]"}
                   >
                     {plan.action} <ArrowUpRight size={17} aria-hidden />
-                  </Link>
+                  </Link> : (
+                    <p className="mt-9 flex min-h-11 items-center rounded-md border border-[#e9deda] bg-[#f8f0eb] px-5 py-3 text-sm font-semibold text-[#543749]">
+                      Binnenkort beschikbaar
+                    </p>
+                  )}
                 </div>
               ))}
             </div>
