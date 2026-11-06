@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { FileText, LayoutDashboard, LogOut, Plus, Settings, Users } from "lucide-react";
+import { Headphones, FileText, LayoutDashboard, LogOut, Plus, Settings, Users } from "lucide-react";
 import BrandLogo from "./BrandLogo";
 
 const appLinks = [
@@ -10,6 +10,7 @@ const appLinks = [
   { href: "/invoices", label: "Facturen", icon: FileText },
   { href: "/clients", label: "Klanten", icon: Users },
   { href: "/billing", label: "Abonnement", icon: FileText },
+  { href: "/helpdesk", label: "Helpdesk", icon: Headphones },
   { href: "/settings", label: "Instellingen", icon: Settings },
 ];
 
@@ -54,19 +55,19 @@ export default function Navbar(_props: Props = {}) {
       <div className="mx-auto max-w-[1240px] px-4 sm:px-8">
         <div className="flex min-h-[76px] items-center justify-between gap-4">
           <Link href="/dashboard" aria-label="Time2Pay – dashboard" className="shrink-0"><BrandLogo size="nav" /></Link>
-          <div className="hidden items-center gap-1 lg:flex">
+          <div className="hidden items-center gap-1 xl:flex">
             {appLinks.map(({ href, label, icon: Icon, exact }) => {
               const active = exact ? pathname === href : pathname.startsWith(href);
               return (
                 <Link key={href} href={href} aria-current={active ? "page" : undefined}
-                  className={`inline-flex items-center gap-2 rounded-md px-3.5 py-2.5 text-sm font-medium transition-colors ${active ? "bg-[#f8f0eb] text-[#543749]" : "text-[#716671] hover:bg-[#fbf8f5] hover:text-[#543749]"}`}>
+                  className={`inline-flex items-center gap-2 rounded-md px-2.5 py-2.5 text-sm font-medium transition-colors ${active ? "bg-[#f8f0eb] text-[#543749]" : "text-[#716671] hover:bg-[#fbf8f5] hover:text-[#543749]"}`}>
                   <Icon size={16} aria-hidden />{label}
                 </Link>
               );
             })}
           </div>
           <div className="flex items-center gap-2">
-            <Link href="/invoices/new" aria-label="Nieuwe factuur" className="btn-primary px-3 sm:px-5">
+            <Link href="/invoices/new" aria-label="Nieuwe factuur" className="btn-primary shrink-0 whitespace-nowrap px-3 sm:px-5">
               <Plus size={16} aria-hidden /><span className="hidden sm:inline">Nieuwe factuur</span>
             </Link>
             <button type="button" onClick={handleLogout} aria-label="Uitloggen"
@@ -75,7 +76,7 @@ export default function Navbar(_props: Props = {}) {
             </button>
           </div>
         </div>
-        <div className="-mx-4 flex gap-1 overflow-x-auto border-t border-[#f0e7e4] px-4 py-2 sm:-mx-8 sm:px-8 lg:hidden" aria-label="Hoofdnavigatie">
+        <div className="-mx-4 flex gap-1 overflow-x-auto border-t border-[#f0e7e4] px-4 py-2 sm:-mx-8 sm:px-8 xl:hidden" aria-label="Hoofdnavigatie">
           {appLinks.map(({ href, label, icon: Icon, exact }) => {
             const active = exact ? pathname === href : pathname.startsWith(href);
             return (

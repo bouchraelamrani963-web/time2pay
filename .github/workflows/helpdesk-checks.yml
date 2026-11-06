@@ -1,0 +1,45 @@
+name: Helpdesk checks
+on:
+  pull_request:
+    branches: [seo/time2pay-facturatie-20261103]
+    paths: ["src/**", "prisma/**", "tests/helpdesk*", ".github/workflows/helpdesk-checks.yml"]
+permissions:
+  contents: read
+jobs:
+  helpdesk:
+    if: github.head_ref == 'feature/helpdesk-20261105'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: helpdesk_ci
+          POSTGRES_PASSWORD: disposable_helpdesk_only
+          POSTGRES_DB: time2pay_helpdesk_ci
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U helpdesk_ci -d time2pay_helpdesk_ci"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL: postgresql://helpdesk_ci:disposable_helpdesk_only@127.0.0.1:5432/time2pay_helpdesk_ci
+      DIRECT_URL: postgresql://helpdesk_ci:disposable_helpdesk_only@127.0.0.1:5432/time2pay_helpdesk_ci
+      TIME2PAY_HELPDESK_DB_TEST: "true"
+      TIME2PAY_CONFIGURE_TEST_TOTP: "false"
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: "24.x"
+      - run: npm ci --ignore-scripts --no-audit
+      - run: npx prisma generate
+      - name: Apply versioned migrations to disposable PostgreSQL only
+        run: |
+          npx prisma migrate deploy
+          npx prisma migrate diff --from-url "$DATABASE_URL" --to-schema-datamodel prisma/schema.prisma --exit-code
+      - run: node --test tests/helpdesk.test.cjs tests/helpdesk-db.test.cjs
+      - run: npx tsc --noEmit
+      - run: npm run build
