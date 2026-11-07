@@ -2,7 +2,7 @@ import "server-only";
 import StripeClient from "stripe";
 import { NextResponse } from "next/server";
 import { prisma } from "./prisma";
-import { grantsPaidAccess } from "./billing-plans";
+import { grantsPaidAccess, type BillingPlan } from "./billing-plans";
 import { getBillingEnvironment } from "./billing-environment";
 
 export { SANDBOX_ACCOUNT } from "./billing-environment";
@@ -39,8 +39,11 @@ export async function getPaidEntitlement(userId: string) {
     }, Date.now(), { livemode: configuration.livemode,
       priceIds: Object.values(configuration.plans).map(plan => plan.priceId) });
     if (!valid) return null;
+    const plan = (Object.keys(configuration.plans) as BillingPlan[])
+      .find(name => configuration.plans[name].priceId === item.price.id);
+    if (!plan) return null;
     return { subscriptionId: sub.id, periodStart: item.current_period_start,
-      periodEnd: item.current_period_end, starter: item.price.id === configuration.plans.starter.priceId };
+      periodEnd: item.current_period_end, starter: plan === "starter", plan };
   } catch {
     return null;
   }
