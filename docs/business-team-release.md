@@ -53,3 +53,26 @@ TIME2PAY_BUSINESS_DB_TEST=true node --test tests/business-db.test.cjs
 ```
 
 De test weigert een niet-lokale database.
+
+## Originele migraties hersteld op 7 november 2026
+
+De twee aangeleverde SQL-bestanden worden byte voor byte behouden. Hun SHA-256
+komt overeen met de eerder alleen-lezen gecontroleerde productiehistorie.
+
+| Migratie | SHA-256 |
+| --- | --- |
+| `20260630120000_add_user_scope` | `bb52db4c1532a4bedf7977931f105fa0c8291677f80fa5cba1564694c7b3ce39` |
+| `20260831120000_add_company_settings` | `a59f4aad853f6a6a276996ccb16b387b15c6853308909134ee28c2fe779eee35` |
+
+Bij user scope blijft de SQL gelijk aan de eerdere Git-versie, met andere
+afsluitende witruimte. De oorspronkelijke CompanySettings-migratie vult het
+ontbrekende bestand aan. De latere ensure-migratie blijft behouden en maakt
+de tabel en gebruikersindex uitsluitend aan als die ontbreken. De bestaande
+initiële migratie en de idempotente user-scope-toevoegingen blijven verenigbaar.
+
+`.gitattributes` schakelt tekstnormalisatie voor precies deze twee bestanden
+uit. De volledige keten is gericht gecontroleerd op een lege lokale installatie
+en op een lokale upgrade met fictieve bestaande gegevens. Deze controle vervangt
+geen inhoudelijke vergelijking van de Windows-productieback-up of acceptatie
+met echte Firebase-QA- en Stripe-sandboxverbindingen. De productiehistorie is
+niet gewijzigd.
