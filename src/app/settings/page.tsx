@@ -1,4 +1,6 @@
 import Link from "next/link";
+import MolliePaymentSettings from "@/components/MolliePaymentSettings";
+import { mollieMode } from "@/lib/mollie-connect";
 import { getMfaConfiguration } from "@/lib/auth-policy";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
@@ -54,6 +56,7 @@ export default async function SettingsPage() {
         ) : <p className="text-sm text-[#726671]">Deze extra beveiliging wordt voorbereid en is nog niet beschikbaar om te koppelen.</p>}
       </section>
       <CompanySettingsForm initialValues={initialValues} />
+      <MolliePaymentSettings configured={!!mollieMode()} />
     </div>
   );
 }
