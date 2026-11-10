@@ -11,7 +11,8 @@ type PaymentList = { _embedded?: { payments?: { id: string }[] };
 // Mollie's legacy webhook sends only a transaction id, not a signed status.
 // This endpoint re-fetches the payment using the merchant's token and verifies
 // membership in the exact payment link before making any invoice changes.
-export async function POST(request: Request, { params }: { params: { key: string } }) {
+export async function POST(request: Request, { params: promisedParams }: { params: Promise<{ key: string }> }) {
+  const params = await promisedParams;
   if (!/^[a-f0-9]{64}$/.test(params.key)) return new NextResponse(null, { status: 404 });
   const link = await prisma.invoicePaymentLink.findUnique({ where: { webhookKey: params.key } });
   if (!link?.paymentLinkId || !link.url) return new NextResponse(null, { status: 404 });
