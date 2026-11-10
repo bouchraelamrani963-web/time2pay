@@ -297,3 +297,35 @@ enum SupportCategory {
   BILLING
   OTHER
 }
+
+
+// Merchant-owned Mollie accounts; tokens encrypted at rest, never returned to clients.
+model MollieConnection {
+  userId          String   @id
+  profileId       String?
+  accessTokenEnc  String   @db.Text
+  refreshTokenEnc String   @db.Text
+  expiresAt       DateTime
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@map("mollie_connections")
+}
+
+// Unique payment link per invoice; webhook key is an unpredictable capability.
+// Reservations without provider ID remain unsent so they cannot be mistaken for valid links.
+model InvoicePaymentLink {
+  invoiceId     String   @id
+  userId        String
+  webhookKey    String   @unique
+  paymentLinkId String?  @unique
+  url           String?  @db.Text
+  profileId     String
+  amountCents   Int
+  mode          String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([userId])
+  @@map("invoice_payment_links")
+}

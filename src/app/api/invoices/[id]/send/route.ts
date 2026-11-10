@@ -1,3 +1,5 @@
+import { mollieMode, MolliePaymentError } from "@/lib/mollie-connect";
+import { paymentUrlForInvoice } from "@/lib/mollie-payment-links";
 import { buildInvoiceHtml, buildInvoiceText } from "@/lib/invoice-email-content";
 import { authorizeInvoiceIssue } from "@/lib/invoice-issuance";
 import { NextResponse } from "next/server";
@@ -63,6 +65,8 @@ export async function POST(
       where: { userId: user.uid },
     });
     const senderName = companySettings?.companyName || user.name || user.email || "Time2Pay";
+    // Fail closed when online payments are enabled but the merchant has not connected Mollie.
+    const paymentUrl = mollieMode() ? await paymentUrlForInvoice(invoice) : undefined;
     const emailParams = {
       clientName: invoice.client.name,
       invoiceNumber: invoice.number,
@@ -74,6 +78,7 @@ export async function POST(
       vatAmount: invoice.vatAmount,
       senderName,
       notes: invoice.notes,
+      paymentUrl,
       items: invoice.items,
     };
 
@@ -149,6 +154,9 @@ export async function POST(
     const message = error instanceof Error ? error.message : "Onbekende fout";
     console.error("Invoice email send failed", { name, message });
 
+    if (error instanceof MolliePaymentError) {
+      return NextResponse.json({ error: "Betaallink niet beschikbaar", message: error.message }, { status: 422 });
+    }
     if (error instanceof EmailConfigurationError) {
       return NextResponse.json(
         {

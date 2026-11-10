@@ -46,6 +46,7 @@ export function buildInvoiceHtml(params: {
   vatAmount: number;
   senderName: string;
   notes: string | null;
+  paymentUrl?: string;
   items: {
     type: string;
     description: string;
@@ -126,6 +127,7 @@ export function buildInvoiceHtml(params: {
             <div style="margin-top: 12px; text-align: right; font-size: 20px; font-weight: 700;">
               Totaalbedrag: ${escapeHtml(currencyFormatter.format(params.total))}
             </div>
+            ${params.paymentUrl ? `<div style="margin: 28px 0; text-align: center;"><a href="${escapeHtml(params.paymentUrl)}" style="display: inline-block; border-radius: 9px; padding: 15px 24px; color: #ffffff; background: #543749; text-decoration: none; font-weight: 700;">Betaal nu ${escapeHtml(currencyFormatter.format(params.total))}</a><div style="padding-top: 10px; font-size: 12px; color: #726771;">Je betaalt veilig via Mollie met de betaalmethoden die jouw leverancier aanbiedt.</div></div>` : ""}
             ${params.notes?.trim()
               ? `
               <div style="margin-top: 24px; padding: 16px; background: #FBF8F5; border: 1px solid #E9DEDA; border-radius: 12px;">
@@ -155,6 +157,7 @@ export function buildInvoiceText(params: Parameters<typeof buildInvoiceHtml>[0])
     `Subtotaal: ${currencyFormatter.format(params.subtotal)}`,
     `BTW (${params.vatRate}%): ${currencyFormatter.format(params.vatAmount)}`,
     `Totaalbedrag: ${currencyFormatter.format(params.total)}`,
+    ...(params.paymentUrl ? ["", "Betaal deze factuur veilig via:", params.paymentUrl] : []),
     ...(notes ? ["", "Notities / betaalinformatie", notes] : []),
     "",
     "Met vriendelijke groet,",
