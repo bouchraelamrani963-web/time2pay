@@ -1,0 +1,3 @@
+# Preserve the verified byte-for-byte historical migration checksums.
+prisma/migrations/20260630120000_add_user_scope/migration.sql -text
+prisma/migrations/20260831120000_add_company_settings/migration.sql -text

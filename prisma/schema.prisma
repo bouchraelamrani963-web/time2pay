@@ -11,20 +11,25 @@ datasource db {
 }
 
 model Client {
-  id        String    @id @default(cuid())
-  userId    String
-  name      String
-  email     String?
-  phone     String?
-  address   String?
-  vatNumber String?
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  shiftRates Json?
-  ortAgreed Boolean @default(false)
-  invoices  Invoice[]
+  id               String           @id @default(cuid())
+  userId           String?
+  companyId        String?
+  company          BusinessCompany? @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  name             String
+  email            String?
+  phone            String?
+  address          String?
+  vatNumber        String?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  shiftRates       Json?
+  ortAgreed        Boolean          @default(false)
+  invoices         Invoice[]
+  businessInvoices Invoice[]        @relation("BusinessInvoiceClient")
 
+  @@unique([id, companyId])
   @@index([userId])
+  @@index([companyId])
   @@map("clients")
 }
 
@@ -59,27 +64,37 @@ model CompanySettings {
 }
 
 model Invoice {
-  id             String        @id @default(cuid())
-  userId         String
-  number         String        @unique
+  id             String           @id @default(cuid())
+  userId         String?
+  companyId      String?
+  company        BusinessCompany? @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  createdByUid   String?
+  finalizedAt    DateTime?
+  businessSentAt DateTime?
+  issuerSnapshot Json?
+  clientSnapshot Json?
+  number         String
   clientId       String
-  client         Client        @relation(fields: [clientId], references: [id])
-  status         InvoiceStatus @default(DRAFT)
-  issueDate      DateTime      @default(now())
+  client         Client           @relation(fields: [clientId], references: [id])
+  businessClient Client?          @relation("BusinessInvoiceClient", fields: [clientId, companyId], references: [id, companyId])
+  status         InvoiceStatus    @default(DRAFT)
+  issueDate      DateTime         @default(now())
   dueDate        DateTime
   paidAt         DateTime?
   reminderSentAt DateTime?
-  reminderCount  Int           @default(0)
+  reminderCount  Int              @default(0)
   notes          String?
-  ortAgreed      Boolean       @default(false)
-  vatRate        Float         @default(21)
-  subtotal       Float         @default(0)
-  vatAmount      Float         @default(0)
-  total          Float         @default(0)
+  ortAgreed      Boolean          @default(false)
+  vatRate        Float            @default(21)
+  subtotal       Float            @default(0)
+  vatAmount      Float            @default(0)
+  total          Float            @default(0)
   items          InvoiceItem[]
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
 
+  @@unique([companyId, number])
+  @@index([companyId, createdByUid, status])
   @@index([userId])
   @@index([status, dueDate])
   @@map("invoices")
@@ -296,4 +311,60 @@ enum SupportCategory {
   INVOICE
   BILLING
   OTHER
+}
+
+// The owner has an implicit first seat. The four remaining slots are shared
+// between active members and unexpired invitations.
+model BusinessCompany {
+  id                String               @id @default(cuid())
+  ownerUid          String               @unique
+  name              String
+  settings          Json?
+  invoicePrefix     String               @default("F")
+  nextInvoiceNumber Int                  @default(1)
+  invoiceTemplate   String?
+  createdAt         DateTime             @default(now())
+  seats             BusinessSeat[]
+  events            BusinessAuditEvent[]
+  clients           Client[]
+  invoices          Invoice[]
+
+  @@map("business_companies")
+}
+
+model BusinessSeat {
+  id        String           @id @default(uuid())
+  companyId String
+  company   BusinessCompany  @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  slot      Int
+  email     String
+  role      BusinessTeamRole
+  userUid   String?
+  expiresAt DateTime?
+  createdAt DateTime         @default(now())
+
+  @@unique([companyId, slot])
+  @@unique([companyId, email])
+  @@unique([companyId, userUid])
+  @@index([userUid])
+  @@index([email])
+  @@map("business_seats")
+}
+
+model BusinessAuditEvent {
+  id        String          @id @default(cuid())
+  companyId String
+  company   BusinessCompany @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  actorUid  String
+  action    String
+  targetId  String?
+  createdAt DateTime        @default(now())
+
+  @@index([companyId, createdAt])
+  @@map("business_audit_events")
+}
+
+enum BusinessTeamRole {
+  ADMINISTRATION
+  EMPLOYEE
 }

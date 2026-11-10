@@ -23,7 +23,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang="nl" className={inter.className}>
       <body>
-        <Navbar userEmail={user?.email ?? null} canManagePlatform={canManagePlatform} />
+        <Navbar userEmail={user?.email ?? null} canManagePlatform={canManagePlatform}
+          showBusiness={!!user && process.env.TIME2PAY_BUSINESS_ENABLED === "true"} />
         <LayoutMain>{children}</LayoutMain>
         <Toaster position="top-right" />
       </body>

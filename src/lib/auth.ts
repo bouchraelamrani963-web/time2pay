@@ -18,6 +18,18 @@ export interface SessionUser {
  * Read & verify the Firebase session cookie. Returns null if not signed in.
  */
 export async function getSession(): Promise<SessionUser | null> {
+  const session = await readSession();
+  if (!session) return null;
+  const { uid, email, name } = session;
+  return { uid, email, name };
+}
+
+// Business requires TOTP even when the general app runs in a local test mode.
+export function getBusinessSession() {
+  return readSession(true);
+}
+
+async function readSession(requireTotp?: true) {
   const cookieStore = await cookies();
   const session = cookieStore.get(SESSION_COOKIE)?.value;
   if (!session) return null;
@@ -26,11 +38,15 @@ export async function getSession(): Promise<SessionUser | null> {
     const auth = getAdminAuth();
     const decoded = await auth.verifySessionCookie(session, true);
     const account = await auth.getUser(decoded.uid);
-    if (mfaAccessError(decoded, account) || (await recoveryLocked(decoded.uid))) return null;
+    if (mfaAccessError(decoded, account, requireTotp) || (await recoveryLocked(decoded.uid))) return null;
     return {
       uid: decoded.uid,
       email: decoded.email ?? null,
       name: (decoded.name as string | undefined) ?? null,
+      authTime: decoded.auth_time,
+      verifiedEmail: account.emailVerified && decoded.email_verified &&
+        account.email?.toLowerCase() === decoded.email?.toLowerCase()
+        ? account.email?.toLowerCase() ?? null : null,
     };
   } catch {
     return null;
