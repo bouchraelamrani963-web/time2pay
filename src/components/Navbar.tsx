@@ -14,7 +14,7 @@ const appLinks = [
   { href: "/settings", label: "Instellingen", icon: Settings },
 ];
 
-const publicPaths = ["/", "/login", "/register"];
+const publicPaths = ["/", "/uren-factureren-zzp", "/login", "/register"];
 
 interface Props {
   userEmail?: string | null;

@@ -4,6 +4,7 @@ import type { NextRequest } from "next/server";
 /**
  * Routing rules:
  *   "/"           -> public (marketing landing page, no auth)
+ *   "/uren-factureren-zzp" -> public marketing guide
  *   "/login"      -> public
  *   "/register"   -> public
  *   "/robots.txt", "/sitemap.xml" -> public SEO files
@@ -21,6 +22,7 @@ export function proxy(request: NextRequest) {
   if (
     pathname === "/" ||
     pathname === "/login" ||
+    pathname === "/uren-factureren-zzp" ||
     pathname === "/register" ||
     pathname === "/robots.txt" ||
     pathname === "/sitemap.xml" ||

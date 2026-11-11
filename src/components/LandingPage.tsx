@@ -42,8 +42,8 @@ const features = [
     description: "Bekijk je omzet, je openstaande bedragen en je recente facturen in één overzicht.",
   },
   {
-    title: "Betalingen opvolgen",
-    description: "Houd vervaldatums in de gaten en stuur een herinnering wanneer dat nodig is.",
+    title: "Stuur een betalingsherinnering",
+    description: "Staat een factuur nog open? Stuur je klant zelf vanuit de factuur een herinnering per e-mail, met de oorspronkelijke factuur als PDF.",
   },
 ];
 
@@ -52,7 +52,7 @@ const pricingFeatures = [
   "Klantgegevens opslaan en hergebruiken",
   "Facturen downloaden als PDF, afdrukken en e-mailen",
   "Omzet en openstaande facturen bekijken",
-  "Betalingsherinneringen versturen",
+  "Zelf betalingsherinneringen per e-mail versturen, met de oorspronkelijke factuur als PDF.",
 ];
 
 const pricingPlans = [
@@ -105,6 +105,9 @@ export default function LandingPage({ trialEnabled = false, launchOffer = false,
               </div>
               <p className="max-w-lg text-base leading-8 text-[#746a70] md:pt-10">
                 Een factuur maken hoeft geen apart project te zijn. Je volgt gewoon drie overzichtelijke stappen.
+                <Link href="/uren-factureren-zzp" className="mt-2 block font-semibold text-[#543749] underline underline-offset-4">
+                  Uren factureren als zzp’er? Bekijk het voorbeeld.
+                </Link>
               </p>
             </div>
             <div className="mt-14 grid gap-9 border-t border-[#e9deda] pt-9 md:grid-cols-3 md:gap-12">
