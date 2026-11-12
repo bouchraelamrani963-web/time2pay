@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Headphones, FileText, LayoutDashboard, LogOut, Plus, Settings, Users } from "lucide-react";
+import { Headphones, FileText, LayoutDashboard, LogOut, Plus, Settings, ShieldCheck, Users } from "lucide-react";
 import BrandLogo from "./BrandLogo";
 
 const appLinks = [
@@ -14,13 +14,14 @@ const appLinks = [
   { href: "/settings", label: "Instellingen", icon: Settings },
 ];
 
-const publicPaths = ["/", "/login", "/register"];
+const publicPaths = ["/", "/uren-factureren-zzp", "/login", "/register"];
 
 interface Props {
   userEmail?: string | null;
+  canManagePlatform?: boolean;
 }
 
-export default function Navbar(_props: Props = {}) {
+export default function Navbar({ canManagePlatform = false }: Props = {}) {
   const pathname = usePathname();
   const router = useRouter();
   const isPublicRoute = publicPaths.includes(pathname);
@@ -50,6 +51,8 @@ export default function Navbar(_props: Props = {}) {
     );
   }
 
+  if (pathname === "/admin") return null;
+
   return (
     <nav className="sticky top-0 z-40 border-b border-[#e9deda] bg-[#fffdfb]">
       <div className="mx-auto max-w-[1240px] px-4 sm:px-8">
@@ -67,6 +70,10 @@ export default function Navbar(_props: Props = {}) {
             })}
           </div>
           <div className="flex items-center gap-2">
+            {canManagePlatform ? <a href="/admin" aria-label="Beheercentrum" title="Beheercentrum"
+              className="hidden min-h-10 items-center rounded-md border border-[#e2d8d5] bg-white px-3 text-[#543749] hover:bg-[#fbf8f5] sm:inline-flex">
+              <ShieldCheck size={17} aria-hidden />
+            </a> : null}
             <Link href="/invoices/new" aria-label="Nieuwe factuur" className="btn-primary shrink-0 whitespace-nowrap px-3 sm:px-5">
               <Plus size={16} aria-hidden /><span className="hidden sm:inline">Nieuwe factuur</span>
             </Link>
@@ -86,6 +93,9 @@ export default function Navbar(_props: Props = {}) {
               </Link>
             );
           })}
+          {canManagePlatform ? <a href="/admin" className="inline-flex shrink-0 items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-[#543749] sm:hidden">
+            <ShieldCheck size={15} aria-hidden /> Beheercentrum
+          </a> : null}
         </div>
       </div>
     </nav>

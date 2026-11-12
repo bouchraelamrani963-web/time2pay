@@ -4,8 +4,11 @@ import type { NextRequest } from "next/server";
 /**
  * Routing rules:
  *   "/"           -> public (marketing landing page, no auth)
+ *   "/uren-factureren-zzp" -> public marketing guide
  *   "/login"      -> public
  *   "/register"   -> public
+ *   "/robots.txt", "/sitemap.xml" -> public SEO files
+ *   "/time2pay-originele-schermdemo.mp4" -> public homepage demo
  *   "/forgot-password" -> public, environment-gated by the page
  *   "/api/auth/*" -> public (Firebase session exchange endpoints)
  *   "/api/*"      -> handled by route-level auth and returns JSON 401
@@ -19,7 +22,11 @@ export function proxy(request: NextRequest) {
   if (
     pathname === "/" ||
     pathname === "/login" ||
+    pathname === "/uren-factureren-zzp" ||
     pathname === "/register" ||
+    pathname === "/robots.txt" ||
+    pathname === "/sitemap.xml" ||
+    pathname === "/time2pay-originele-schermdemo.mp4" ||
     pathname === "/forgot-password" ||
     pathname === "/recover" ||
     pathname.startsWith("/.well-known/workflow/") ||

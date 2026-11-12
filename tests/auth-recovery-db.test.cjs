@@ -98,7 +98,7 @@ test('PostgreSQL: concurrent workers send an old unattempted notice once and ret
  await worker.attemptSecurityNotice(notice.id);
  assert.equal(calls,1);assert.equal((await prisma.securityNotice.findUnique({where:{id:notice.id}})).firstAttemptAt.toISOString(),start);
 });
-test('PostgreSQL: real advisory locks admit exactly 30 Starter issues and preserve repeat/period behavior',{skip:!enabled},async()=>{
+test('PostgreSQL: real advisory locks admit exactly 15 Starter issues and preserve repeat/period behavior',{skip:!enabled},async()=>{
  const userId='qa-quota-'+randomUUID();
  const client=await prisma.client.create({data:{userId,name:'Synthetic quota client'}});
  const invoices=await Promise.all(Array.from({length:32},()=>prisma.invoice.create({data:{userId,clientId:client.id,number:'CI-'+randomUUID(),dueDate:new Date()}})));
@@ -107,10 +107,10 @@ test('PostgreSQL: real advisory locks admit exactly 30 Starter issues and preser
  const module=load('src/lib/invoice-issuance.ts',{'./prisma':{prisma},'./invoice-access':{getInvoiceEntitlement:async()=>entitlement},'./billing':{
   paymentRequired:()=>NextResponse.json({code:'SUBSCRIPTION_REQUIRED'},{status:402})}});
  const results=await Promise.all(invoices.slice(0,31).map(i=>module.authorizeInvoiceIssue(userId,i.id)));
- assert.equal(results.filter(r=>r===null).length,30);assert.equal(results.filter(r=>r?.status===409).length,1);
+ assert.equal(results.filter(r=>r===null).length,15);assert.equal(results.filter(r=>r?.status===409).length,16);
  const issued=await prisma.invoiceIssue.findFirst({where:{userId}});
  assert.equal(await module.authorizeInvoiceIssue(userId,issued.invoiceId),null);
- assert.equal(await prisma.invoiceIssue.count({where:{userId}}),30);
+ assert.equal(await prisma.invoiceIssue.count({where:{userId}}),15);
  entitlement={...entitlement,periodStart:200,periodEnd:300};
  assert.equal(await module.authorizeInvoiceIssue(userId,invoices[31].id),null);
  entitlement=null;assert.equal((await module.authorizeInvoiceIssue(userId,issued.invoiceId)).status,402);

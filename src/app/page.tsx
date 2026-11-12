@@ -4,17 +4,20 @@ import LandingPage from "@/components/LandingPage";
 import { registrationTrialEnabled, launchOfferAvailable } from "@/lib/registration-trial";
 
 const siteUrl = "https://www.time2pay.nl/";
+const title = "Factuurprogramma voor zzp’ers | Time2Pay";
 const description =
-  "Je werk gedaan. Je factuur geregeld. Registreer uren, gebruik verschillende tarieven en maak professionele facturen met Time2Pay.";
+  "Factureer uren, materialen en vierkante meters met Time2Pay. Gebruik verschillende tarieven en houd overzicht over je klanten en betalingen.";
 
 export const metadata: Metadata = {
+  title,
+  description,
   alternates: { canonical: siteUrl },
   openGraph: {
     type: "website",
     locale: "nl_NL",
     siteName: "Time2Pay",
     url: siteUrl,
-    title: "Time2Pay | Facturatie voor zelfstandigen",
+    title,
     description,
   },
 };

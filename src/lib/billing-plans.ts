@@ -1,3 +1,5 @@
+export const STARTER_INVOICE_LIMIT = 15;
+
 export const BILLING_PLANS = {
   starter: { name: "Starter", cents: 900, priceId: "price_1UTMKLITnweMFGCgJdeTu8jS" },
   pro: { name: "Pro", cents: 1900, priceId: "price_1UTMKqITnweMFGCg55kyL7v5" },
