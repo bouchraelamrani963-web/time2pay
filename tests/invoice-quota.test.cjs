@@ -23,20 +23,28 @@ function fixture() {
   }
  };
  const prisma={$transaction:fn=>{const run=tail.then(()=>fn(tx));tail=run.catch(()=>{});return run;}};
- const route=load('src/lib/invoice-issuance.ts',{'server-only':{},'next/server':{NextResponse},'./prisma':{prisma},'./invoice-access':{getInvoiceEntitlement:async()=>entitlement},'./billing':{
+ const route=load('src/lib/invoice-issuance.ts',{'server-only':{},'next/server':{NextResponse},'./prisma':{prisma},'./invoice-access':{getInvoiceEntitlement:async()=>entitlement},'./billing-plans':load('src/lib/billing-plans.ts',{}),'./billing':{
  paymentRequired:()=>NextResponse.json({code:'SUBSCRIPTION_REQUIRED'},{status:402})}});
  return {issue:route.authorizeInvoiceIssue,ledger,set:v=>entitlement=v,period:()=>({...entitlement})};
 }
-test('simultaneous first issues: 30 pass and invoice 31 is denied',async()=>{
- const f=fixture();const results=await Promise.all(Array.from({length:31},(_,i)=>f.issue('owner','invoice-'+i)));
- assert.equal(results.filter(x=>x===null).length,30);assert.equal(results.filter(x=>x?.status===409).length,1);assert.equal(f.ledger.length,30);
+test('simultaneous first issues: invoice 15 is allowed and invoice 16 is denied',async()=>{
+ const f=fixture();const results=await Promise.all(Array.from({length:16},(_,i)=>f.issue('owner','invoice-'+(i+1))));
+ assert.ok(results.slice(0,15).every(result=>result===null));
+ assert.equal(results[15].status,409);
+ const body=await results[15].json();
+ assert.equal(body.code,'INVOICE_LIMIT_REACHED');
+ assert.match(body.error,/15 facturen/);
+ assert.equal(f.ledger.length,15);
 });
-test('repeat PDF/send/print/reminder of an already issued invoice does not consume quota',async()=>{
- const f=fixture();await Promise.all(Array.from({length:35},()=>f.issue('owner','same')));assert.equal(f.ledger.length,1);
+test('repeat PDF/send/print/reminder at the limit does not consume quota',async()=>{
+ const f=fixture();await Promise.all(Array.from({length:15},(_,i)=>f.issue('owner','invoice-'+i)));
+ const retries=await Promise.all(Array.from({length:3},()=>f.issue('owner','invoice-0')));
+ assert.ok(retries.every(result=>result===null));
+ assert.equal(f.ledger.length,15);
 });
 test('renewed subscription period resets allowance and old issued invoices remain idempotent',async()=>{
- const f=fixture();await Promise.all(Array.from({length:30},(_,i)=>f.issue('owner','old'+i)));
- f.set({...f.period(),periodStart:200,periodEnd:300});assert.equal(await f.issue('owner','new'),null);assert.equal(await f.issue('owner','old0'),null);assert.equal(f.ledger.length,31);
+ const f=fixture();await Promise.all(Array.from({length:15},(_,i)=>f.issue('owner','old'+i)));
+ f.set({...f.period(),periodStart:200,periodEnd:300});assert.equal(await f.issue('owner','new'),null);assert.equal(await f.issue('owner','old0'),null);assert.equal(f.ledger.length,16);
 });
 test('non-Starter plans do not inherit Starter quota',async()=>{
  const f=fixture();f.set({...f.period(),starter:false});const r=await Promise.all(Array.from({length:31},(_,i)=>f.issue('owner','pro'+i)));assert.ok(r.every(x=>x===null));
@@ -62,7 +70,7 @@ test('trial finalizations are unlimited, owned, idempotent and do not consume th
  await f.issue('owner','trial0');assert.equal(f.ledger.length,35);
  f.set(null);assert.equal((await f.issue('owner','trial0')).status,402);
  f.set({subscriptionId:'sub_paid',periodStart:100,periodEnd:200,starter:true});
- const paid=await Promise.all(Array.from({length:31},(_,i)=>f.issue('owner','paid'+i)));
- assert.equal(paid.filter(x=>x===null).length,30);assert.equal(paid.filter(x=>x?.status===409).length,1);
- assert.equal(await f.issue('owner','trial0'),null);assert.equal(f.ledger.length,65);
+ const paid=await Promise.all(Array.from({length:16},(_,i)=>f.issue('owner','paid'+i)));
+ assert.equal(paid.filter(x=>x===null).length,15);assert.equal(paid.filter(x=>x?.status===409).length,1);
+ assert.equal(await f.issue('owner','trial0'),null);assert.equal(f.ledger.length,50);
 });

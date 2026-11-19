@@ -27,10 +27,16 @@ test('late registration retains 30 days beyond campaign end',()=>{
  const now=Date.parse('2027-02-01T12:00:00Z');
  assert.equal(freeTrial(new Date(now).toISOString(),launched,now).periodEnd,now/1000+30*86400);
 });
-test('homepage primary and closing actions and navigation link directly to registration',()=>{
+test('homepage closing action, video dialog and navigation link directly to registration',()=>{
  const home=fs.readFileSync('src/components/LandingPage.tsx','utf8');
- assert.equal((home.match(/Gratis account aanmaken <ArrowRight/g)||[]).length,2);
- assert.equal((home.match(/href="\/register"/g)||[]).length,2);
+ const hero=fs.readFileSync('src/components/LandingHero.tsx','utf8');
+ const demo=fs.readFileSync('src/components/DemoVideoTrigger.tsx','utf8');
+ assert.match(home,/<LandingHero\b/);
+ assert.match(hero,/<DemoVideoTrigger\s*\/>/);
+ const registerAction=/<Link\s+href="\/register"[^>]*>\s*Gratis account aanmaken\b/;
+ assert.match(home,registerAction);
+ assert.match(hero,registerAction);
+ assert.match(demo,registerAction);
  assert.match(fs.readFileSync('src/components/Navbar.tsx','utf8'),/href="\/register"/);
  assert.equal(JSON.parse(fs.readFileSync('vercel.json')).git.deploymentEnabled['improve/registration-trial-20261104'],false);
 });

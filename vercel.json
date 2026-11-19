@@ -9,7 +9,8 @@
     "deploymentEnabled": {
       "security/time2pay-deps-20261101": false,
       "improve/registration-trial-20261104": false,
-      "feature/helpdesk-20261105": false
+      "feature/helpdesk-20261105": false,
+      "feature/admin-center-20261106": false
     }
   }
 }

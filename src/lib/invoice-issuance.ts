@@ -2,6 +2,7 @@ import "server-only";
 import { NextResponse } from "next/server";
 import { prisma } from "./prisma";
 import { paymentRequired } from "./billing";
+import { STARTER_INVOICE_LIMIT } from "./billing-plans";
 import { getInvoiceEntitlement } from "./invoice-access";
 
 // Count distinct invoices at their first definitive action, never draft creation.
@@ -10,7 +11,7 @@ export async function authorizeInvoiceIssue(userId: string, invoiceId: string) {
   const entitlement = await getInvoiceEntitlement(userId);
   if (!entitlement) return paymentRequired();
   return prisma.$transaction(async tx => {
-    // Shared account lock prevents the 30th and 31st simultaneous issue both passing.
+    // Serialize quota checks so simultaneous issues cannot exceed the limit.
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${userId}))`;
     const invoice = await tx.invoice.findFirst({ where: { id: invoiceId, userId }, select: { id: true } });
     if (!invoice) return NextResponse.json({ error: "Factuur niet gevonden" }, { status: 404 });
@@ -18,9 +19,9 @@ export async function authorizeInvoiceIssue(userId: string, invoiceId: string) {
     if (issued) return null;
     const count = await tx.invoiceIssue.count({ where: { userId,
       subscriptionId: entitlement.subscriptionId, periodStart: entitlement.periodStart } });
-    if (entitlement.starter && count >= 30) {
+    if (entitlement.starter && count >= STARTER_INVOICE_LIMIT) {
       return NextResponse.json({ code: "INVOICE_LIMIT_REACHED",
-        error: "Je hebt de 30 facturen van je Starter-abonnementsperiode gebruikt. Concepten blijven gratis.",
+        error: `Je hebt de ${STARTER_INVOICE_LIMIT} facturen van je Starter-abonnementsperiode gebruikt. Concepten blijven gratis.`,
       }, { status: 409 });
     }
     await tx.invoiceIssue.create({ data: { userId, invoiceId,
