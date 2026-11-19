@@ -1,8 +1,13 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import PasswordResetForm from "@/components/PasswordResetForm";
 import { passwordResetAvailable } from "@/lib/password-reset-policy";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+};
 
 export default function ForgotPasswordPage() {
   return <main className="mx-auto max-w-lg space-y-6 px-5 py-12">
